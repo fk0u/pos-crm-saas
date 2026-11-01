@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        // '/' now redirects guests to the kasir login page.
+        $response->assertRedirect(route('login'));
     }
 }

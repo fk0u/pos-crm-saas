@@ -1,1 +1,1 @@
-//
+import './pos/main.js';

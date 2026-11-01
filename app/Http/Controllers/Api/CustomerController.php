@@ -15,13 +15,13 @@ class CustomerController extends Controller
     public function lookup(Request $request): JsonResponse
     {
         $phone = $request->query('phone');
-        if (!$phone) {
+        if (! $phone) {
             return response()->json(['success' => false, 'message' => 'Nomor telepon wajib diisi'], 422);
         }
 
         $customer = Customer::where('phone', $phone)->first();
 
-        if (!$customer) {
+        if (! $customer) {
             return response()->json([
                 'success' => false,
                 'is_new' => true,

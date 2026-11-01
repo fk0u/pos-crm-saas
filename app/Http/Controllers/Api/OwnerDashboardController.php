@@ -7,7 +7,6 @@ use App\Models\Order;
 use App\Models\Outlet;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class OwnerDashboardController extends Controller
 {
@@ -28,18 +27,18 @@ class OwnerDashboardController extends Controller
         $outletMetrics = Outlet::withCount(['orders' => function ($query) use ($today) {
             $query->where('created_at', '>=', $today);
         }])
-        ->withSum(['orders' => function ($query) use ($today) {
-            $query->where('created_at', '>=', $today);
-        }], 'grand_total')
-        ->get()
-        ->map(function ($outlet) {
-            return [
-                'outlet_id' => $outlet->id,
-                'name' => $outlet->name,
-                'transactions' => $outlet->orders_count,
-                'revenue' => (float) ($outlet->orders_sum_grand_total ?? 0),
-            ];
-        });
+            ->withSum(['orders' => function ($query) use ($today) {
+                $query->where('created_at', '>=', $today);
+            }], 'grand_total')
+            ->get()
+            ->map(function ($outlet) {
+                return [
+                    'outlet_id' => $outlet->id,
+                    'name' => $outlet->name,
+                    'transactions' => $outlet->orders_count,
+                    'revenue' => (float) ($outlet->orders_sum_grand_total ?? 0),
+                ];
+            });
 
         // Recent 5 transactions
         $recentOrders = Order::with(['outlet:id,name', 'customer:id,name,phone'])

@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Outlet;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
@@ -24,8 +26,8 @@ class PosController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('sku', 'ilike', "%{$search}%")
-                  ->orWhere('barcode', 'ilike', "%{$search}%");
+                    ->orWhere('sku', 'ilike', "%{$search}%")
+                    ->orWhere('barcode', 'ilike', "%{$search}%");
             });
         }
 
@@ -40,12 +42,48 @@ class PosController extends Controller
     }
 
     /**
+     * Resolve and validate the outlet used for checkout.
+     *
+     * Rules:
+     * - outlet must belong to the cashier's tenant (outlet injection guard);
+     * - a cashier may only use their own outlet (default when omitted);
+     * - owner/manager may use any outlet of the tenant.
+     */
+    private function resolveOutlet(Request $request, object $user): Outlet
+    {
+        $outletId = $request->input('outlet_id') ?: $user->outlet_id;
+
+        if (! $outletId) {
+            throw ValidationException::withMessages([
+                'outlet_id' => 'Outlet wajib diisi bila user tidak punya outlet default.',
+            ]);
+        }
+
+        /** @var Outlet|null $outlet */
+        $outlet = Outlet::find($outletId);
+
+        if (! $outlet || $outlet->tenant_id !== $user->tenant_id) {
+            throw ValidationException::withMessages([
+                'outlet_id' => 'Outlet tidak valid atau bukan milik outlet Anda.',
+            ]);
+        }
+
+        if ($user->role === 'cashier' && $user->outlet_id !== $outlet->id) {
+            throw ValidationException::withMessages([
+                'outlet_id' => 'Kasir hanya dapat melakukan transaksi di outlet sendiri.',
+            ]);
+        }
+
+        return $outlet;
+    }
+
+    /**
      * Process checkout transaction.
      */
     public function checkout(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'outlet_id' => 'required|uuid',
+            'outlet_id' => 'nullable|uuid',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|uuid',
             'items.*.quantity' => 'required|integer|min:1',
@@ -62,13 +100,25 @@ class PosController extends Controller
             $user = $request->user();
             $tenantId = $user->tenant_id;
 
+            $outlet = $this->resolveOutlet($request, $user);
+
             // 1. Resolve or register CRM Customer
             $customer = null;
-            if (!empty($validated['customer_phone'])) {
+            if (! empty($validated['customer_phone'])) {
                 $customer = Customer::firstOrCreate(
                     ['tenant_id' => $tenantId, 'phone' => $validated['customer_phone']],
                     ['name' => $validated['customer_name'] ?? 'Pelanggan']
                 );
+            }
+
+            $pointsRedeemed = (int) ($validated['points_redeemed'] ?? 0);
+
+            // Loyalty guard: may never redeem more than the customer actually holds.
+            if ($customer && $pointsRedeemed > 0
+                && $pointsRedeemed > (int) $customer->loyalty_points) {
+                throw ValidationException::withMessages([
+                    'points_redeemed' => 'Saldo poin tidak mencukupi.',
+                ]);
             }
 
             // 2. Compute items and totals
@@ -76,7 +126,16 @@ class PosController extends Controller
             $orderItemsData = [];
 
             foreach ($validated['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
+                // lockForUpdate: two concurrent terminals must not oversell the same stock row.
+                $product = Product::where('id', $item['product_id'])->lockForUpdate()->firstOrFail();
+
+                // Stock guard (all rows tracked; column track_stock is planned but not migrated yet).
+                if ($item['quantity'] > $product->stock) {
+                    throw ValidationException::withMessages([
+                        'items' => "Stok produk {$product->name} tidak mencukupi",
+                    ]);
+                }
+
                 $itemSubtotal = $product->selling_price * $item['quantity'];
                 $subtotal += $itemSubtotal;
 
@@ -89,26 +148,22 @@ class PosController extends Controller
                     'subtotal' => $itemSubtotal,
                 ];
 
-                // Deduct stock if tracked
-                if ($product->stock >= $item['quantity']) {
-                    $product->decrement('stock', $item['quantity']);
-                }
+                $product->decrement('stock', $item['quantity']);
             }
 
             $discount = $validated['discount_amount'] ?? 0;
             $tax = $validated['tax_amount'] ?? 0;
-            $pointsRedeemed = $validated['points_redeemed'] ?? 0;
             $grandTotal = max(0, $subtotal - $discount + $tax - ($pointsRedeemed * 100)); // 1 pt = Rp 100
 
             // 3. Loyalty point calculation (1 pt per Rp 10,000)
             $pointsEarned = (int) floor($grandTotal / 10000);
 
             // 4. Generate unique invoice number
-            $invoiceNumber = 'INV/' . date('Ymd') . '/' . strtoupper(Str::random(6));
+            $invoiceNumber = 'INV/'.date('Ymd').'/'.strtoupper(Str::random(6));
 
             $order = Order::create([
                 'tenant_id' => $tenantId,
-                'outlet_id' => $validated['outlet_id'],
+                'outlet_id' => $outlet->id,
                 'cashier_id' => $user->id,
                 'customer_id' => $customer?->id,
                 'invoice_number' => $invoiceNumber,
@@ -147,6 +202,7 @@ class PosController extends Controller
                 'data' => [
                     'order_id' => $order->id,
                     'invoice_number' => $order->invoice_number,
+                    'outlet_id' => $outlet->id,
                     'grand_total' => (float) $order->grand_total,
                     'change_due' => (float) $changeDue,
                     'points_earned' => $pointsEarned,
