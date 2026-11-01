@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Dokumen Perencanaan Sistem: PRD & PSD - SaaS POS + CRM</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 18mm 20mm 18mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      font-size: 11pt;
+      margin: 0;
+      padding: 0;
+    }
+    .cover {
+      page-break-after: always;
+      padding-top: 80px;
+      text-align: left;
+    }
+    .badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 9pt;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 26pt;
+      color: #0f172a;
+      line-height: 1.2;
+      margin: 0 0 12px 0;
+      font-weight: 800;
+    }
+    .subtitle {
+      font-size: 14pt;
+      color: #475569;
+      margin: 0 0 40px 0;
+      font-weight: 400;
+    }
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px 24px;
+      margin-top: 40px;
+      font-size: 10pt;
+    }
+    .meta-box table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .meta-box td {
+      padding: 6px 0;
+      vertical-align: top;
+    }
+    .meta-label {
+      font-weight: 600;
+      color: #64748b;
+      width: 140px;
+    }
+    .meta-val {
+      color: #0f172a;
+      font-weight: 500;
+    }
+    h2 {
+      font-size: 16pt;
+      color: #1e293b;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 32px;
+      margin-bottom: 14px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 12.5pt;
+      color: #334155;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 11pt;
+      color: #475569;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+    p, ul, ol {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    ul, ol {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    table.data-table th, table.data-table td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    table.data-table th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    pre, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      line-height: 1.45;
+      overflow-x: auto;
+      page-break-inside: avoid;
+      margin: 12px 0;
+    }
+    code {
+      background: #f1f5f9;
+      color: #dc2626;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 9pt;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .callout {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 14px 0;
+      font-size: 10pt;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover">
+    <div class="badge">Blueprint & Technical Specification</div>
+    <h1>SaaS POS + CRM + Central Sales Monitoring</h1>
+    <div class="subtitle">Dokumen Perencanaan Lengkap: Product Requirement Document (PRD) & Product Specification Document (PSD)</div>
+
+    <div class="meta-box">
+      <table>
+        <tr>
+          <td class="meta-label">Target Segmen</td>
+          <td class="meta-val">UMKM Indonesia (Retail & F&B Multi-Cabang)</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Tech Stack Utama</td>
+          <td class="meta-val">Full Laravel 11, PostgreSQL, Laravel Reverb, Tailwind CSS</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Arsitektur Multi-Tenancy</td>
+          <td class="meta-val">Single DB Shared Schema dengan Row-Level Scoped Isolation</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Estimasi Timeline</td>
+          <td class="meta-val">14 Hari Kerja (4 Sprint MVP)</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Disusun Oleh</td>
+          <td class="meta-val">Tim Arsitektur & Perencanaan Sistem (Sekretaris & Bevy CTO)</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Status Dokumen</td>
+          <td class="meta-val"><strong>APPROVED — READY FOR DAY 1 KICKOFF</strong></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- BAGIAN 1: PRD -->
+  <h2>BAGIAN I: PRODUCT REQUIREMENT DOCUMENT (PRD)</h2>
+
+  <h3>1.1 Latar Belakang & Masalah UMKM</h3>
+  <p>Mayoritas pelaku usaha mikro, kecil, dan menengah (UMKM) di Indonesia yang mengelola lebih dari satu cabang menghadapi kendala kritis:</p>
+  <ul>
+    <li><strong>Fragmentasi Data Transaksi:</strong> Operasional kasir masih terpisah-pisah, kasir mencatat di aplikasi offline atau kertas, menyebabkan rekap harian lambat dan rentan salah hitung.</li>
+    <li><strong>Ketiadaan Data Pelanggan (CRM):</strong> Transaksi terjadi tanpa mengumpulkan kontak pelanggan. Pemilik tidak memiliki data siapa pelanggan setia, berapa rata-rata nilai transaksi (AOV), dan kapan mereka terakhir berbelanja.</li>
+    <li><strong>Owner Mengalami Kebutaan Data Penjualan (Blind Monitoring):</strong> Pemilik toko harus menunggu laporan manual via chat WhatsApp tiap malam, menyulitkan mitigasi kecurangan uang kas dan pengambilan keputusan stok barang.</li>
+  </ul>
+
+  <h3>1.2 User Persona & Peran Pengguna</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 20%;">Persona</th>
+        <th style="width: 25%;">Peran</th>
+        <th style="width: 55%;">Kebutuhan Utama & Pain Point</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Kasir (Cashier)</strong></td>
+        <td>Operasional kasir di toko</td>
+        <td>Alur pencarian produk instan, hitung kembalian otomatis, cetak struk thermal cepat (&lt; 5 detik), dan tidak boleh bingung saat antrean panjang.</td>
+      </tr>
+      <tr>
+        <td><strong>Kepala Cabang (Manager)</strong></td>
+        <td>Supervisi outlet harian</td>
+        <td>Buka & tutup register kas (modal awal vs uang fisik akhir shift), pantau pergerakan stok harian, dan audit transaksi kasir.</td>
+      </tr>
+      <tr>
+        <td><strong>Pemilik Usaha (Owner)</strong></td>
+        <td>Pengambil keputusan bisnis</td>
+        <td>Live dashboard penjualan real-time di smartphone, komparasi performa cabang, laporan laba kotor, dan retensi pelanggan (CRM).</td>
+      </tr>
+      <tr>
+        <td><strong>SuperAdmin SaaS</strong></td>
+        <td>Pengelola platform cloud</td>
+        <td>Manajemen onboarding tenant baru, pemantauan masa aktif langganan, dan stabilitas server.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>1.3 Ruang Lingkup Produk (In-Scope vs Out-of-Scope)</h3>
+  <div class="callout">
+    <strong>Prinsip MVP:</strong> Fokus pada kecepatan, stabilitas multi-tenancy, dan kehandalan transaksi kasir. Fitur integrasi pihak ketiga yang berat ditunda setelah traksi awal terbukti.
+  </div>
+  <ul>
+    <li><strong>In-Scope (Rilis 14 Hari):</strong>
+      <ul>
+        <li>Terminal POS responsif (tablet & laptop), pencarian produk cepat, barcode scanner support.</li>
+        <li>Kalkulasi diskon, PPN, split payment dasar (Cash, QRIS Statis, Transfer Bank).</li>
+        <li>Cetak struk thermal 58mm/80mm ESC/POS dan kirim struk WhatsApp Web link.</li>
+        <li>Database CRM berbasis No. WhatsApp, poin loyalitas, riwayat transaksi belanja pelanggan.</li>
+        <li>Dashboard live feed transaksi real-time (Laravel Reverb) untuk owner.</li>
+        <li>Pencatatan shift kasir (opening cash, cash drop, closing reconciliation).</li>
+      </ul>
+    </li>
+    <li><strong>Out-of-Scope (Fase Pasca-MVP):</strong>
+      <ul>
+        <li>Integrasi Payment Gateway otomatis (Midtrans/Xendit) — di MVP kasir cukup klik "QRIS / Lunas".</li>
+        <li>Manajemen Bill of Materials (resep bahan mentah F&B kompleks).</li>
+        <li>Integrasi hardware timbangan digital otomatis.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- BAGIAN 2: PSD -->
+  <h2>BAGIAN II: PRODUCT SPECIFICATION DOCUMENT (PSD)</h2>
+
+  <h3>2.1 Arsitektur Sistem & Komponen Teknis</h3>
+  <p>Sistem dirancang dengan pola <strong>Modular Monolith</strong> menggunakan <strong>Laravel 11</strong> untuk memaksimalkan efisiensi solo development tanpa beban maintenance microservices:</p>
+  <ul>
+    <li><strong>Backend Core:</strong> Laravel 11 (PHP 8.2+) dengan arsitektur Domain-Driven Modul (POS, CRM, Analytics, Tenancy).</li>
+    <li><strong>Database:</strong> PostgreSQL 16 dengan isolasi <code>tenant_id</code> otomatis via Eloquent Global Scope.</li>
+    <li><strong>WebSockets:</strong> Laravel Reverb untuk transmisi event transaksi real-time dari kasir ke dashboard owner.</li>
+    <li><strong>Caching & Queue:</strong> Redis untuk queue pembuatan laporan, sinkronisasi poin, dan cache katalog produk.</li>
+  </ul>
+
+  <h3>2.2 Strategi Multi-Tenancy (PostgreSQL)</h3>
+  <p>Menggunakan pendekatan <strong>Single Database, Shared Schema dengan Discriminator Column (tenant_id)</strong>.</p>
+  <pre><code>// app/Scopes/TenantScope.php
+namespace App\Scopes;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Scope;
+
+class TenantScope implements Scope
+{
+    public function apply(Builder $builder, Model $model)
+    {
+        if (auth()->check() && auth()->user()->tenant_id) {
+            $builder->where($model->getTable() . '.tenant_id', auth()->user()->tenant_id);
+        }
+    }
+}</code></pre>
+  <p>Setiap entitas bisnis diisolasi secara transparan. Tidak ada kasir atau owner dari toko A yang dapat melihat data transaksi dari toko B.</p>
+
+  <h3>2.3 Skema Database Utama (PostgreSQL DDL)</h3>
+
+  <h4>Tabel: <code>tenants</code>, <code>outlets</code>, <code>users</code></h4>
+  <pre><code>CREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    subdomain VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE outlets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    outlet_id UUID REFERENCES outlets(id) ON DELETE SET NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL -- 'superadmin', 'owner', 'manager', 'cashier'
+);</code></pre>
+
+  <h4>Tabel: <code>customers</code> (CRM), <code>orders</code>, dan <code>order_items</code></h4>
+  <pre><code>CREATE TABLE customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    phone VARCHAR(30) NOT NULL, -- Nomor WhatsApp unik per tenant
+    name VARCHAR(255),
+    loyalty_points INTEGER DEFAULT 0,
+    total_spend NUMERIC(15, 2) DEFAULT 0.00,
+    visit_count INTEGER DEFAULT 0,
+    last_visit_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT unique_tenant_customer UNIQUE (tenant_id, phone)
+);
+
+CREATE TABLE orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    outlet_id UUID NOT NULL REFERENCES outlets(id),
+    cashier_id UUID NOT NULL REFERENCES users(id),
+    customer_id UUID REFERENCES customers(id),
+    invoice_number VARCHAR(100) NOT NULL,
+    subtotal NUMERIC(12, 2) NOT NULL,
+    discount_amount NUMERIC(12, 2) DEFAULT 0.00,
+    tax_amount NUMERIC(12, 2) DEFAULT 0.00,
+    grand_total NUMERIC(12, 2) NOT NULL,
+    points_earned INTEGER DEFAULT 0,
+    points_redeemed INTEGER DEFAULT 0,
+    payment_method VARCHAR(50) NOT NULL, -- 'cash', 'qris', 'bank_transfer'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_tenant_invoice UNIQUE (tenant_id, invoice_number)
+);
+
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(id),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_cost_price NUMERIC(12, 2) NOT NULL,
+    unit_selling_price NUMERIC(12, 2) NOT NULL,
+    subtotal NUMERIC(12, 2) NOT NULL
+);</code></pre>
+
+  <div class="page-break"></div>
+
+  <h3>2.4 Real-time Event Architecture (Laravel Reverb)</h3>
+  <p>Alur transmisi data saat transaksi terjadi:</p>
+  <ol>
+    <li>Kasir menekan tombol <strong>Bayar & Selesai</strong> di terminal POS.</li>
+    <li>Sistem mengeksekusi DB transaction: kurangi stok, tambah poin pelanggan, simpan order.</li>
+    <li>Sistem menembakkan event: <code>OrderCompletedEvent::dispatch($order)</code>.</li>
+    <li>Laravel Reverb menyiarkan event ke channel pribadi: <code>private-tenant.{tenantId}.live-sales</code>.</li>
+    <li>Layar Owner di mana pun berada langsung menampilkan popup suara & meng-update total pendapatan detik itu juga.</li>
+  </ol>
+
+  <h3>2.5 Matriks Akses Pengguna (RBAC)</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Fitur / Aksi</th>
+        <th>SuperAdmin</th>
+        <th>Owner</th>
+        <th>Outlet Manager</th>
+        <th>Kasir</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Akses Terminal POS & Checkout</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>✓</td>
+        <td>✓</td>
+      </tr>
+      <tr>
+        <td>Buka & Tutup Kasir (Shift)</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>✓</td>
+        <td>✓</td>
+      </tr>
+      <tr>
+        <td>Kelola Harga & Katalog Produk</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>✓</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Live Monitoring Real-time</td>
+        <td>✓ (Semua)</td>
+        <td>✓ (Toko Sendiri)</td>
+        <td>✓ (Outlet Sendiri)</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Lihat Laba Kotor (Gross Profit)</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>—</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Kelola Data Pelanggan CRM</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>✓</td>
+        <td>✓ (Lookup)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- BAGIAN 3: ROADMAP & KICKOFF -->
+  <h2>BAGIAN III: SPRINT ROADMAP & KICKOFF BESOK PAGI</h2>
+
+  <h3>3.1 Timeline 14 Hari Eksekusi</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Sprint</th>
+        <th style="width: 20%;">Hari</th>
+        <th style="width: 55%;">Fokus Target & Output</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Sprint 1: Fondasi & Multi-Tenancy</strong></td>
+        <td>Hari 1 – 3</td>
+        <td>Inisialisasi repo, koneksi PostgreSQL, struktur multi-tenancy, migrasi tabel inti, auth & permission role.</td>
+      </tr>
+      <tr>
+        <td><strong>Sprint 2: Terminal POS Engine</strong></td>
+        <td>Hari 4 – 7</td>
+        <td>UI Kasir responsif, keranjang belanja, kalkulasi PPN/diskon, multi-payment, cetak struk thermal ESC/POS.</td>
+      </tr>
+      <tr>
+        <td><strong>Sprint 3: Modul CRM & Loyalitas</strong></td>
+        <td>Hari 8 – 10</td>
+        <td>Input pelanggan via nomor WA di kasir, kalkulasi poin belanja, riwayat belanja member, penukaran poin.</td>
+      </tr>
+      <tr>
+        <td><strong>Sprint 4: Owner Live Dashboard & Smoke Test</strong></td>
+        <td>Hari 11 – 14</td>
+        <td>Integrasi Laravel Reverb WebSockets, grafik analitik multi-cabang, laporan laba rugi, uji coba end-to-end.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Action Item Kickoff Jam 09.00 (Besok Pagi)</h3>
+  <div class="callout">
+    <strong>Petunjuk Eksekusi:</strong> Seluruh konfigurasi awal dapat dijalankan langsung di working directory repositori yang telah disiapkan: <code>/Users/kou/OpenBot/Shared/pos-crm-saas</code>.
+  </div>
+  <ol>
+    <li>Buka terminal di root project:
+      <pre><code>cd /Users/kou/OpenBot/Shared/pos-crm-saas</code></pre>
+    </li>
+    <li>Inisialisasi Laravel 11 ke dalam direktori:
+      <pre><code>composer create-project laravel/laravel . --prefer-dist</code></pre>
+    </li>
+    <li>Konfigurasi PostgreSQL di <code>.env</code>:
+      <pre><code>DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=pos_saas_db
+DB_USERNAME=postgres
+DB_PASSWORD=your_password</code></pre>
+    </li>
+    <li>Jalankan migrasi pertama dan pasang paket Laravel Reverb:
+      <pre><code>php artisan install:broadcasting</code></pre>
+    </li>
+  </ol>
+
+  <p style="text-align: center; color: #64748b; font-size: 9pt; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+    Dokumen ini merupakan spesifikasi resmi proyek SaaS POS + CRM UMKM. Hak Cipta dilindungi undang-undang.
+  </p>
+
+</body>
+</html>
