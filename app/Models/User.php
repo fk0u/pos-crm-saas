@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable, HasUuids, BelongsToTenant;
+
+    protected $fillable = [
+        'tenant_id',
+        'outlet_id',
+        'name',
+        'email',
+        'password',
+        'role', // 'superadmin', 'owner', 'manager', 'cashier'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    public function outlet(): BelongsTo
+    {
+        return $this->belongsTo(Outlet::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    public function isCashier(): bool
+    {
+        return $this->role === 'cashier';
+    }
+}

@@ -8,9 +8,9 @@
 ## 📌 Project Overview
 Platform SaaS terpadu yang menggabungkan:
 1. **POS Kasir Cepat & Responsif**: Operasional kasir toko/outlet, multi-metode pembayaran, barcode scan, thermal printing.
-2. **CRM & Member Retention**: Database pelanggan berbasis Nomor WhatsApp, loyalty points, histori transaksi, segmentasi RFM.
+2. **CRM & Member Retention**: Database pelanggan berbasis Nomor WhatsApp, loyalty points, histori transaksi, segmentasi pelanggan.
 3. **Owner HQ Live Monitoring**: Dashboard real-time (WebSockets) untuk pemilik bisnis memantau penjualan multi-cabang tanpa refresh.
-4. **Multi-Tenancy Engine**: Isolasi data per tenant menggunakan PostgreSQL row-level isolation dengan arsitektur single-database yang efisien dan terukur.
+4. **Multi-Tenancy Engine**: Isolasi data per tenant menggunakan PostgreSQL row-level isolation via `TenantScope` otomatis.
 
 ---
 
@@ -20,53 +20,41 @@ Platform SaaS terpadu yang menggabungkan:
 - **Real-time WebSockets:** Laravel Reverb
 - **Frontend / UI:** Inertia.js (Vue 3 / React) + Tailwind CSS + Lucide Icons
 - **Queue & Cache:** Redis
-- **Auth & Permissions:** Laravel Breeze / Fortify + Spatie Laravel-Permission
+- **Auth & Permissions:** Laravel Fortify / Breeze + Spatie Permission
 
 ---
 
-## 📁 Repository Structure
+## ⚡ Quick Start (Otomatisasi Starter Project)
+Cukup jalankan script otomatisasi setup satu baris:
+```bash
+./setup.sh
 ```
-pos-crm-saas/
-├── docs/                      # PRD, PSD, dan PDF Perencanaan Proyek
-│   ├── PRD_PSD_PLANNING_DOCUMENT.md
-│   └── POS_CRM_SaaS_PRD_PSD_Planning.pdf
-├── app/                       # Application Core Logic
-│   ├── Models/                # Tenant, User, Outlet, Product, Order, Customer, etc.
-│   ├── Scopes/                # TenantScope for PostgreSQL data isolation
-│   └── Events/                # OrderCreated, LiveSalesUpdated (Broadcast)
-├── database/
-│   └── migrations/            # PostgreSQL Schema Migrations
-└── routes/                    # API & Web routes
-```
+Script di atas otomatis melakukan:
+1. Pengecekan runtime PHP & Composer.
+2. Generate file `.env` dengan konfigurasi PostgreSQL `pos_saas_db`.
+3. Instalasi seluruh dependency PHP via Composer.
+4. Generate application key (`APP_KEY`).
+5. Eksekusi database migration & seeder demo akun.
 
 ---
 
-## 🚀 Getting Started (Day 1 Kickoff)
-1. **Clone & Setup:**
-   ```bash
-   git clone <repo-url>
-   cd pos-crm-saas
-   composer install
-   cp .env.example .env
-   php artisan key:generate
-   ```
-2. **Database Config (`.env`):**
-   ```env
-   DB_CONNECTION=pgsql
-   DB_HOST=127.0.0.1
-   DB_PORT=5432
-   DB_DATABASE=pos_saas_db
-   DB_USERNAME=postgres
-   DB_PASSWORD=your_password
-   ```
-3. **Migrate & Seed:**
-   ```bash
-   php artisan migrate
-   ```
+## 🔑 Akun Demo (Bawaan Seeder)
+* **Owner (Pemilik Toko)**: `owner@kopikawan.com` / `password123`
+* **Kasir (Outlet Samarinda)**: `kasir@kopikawan.com` / `password123`
 
 ---
 
-## 📄 Documentation
-Dokumen perencanaan lengkap (PRD & PSD) tersedia di folder `docs/`:
-- [PRD & PSD Planning Document (Markdown)](docs/PRD_PSD_PLANNING_DOCUMENT.md)
-- [PRD & PSD Planning Document (PDF)](docs/POS_CRM_SaaS_PRD_PSD_Planning.pdf)
+## 📡 Starter API Endpoints
+Base URL: `http://localhost:8000/api/v1`
+
+| Method | Endpoint | Deskripsi |
+| :--- | :--- | :--- |
+| `GET` | `/pos/products` | Katalog produk aktif kasir (search by name, SKU, barcode) |
+| `POST` | `/pos/checkout` | Transaksi penjualan, auto-deduct stok, auto-kalkulasi CRM poin |
+| `GET` | `/crm/customer/lookup?phone={no_wa}` | Lookup data member & poin loyalitas pelanggan via WhatsApp |
+| `GET` | `/owner/live-metrics` | Live sales ticker omzet hari ini, AOV, dan komparasi cabang |
+
+---
+
+## 👥 Core Team & Co-Authors
+Lihat detail alur kerja dan distribusi peran di [`TEAM.md`](TEAM.md).
