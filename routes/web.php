@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\OwnerDashboardController;
-use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\PosTerminalController;
@@ -16,7 +13,7 @@ Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:1
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
 // Owner Central Dashboard
-Route::get('/dashboard', [\App\Http\Controllers\Web\DashboardController::class, 'index'])
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware('auth')
     ->name('dashboard');
 Route::get('/dashboard/recent', [DashboardController::class, 'recentSales'])

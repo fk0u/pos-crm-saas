@@ -50,8 +50,27 @@ class User extends Authenticatable
         return $this->role === 'owner';
     }
 
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
     public function isCashier(): bool
     {
         return $this->role === 'cashier';
+    }
+
+    public function canManage(): bool
+    {
+        return in_array($this->role, ['owner', 'manager', 'superadmin'], true);
+    }
+
+    public function activeShift(): ?Shift
+    {
+        return Shift::where('tenant_id', $this->tenant_id)
+            ->where('user_id', $this->id)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
     }
 }

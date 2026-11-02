@@ -1,21 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Crm\Actions\LookupCustomerAction;
+use App\Domain\Pos\Actions\ProcessCheckoutAction;
+use App\Domain\Pos\DTOs\CheckoutData;
+use App\Domain\Shift\Actions\CloseShiftAction;
+use App\Domain\Shift\Actions\OpenShiftAction;
+use App\Domain\Shift\Actions\RecordCashMovementAction;
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Outlet;
 use App\Models\Product;
+use App\Models\Shift;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
+    public function __construct(
+        private readonly ProcessCheckoutAction $checkoutAction = new ProcessCheckoutAction,
+        private readonly OpenShiftAction $openShiftAction = new OpenShiftAction,
+        private readonly CloseShiftAction $closeShiftAction = new CloseShiftAction,
+        private readonly RecordCashMovementAction $recordCashMovement = new RecordCashMovementAction,
+        private readonly LookupCustomerAction $lookupCustomer = new LookupCustomerAction,
+    ) {}
+
     /**
      * Get active products for the POS terminal.
      */
@@ -42,177 +52,167 @@ class PosController extends Controller
     }
 
     /**
-     * Resolve and validate the outlet used for checkout.
-     *
-     * Rules:
-     * - outlet must belong to the cashier's tenant (outlet injection guard);
-     * - a cashier may only use their own outlet (default when omitted);
-     * - owner/manager may use any outlet of the tenant.
-     */
-    private function resolveOutlet(Request $request, object $user): Outlet
-    {
-        $outletId = $request->input('outlet_id') ?: $user->outlet_id;
-
-        if (! $outletId) {
-            throw ValidationException::withMessages([
-                'outlet_id' => 'Outlet wajib diisi bila user tidak punya outlet default.',
-            ]);
-        }
-
-        /** @var Outlet|null $outlet */
-        $outlet = Outlet::find($outletId);
-
-        if (! $outlet || $outlet->tenant_id !== $user->tenant_id) {
-            throw ValidationException::withMessages([
-                'outlet_id' => 'Outlet tidak valid atau bukan milik outlet Anda.',
-            ]);
-        }
-
-        if ($user->role === 'cashier' && $user->outlet_id !== $outlet->id) {
-            throw ValidationException::withMessages([
-                'outlet_id' => 'Kasir hanya dapat melakukan transaksi di outlet sendiri.',
-            ]);
-        }
-
-        return $outlet;
-    }
-
-    /**
      * Process checkout transaction.
      */
     public function checkout(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'outlet_id' => 'nullable|uuid',
+            'shift_id' => 'nullable|uuid',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|uuid',
             'items.*.quantity' => 'required|integer|min:1',
+            'items.*.notes' => 'nullable|string',
             'customer_phone' => 'nullable|string',
             'customer_name' => 'nullable|string',
             'discount_amount' => 'nullable|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'points_redeemed' => 'nullable|integer|min:0',
-            'payment_method' => 'required|string|in:cash,qris,bank_transfer',
+            'payment_method' => 'required|string|in:cash,qris,bank_transfer,debit,split',
             'cash_tendered' => 'nullable|numeric',
+            'payment_details' => 'nullable|array',
+            'notes' => 'nullable|string',
         ]);
 
-        return DB::transaction(function () use ($validated, $request) {
-            $user = $request->user();
-            $tenantId = $user->tenant_id;
+        $checkoutData = CheckoutData::fromArray($validated);
+        $result = $this->checkoutAction->execute($request->user(), $checkoutData);
 
-            $outlet = $this->resolveOutlet($request, $user);
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil diproses',
+            'data' => $result,
+        ], 201);
+    }
 
-            // 1. Resolve or register CRM Customer
-            $customer = null;
-            if (! empty($validated['customer_phone'])) {
-                $customer = Customer::firstOrCreate(
-                    ['tenant_id' => $tenantId, 'phone' => $validated['customer_phone']],
-                    ['name' => $validated['customer_name'] ?? 'Pelanggan']
-                );
-            }
+    /**
+     * Get active shift for the cashier.
+     */
+    public function getActiveShift(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $shift = $user->activeShift();
 
-            $pointsRedeemed = (int) ($validated['points_redeemed'] ?? 0);
+        return response()->json([
+            'success' => true,
+            'data' => $shift ? [
+                'id' => $shift->id,
+                'outlet_id' => $shift->outlet_id,
+                'opened_at' => $shift->opened_at->toIso8601String(),
+                'starting_cash' => (float) $shift->starting_cash,
+                'cash_sales_total' => (float) $shift->cash_sales_total,
+                'non_cash_sales_total' => (float) $shift->non_cash_sales_total,
+                'cash_in_total' => (float) $shift->cash_in_total,
+                'cash_out_total' => (float) $shift->cash_out_total,
+                'expected_ending_cash' => (float) $shift->expected_ending_cash,
+            ] : null,
+        ]);
+    }
 
-            // Loyalty guard: may never redeem more than the customer actually holds.
-            if ($customer && $pointsRedeemed > 0
-                && $pointsRedeemed > (int) $customer->loyalty_points) {
-                throw ValidationException::withMessages([
-                    'points_redeemed' => 'Saldo poin tidak mencukupi.',
-                ]);
-            }
+    /**
+     * Open a new cashier shift.
+     */
+    public function openShift(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'outlet_id' => 'nullable|uuid',
+            'starting_cash' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
 
-            // 2. Compute items and totals
-            $subtotal = 0;
-            $orderItemsData = [];
+        $outlet = $this->checkoutAction->resolveOutlet($user, $validated['outlet_id'] ?? null);
 
-            foreach ($validated['items'] as $item) {
-                // lockForUpdate: two concurrent terminals must not oversell the same stock row.
-                $product = Product::where('id', $item['product_id'])->lockForUpdate()->firstOrFail();
+        $shift = $this->openShiftAction->execute(
+            user: $user,
+            outletId: $outlet->id,
+            startingCash: (float) $validated['starting_cash'],
+            notes: $validated['notes'] ?? null,
+        );
 
-                // Stock guard (all rows tracked; column track_stock is planned but not migrated yet).
-                if ($item['quantity'] > $product->stock) {
-                    throw ValidationException::withMessages([
-                        'items' => "Stok produk {$product->name} tidak mencukupi",
-                    ]);
-                }
+        return response()->json([
+            'success' => true,
+            'message' => 'Shift kasir berhasil dibuka',
+            'data' => $shift,
+        ], 201);
+    }
 
-                $itemSubtotal = $product->selling_price * $item['quantity'];
-                $subtotal += $itemSubtotal;
+    /**
+     * Close the cashier shift (X/Z Report reconciliation).
+     */
+    public function closeShift(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'shift_id' => 'nullable|uuid',
+            'actual_ending_cash' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+            'supervisor_pin' => 'nullable|string',
+        ]);
 
-                $orderItemsData[] = [
-                    'id' => (string) Str::uuid(),
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'unit_cost_price' => $product->cost_price,
-                    'unit_selling_price' => $product->selling_price,
-                    'subtotal' => $itemSubtotal,
-                ];
+        $shift = null;
+        if (! empty($validated['shift_id'])) {
+            $shift = Shift::where('tenant_id', $user->tenant_id)->find($validated['shift_id']);
+        } else {
+            $shift = $user->activeShift();
+        }
 
-                $product->decrement('stock', $item['quantity']);
-            }
-
-            $discount = $validated['discount_amount'] ?? 0;
-            $tax = $validated['tax_amount'] ?? 0;
-            $grandTotal = max(0, $subtotal - $discount + $tax - ($pointsRedeemed * 100)); // 1 pt = Rp 100
-
-            // 3. Loyalty point calculation (1 pt per Rp 10,000)
-            $pointsEarned = (int) floor($grandTotal / 10000);
-
-            // 4. Generate unique invoice number
-            $invoiceNumber = 'INV/'.date('Ymd').'/'.strtoupper(Str::random(6));
-
-            $order = Order::create([
-                'tenant_id' => $tenantId,
-                'outlet_id' => $outlet->id,
-                'cashier_id' => $user->id,
-                'customer_id' => $customer?->id,
-                'invoice_number' => $invoiceNumber,
-                'subtotal' => $subtotal,
-                'discount_amount' => $discount,
-                'tax_amount' => $tax,
-                'grand_total' => $grandTotal,
-                'points_earned' => $pointsEarned,
-                'points_redeemed' => $pointsRedeemed,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => 'paid',
-            ]);
-
-            foreach ($orderItemsData as &$itemData) {
-                $itemData['order_id'] = $order->id;
-            }
-            OrderItem::insert($orderItemsData);
-
-            // 5. Update CRM stats
-            if ($customer) {
-                $customer->loyalty_points = max(0, $customer->loyalty_points - $pointsRedeemed) + $pointsEarned;
-                $customer->total_spend += $grandTotal;
-                $customer->visit_count += 1;
-                $customer->last_visit_at = now();
-                $customer->save();
-            }
-
-            $changeDue = 0;
-            if ($validated['payment_method'] === 'cash' && isset($validated['cash_tendered'])) {
-                $changeDue = max(0, $validated['cash_tendered'] - $grandTotal);
-            }
-
+        if (! $shift) {
             return response()->json([
-                'success' => true,
-                'message' => 'Transaksi berhasil diproses',
-                'data' => [
-                    'order_id' => $order->id,
-                    'invoice_number' => $order->invoice_number,
-                    'outlet_id' => $outlet->id,
-                    'grand_total' => (float) $order->grand_total,
-                    'change_due' => (float) $changeDue,
-                    'points_earned' => $pointsEarned,
-                    'customer' => $customer ? [
-                        'phone' => $customer->phone,
-                        'name' => $customer->name,
-                        'loyalty_points' => $customer->loyalty_points,
-                    ] : null,
-                ],
-            ], 201);
-        });
+                'success' => false,
+                'message' => 'Tidak ditemukan shift aktif yang dapat ditutup.',
+            ], 404);
+        }
+
+        $closedShift = $this->closeShiftAction->execute(
+            shift: $shift,
+            actualEndingCash: (float) $validated['actual_ending_cash'],
+            notes: $validated['notes'] ?? null,
+            approvedBy: $user->canManage() ? $user : null,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shift kasir berhasil ditutup',
+            'data' => $closedShift,
+        ]);
+    }
+
+    /**
+     * Record cash in / cash out drawer movement.
+     */
+    public function cashMovement(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'shift_id' => 'nullable|uuid',
+            'type' => 'required|string|in:cash_in,cash_out',
+            'amount' => 'required|numeric|min:1',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        $shift = ! empty($validated['shift_id'])
+            ? Shift::where('tenant_id', $user->tenant_id)->find($validated['shift_id'])
+            : $user->activeShift();
+
+        if (! $shift) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada shift aktif untuk mencatat pergerakan kas.',
+            ], 404);
+        }
+
+        $movement = $this->recordCashMovement->execute(
+            shift: $shift,
+            user: $user,
+            type: $validated['type'],
+            amount: (float) $validated['amount'],
+            reason: $validated['reason'],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pergerakan kas berhasil dicatat',
+            'data' => $movement,
+        ], 201);
     }
 }

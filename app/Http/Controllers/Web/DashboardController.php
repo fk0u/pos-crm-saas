@@ -1,13 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Services\SalesMetricsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
@@ -16,7 +20,7 @@ class DashboardController extends Controller
     /**
      * Owner Central Dashboard. Kasir diarahkan balik ke terminal kasir.
      */
-    public function index(): View|RedirectResponse
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = Auth::user();
 
@@ -27,11 +31,15 @@ class DashboardController extends Controller
         $tenant = $user->tenant;
         $tenantId = $user->tenant_id;
 
+        $searchQuery = $request->query('q');
         $summary = $this->metrics->summary($tenantId);
         $outlets = $this->metrics->outletBreakdown($tenantId);
-        $customers = $this->metrics->customers($tenantId, request()->query('q'));
+        $customers = $this->metrics->customers($tenantId, $searchQuery);
+        $recentOrders = $this->metrics->recentOrders($tenantId, 10);
+        $topProducts = $this->metrics->topProducts($tenantId, 5);
+        $auditLogs = $this->metrics->recentAuditLogs($tenantId, 8);
 
-        return view('dashboard.layout', [
+        return Inertia::render('Dashboard/Index', [
             'userName' => $user->name,
             'role' => $user->role,
             'tenantName' => $tenant?->name ?? '—',
@@ -39,8 +47,10 @@ class DashboardController extends Controller
             'summary' => $summary,
             'outlets' => $outlets,
             'customers' => $customers,
-            'recentOrders' => $this->metrics->recentOrders($tenantId, 10),
-            'search' => (string) request()->query('q', ''),
+            'recentOrders' => $recentOrders,
+            'topProducts' => $topProducts,
+            'auditLogs' => $auditLogs,
+            'search' => (string) ($searchQuery ?? ''),
         ]);
     }
 

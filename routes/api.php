@@ -14,10 +14,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->middleware(['auth'])->group(function (): void {
-    // POS Terminal Endpoints
+    // POS Terminal & Shift Control Endpoints
     Route::prefix('pos')->group(function (): void {
         Route::get('/products', [PosController::class, 'getProducts']);
         Route::post('/checkout', [PosController::class, 'checkout']);
+        Route::get('/shift/active', [PosController::class, 'getActiveShift']);
+        Route::post('/shift/open', [PosController::class, 'openShift']);
+        Route::post('/shift/close', [PosController::class, 'closeShift']);
+        Route::post('/shift/movement', [PosController::class, 'cashMovement']);
     });
 
     // CRM & Customer Loyalty Endpoints

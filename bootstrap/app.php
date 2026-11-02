@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SetTenantContext;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
@@ -23,11 +25,14 @@ return Application::configure(basePath: dirname(__DIR__))
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,
-            \App\Http\Middleware\SetTenantContext::class,
+            SetTenantContext::class,
             'throttle:60,1',
         ]);
 
-        $middleware->web(append: [\App\Http\Middleware\SetTenantContext::class]);
+        $middleware->web(append: [
+            SetTenantContext::class,
+            HandleInertiaRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

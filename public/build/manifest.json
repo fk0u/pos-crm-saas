@@ -1,4 +1,8 @@
 {
+  "_api-DoA2WkOh.js": {
+    "file": "assets/api-DoA2WkOh.js",
+    "name": "api"
+  },
   "_fonts-C9MNnjVw.css": {
     "file": "assets/fonts-C9MNnjVw.css",
     "src": "_fonts-C9MNnjVw.css"
@@ -28,7 +32,7 @@
     "src": "_instrument-sans-600-normal-B9e8oLYv.woff"
   },
   "resources/css/app.css": {
-    "file": "assets/app-CtdJ8cWQ.css",
+    "file": "assets/app-C1p5GtdS.css",
     "name": "app",
     "names": [
       "app.css"
@@ -37,9 +41,31 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-qRqcbCUs.js",
+    "file": "assets/app-Btpl4kEu.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/pos/main.ts",
+      "resources/js/dashboard.ts"
+    ]
+  },
+  "resources/js/dashboard.ts": {
+    "file": "assets/dashboard-D7wIkgl-.js",
+    "name": "dashboard",
+    "src": "resources/js/dashboard.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_api-DoA2WkOh.js"
+    ]
+  },
+  "resources/js/pos/main.ts": {
+    "file": "assets/main-Es1Bp67P.js",
+    "name": "main",
+    "src": "resources/js/pos/main.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_api-DoA2WkOh.js"
+    ]
   }
 }

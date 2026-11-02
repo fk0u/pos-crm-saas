@@ -19,14 +19,19 @@ class Order extends Model
         'cashier_id',
         'customer_id',
         'invoice_number',
+        'shift_id',
         'subtotal',
         'discount_amount',
         'tax_amount',
         'grand_total',
+        'cash_tendered',
+        'change_amount',
         'points_earned',
         'points_redeemed',
         'payment_method',
+        'payment_details',
         'payment_status',
+        'notes',
     ];
 
     protected $casts = [
@@ -34,9 +39,17 @@ class Order extends Model
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'cash_tendered' => 'decimal:2',
+        'change_amount' => 'decimal:2',
         'points_earned' => 'integer',
         'points_redeemed' => 'integer',
+        'payment_details' => 'array',
     ];
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
 
     public function outlet(): BelongsTo
     {
