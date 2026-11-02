@@ -42,6 +42,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . /var/www
 
+# Copy entrypoint to /usr/local/bin so it is always accessible regardless of volume mounts
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Ensure bootstrap/cache and storage directories exist
 RUN mkdir -p /var/www/bootstrap/cache \
     && mkdir -p /var/www/storage/framework/cache \
@@ -61,11 +65,10 @@ RUN addgroup -g 1000 -S www \
 
 # Set directory permissions
 RUN chown -R www:www /var/www \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
-    && chmod +x /var/www/docker/entrypoint.sh
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # Switch to non-root user
 USER www
 
 EXPOSE 9000
-CMD ["php-fpm"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

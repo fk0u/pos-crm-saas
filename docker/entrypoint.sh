@@ -7,6 +7,18 @@ echo "============================================"
 echo " Omnipoint POS + CRM SaaS - Docker Container"
 echo "============================================"
 
+# Ensure .env exists inside container
+if [ ! -f /var/www/.env ]; then
+    echo "      Membuat file .env dari template..."
+    if [ -f /var/www/.env.docker ]; then
+        cp /var/www/.env.docker /var/www/.env
+    elif [ -f /var/www/.env.example ]; then
+        cp /var/www/.env.example /var/www/.env
+    else
+        touch /var/www/.env
+    fi
+fi
+
 # If using PostgreSQL, wait for DB
 if [ "$DB_CONNECTION" = "pgsql" ] || [ "$DB_CONNECTION" = "postgres" ]; then
   echo "[1/5] Menunggu database PostgreSQL siap (${DB_HOST:-db}:${DB_PORT:-5432})..."
@@ -32,7 +44,7 @@ rm -f /var/www/bootstrap/cache/events.php
 echo "      ✓ Cache bootstrap dibersihkan."
 
 echo "[3/5] Memeriksa APP_KEY..."
-if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ] || ! grep -q "APP_KEY=base64:" /var/www/.env; then
     echo "      Menghasilkan kunci aplikasi baru..."
     php artisan key:generate --force
 fi
