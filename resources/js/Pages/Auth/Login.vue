@@ -1,5 +1,5 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Link } from '@inertiajs/vue3';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 
@@ -226,6 +226,13 @@ function submit() {
               <span>{{ form.processing ? 'Memverifikasi...' : 'Masuk ke Aplikasi' }}</span>
             </AppButton>
           </form>
+
+          <div class="mt-5 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+            Belum memiliki workspace?
+            <Link href="/register" class="font-semibold text-navy-700 hover:text-navy-900 ml-1">
+              Daftar Usaha Baru
+            </Link>
+          </div>
         </div>
 
         <!-- Footer Meta -->
