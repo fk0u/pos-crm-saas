@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle:60,1',
         ]);
 
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             SetTenantContext::class,
             HandleInertiaRequests::class,
