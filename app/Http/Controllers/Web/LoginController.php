@@ -40,7 +40,17 @@ class LoginController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('pos.terminal'));
+        return redirect()->intended($this->homeRouteFor($user));
+    }
+
+    /**
+     * Kasir masuk ke terminal kasir, owner/manager/superadmin ke dashboard.
+     */
+    private function homeRouteFor(User $user): string
+    {
+        return $user->role === 'cashier'
+            ? route('pos.terminal')
+            : route('dashboard');
     }
 
     /**

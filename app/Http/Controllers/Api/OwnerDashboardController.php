@@ -15,6 +15,15 @@ class OwnerDashboardController extends Controller
      */
     public function getLiveMetrics(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        if ($user->isCashier()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses metrik bisnis hanya untuk owner dan manager.',
+            ], 403);
+        }
+
         $today = now()->startOfDay();
 
         $todayOrders = Order::where('created_at', '>=', $today);

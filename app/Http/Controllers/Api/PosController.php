@@ -25,9 +25,9 @@ class PosController extends Controller
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('sku', 'ilike', "%{$search}%")
-                    ->orWhere('barcode', 'ilike', "%{$search}%");
+                $q->whereLike('name', "%{$search}%")
+                    ->orWhereLike('sku', "%{$search}%")
+                    ->orWhereLike('barcode', "%{$search}%");
             });
         }
 

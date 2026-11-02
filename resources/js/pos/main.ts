@@ -9,7 +9,9 @@ const el = <T extends HTMLElement>(id: string): T => {
     return node as T;
 };
 
-const outletId = el<HTMLInputElement>('pos-outlet-id').value;
+// Set saat init(); hanya ada di halaman POS.
+let outletId = '';
+
 const state = {
     products: [] as ApiProduct[],
     customer: null as ApiCustomer | null,
@@ -396,6 +398,11 @@ async function refreshProducts(): Promise<void> {
 }
 
 function init(): void {
+    // Halaman POS punya root eksklusif; di halaman lain (mis. /dashboard) module ini no-op
+    // supaya tidak crash dan tidak menghentikan module JS lain setelahnya.
+    if (!document.getElementById('pos-outlet-id')) return;
+
+    outletId = el<HTMLInputElement>('pos-outlet-id').value;
     bindEvents();
     cart.subscribe(renderCart);
     renderCart();
