@@ -1,8 +1,4 @@
 {
-  "_api-DoA2WkOh.js": {
-    "file": "assets/api-DoA2WkOh.js",
-    "name": "api"
-  },
   "_fonts-C9MNnjVw.css": {
     "file": "assets/fonts-C9MNnjVw.css",
     "src": "_fonts-C9MNnjVw.css"
@@ -41,31 +37,9 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-Btpl4kEu.js",
+    "file": "assets/app-Cm6OX9gS.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true,
-    "dynamicImports": [
-      "resources/js/pos/main.ts",
-      "resources/js/dashboard.ts"
-    ]
-  },
-  "resources/js/dashboard.ts": {
-    "file": "assets/dashboard-D7wIkgl-.js",
-    "name": "dashboard",
-    "src": "resources/js/dashboard.ts",
-    "isDynamicEntry": true,
-    "imports": [
-      "_api-DoA2WkOh.js"
-    ]
-  },
-  "resources/js/pos/main.ts": {
-    "file": "assets/main-Es1Bp67P.js",
-    "name": "main",
-    "src": "resources/js/pos/main.ts",
-    "isDynamicEntry": true,
-    "imports": [
-      "_api-DoA2WkOh.js"
-    ]
+    "isEntry": true
   }
 }
