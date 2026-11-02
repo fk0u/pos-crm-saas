@@ -1,158 +1,238 @@
-<template>
-    <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
-        <!-- Ambient Glow Gradients -->
-        <div class="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div class="w-full max-w-md relative z-10">
-            <!-- Brand Header -->
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 shadow-lg shadow-emerald-500/25 mb-4 border border-emerald-400/30">
-                    <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-                    Omnipoint <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/30">v2.5 SaaS</span>
-                </h1>
-                <p class="text-sm text-slate-400 mt-1">Multi-Tenant Point of Sale, CRM & Central Operations</p>
-            </div>
-
-            <!-- Card Box -->
-            <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-7 shadow-2xl shadow-black/60 relative">
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-white">Masuk ke Sistem</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Pilih profil demo instan atau masukkan akun manual</p>
-                </div>
-
-                <!-- Quick Persona Switcher -->
-                <div class="mb-6 p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                    <div class="text-xs font-medium text-slate-400 mb-2 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        Quick Demo Persona:
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button
-                            type="button"
-                            @click="selectPersona('owner')"
-                            :class="[
-                                'px-3 py-2 text-xs font-medium rounded-lg border text-left transition-all duration-150',
-                                form.email === 'owner@kopikawan.com'
-                                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm'
-                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
-                            ]"
-                        >
-                            <div class="font-semibold flex items-center gap-1">
-                                👑 Owner HQ
-                            </div>
-                            <div class="text-[10px] text-slate-400 truncate">Hendra Setiawan</div>
-                        </button>
-
-                        <button
-                            type="button"
-                            @click="selectPersona('cashier')"
-                            :class="[
-                                'px-3 py-2 text-xs font-medium rounded-lg border text-left transition-all duration-150',
-                                form.email === 'kasir@kopikawan.com'
-                                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm'
-                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
-                            ]"
-                        >
-                            <div class="font-semibold flex items-center gap-1">
-                                ☕ Kasir Outlet
-                            </div>
-                            <div class="text-[10px] text-slate-400 truncate">Siti Aminah (Samarinda)</div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Form -->
-                <form @submit.prevent="submit" class="space-y-4">
-                    <div>
-                        <label for="email" class="block text-xs font-medium text-slate-300 mb-1.5">Alamat Email</label>
-                        <input
-                            id="email"
-                            v-model="form.email"
-                            type="email"
-                            required
-                            placeholder="nama@kopikawan.com"
-                            class="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                        />
-                        <p v-if="form.errors.email" class="mt-1 text-xs text-rose-400">{{ form.errors.email }}</p>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label for="password" class="block text-xs font-medium text-slate-300">Kata Sandi</label>
-                            <span class="text-[11px] text-slate-400 font-mono">default: password123</span>
-                        </div>
-                        <input
-                            id="password"
-                            v-model="form.password"
-                            type="password"
-                            required
-                            placeholder="••••••••"
-                            class="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                        />
-                        <p v-if="form.errors.password" class="mt-1 text-xs text-rose-400">{{ form.errors.password }}</p>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-1">
-                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300">
-                            <input
-                                v-model="form.remember"
-                                type="checkbox"
-                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500/50"
-                            />
-                            <span>Ingat sesi saya</span>
-                        </label>
-                    </div>
-
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                        <svg v-if="form.processing" class="animate-spin w-4 h-4 text-slate-950" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                        <span>{{ form.processing ? 'Memverifikasi...' : 'Masuk ke POS & Dashboard' }}</span>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Footer Meta -->
-            <div class="mt-6 text-center text-xs text-slate-400">
-                <span>Tenant Isolation via Row-Level Multi-Tenancy</span>
-                <span class="mx-2">•</span>
-                <span>PostgreSQL 16 & SQLite Support</span>
-            </div>
-        </div>
-    </div>
-</template>
-
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import AppButton from '@/Components/AppButton.vue';
+import AppInput from '@/Components/AppInput.vue';
 
 const form = useForm({
-    email: 'owner@kopikawan.com',
-    password: 'password123',
-    remember: true,
+  email: 'owner@kopikawan.com',
+  password: 'password123',
+  remember: true,
 });
 
 function selectPersona(type) {
-    if (type === 'owner') {
-        form.email = 'owner@kopikawan.com';
-        form.password = 'password123';
-    } else {
-        form.email = 'kasir@kopikawan.com';
-        form.password = 'password123';
-    }
+  if (type === 'owner') {
+    form.email = 'owner@kopikawan.com';
+    form.password = 'password123';
+  } else {
+    form.email = 'kasir@kopikawan.com';
+    form.password = 'password123';
+  }
 }
 
 function submit() {
-    form.post('/login');
+  form.post('/login');
 }
 </script>
+
+<template>
+  <div class="min-h-screen bg-slate-50 flex">
+    <!-- Left Hero Brand Panel (navy-800, visible on lg screens) -->
+    <div class="hidden lg:flex lg:w-1/2 bg-navy-800 relative flex-col justify-between p-12 overflow-hidden text-white border-r border-navy-900">
+      <!-- Subtle Decorative Grid Background -->
+      <div class="absolute inset-0 opacity-10 pointer-events-none">
+        <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <defs>
+            <pattern id="login-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#login-grid)" />
+        </svg>
+      </div>
+
+      <!-- Top Header / Logo -->
+      <div class="relative z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-navy-700 border border-navy-500/50 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+            O
+          </div>
+          <div>
+            <span class="text-xl font-bold tracking-tight block leading-tight text-white">Omnipoint</span>
+            <span class="text-xs text-navy-300 font-mono tracking-wider block">POS & CRM SAAS PLATFORM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Value Proposition -->
+      <div class="relative z-10 max-w-lg my-auto space-y-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-navy-700/80 border border-navy-600 text-xs font-semibold text-navy-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Arsitektur SaaS Cloud v2.5
+        </div>
+
+        <h2 class="text-3xl xl:text-4xl font-extrabold tracking-tight leading-tight text-white">
+          Sistem Kasir Cepat & Pantauan Bisnis Real-Time
+        </h2>
+
+        <p class="text-sm text-navy-200/80 leading-relaxed">
+          Kendalikan transaksi cabang, kelola laci kasir (shift drawer), dan bangun loyalitas pelanggan via WhatsApp CRM dalam satu platform cloud terpadu.
+        </p>
+
+        <!-- Feature List -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center gap-3 text-xs text-navy-100">
+            <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              ✓
+            </div>
+            <span>Kasir Cepat multi-pembayaran dengan auto-calc kembalian</span>
+          </div>
+
+          <div class="flex items-center gap-3 text-xs text-navy-100">
+            <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              ✓
+            </div>
+            <span>Deteksi Member CRM via WhatsApp dalam &lt; 3 detik</span>
+          </div>
+
+          <div class="flex items-center gap-3 text-xs text-navy-100">
+            <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              ✓
+            </div>
+            <span>Live Gross Profit, Margin HPP & Audit Rekap Shift</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Trust Badge -->
+      <div class="relative z-10 pt-6 border-t border-navy-700/60 flex items-center justify-between text-xs text-navy-300/80">
+        <span>Multi-Tenant Enterprise Security</span>
+        <span>PostgreSQL 16 & Redis</span>
+      </div>
+    </div>
+
+    <!-- Right Form Section (Light mode first, clean, centered) -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-16">
+      <div class="w-full max-w-md">
+        <!-- Mobile Logo (shown only on small screens) -->
+        <div class="lg:hidden flex items-center gap-3 mb-8">
+          <div class="w-9 h-9 rounded-xl bg-navy-700 text-white font-bold text-lg flex items-center justify-center">
+            O
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900">Omnipoint POS</h1>
+            <p class="text-xs text-slate-500">Multi-Outlet Cloud SaaS</p>
+          </div>
+        </div>
+
+        <!-- Form Card Container -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 p-8 shadow-xs">
+          <div class="mb-6">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900">
+              Masuk ke Akun Anda
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+              Gunakan akun demo instan atau masukkan kredensial terdaftar
+            </p>
+          </div>
+
+          <!-- Quick Persona Switcher -->
+          <div class="mb-6 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+            <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Pilih Profil Demo Instan:
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                @click="selectPersona('owner')"
+                class="px-3 py-2 text-xs rounded-lg border text-left transition-all cursor-pointer"
+                :class="form.email === 'owner@kopikawan.com'
+                  ? 'bg-navy-50 border-navy-300 text-navy-800 font-semibold shadow-xs'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
+              >
+                <div class="flex items-center gap-1 text-slate-900 font-medium">
+                  👑 Owner HQ
+                </div>
+                <div class="text-[10px] text-slate-500 truncate mt-0.5">
+                  Hendra Setiawan
+                </div>
+              </button>
+
+              <button
+                type="button"
+                @click="selectPersona('cashier')"
+                class="px-3 py-2 text-xs rounded-lg border text-left transition-all cursor-pointer"
+                :class="form.email === 'kasir@kopikawan.com'
+                  ? 'bg-navy-50 border-navy-300 text-navy-800 font-semibold shadow-xs'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
+              >
+                <div class="flex items-center gap-1 text-slate-900 font-medium">
+                  ☕ Kasir Outlet
+                </div>
+                <div class="text-[10px] text-slate-500 truncate mt-0.5">
+                  Siti Aminah
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Login Form -->
+          <form @submit.prevent="submit" class="space-y-4">
+            <AppInput
+              id="email"
+              v-model="form.email"
+              type="email"
+              label="Alamat Email"
+              placeholder="nama@perusahaan.com"
+              required
+              :error="form.errors.email"
+            >
+              <template #prefix>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+              </template>
+            </AppInput>
+
+            <div>
+              <AppInput
+                id="password"
+                v-model="form.password"
+                type="password"
+                label="Kata Sandi"
+                placeholder="••••••••"
+                required
+                :error="form.errors.password"
+              >
+                <template #prefix>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </template>
+              </AppInput>
+              <div class="text-[11px] text-slate-400 font-mono mt-1 text-right">
+                password demo: password123
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 hover:text-slate-800">
+                <input
+                  v-model="form.remember"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-navy-700 focus:ring-navy-300 h-4 w-4"
+                />
+                <span>Ingat sesi login saya</span>
+              </label>
+            </div>
+
+            <AppButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              class="w-full mt-2"
+              :loading="form.processing"
+            >
+              <span>{{ form.processing ? 'Memverifikasi...' : 'Masuk ke Aplikasi' }}</span>
+            </AppButton>
+          </form>
+        </div>
+
+        <!-- Footer Meta -->
+        <p class="mt-8 text-center text-xs text-slate-400">
+          Dilindungi enkripsi sesi CSRF & Row-Level Multi-Tenancy
+        </p>
+      </div>
+    </div>
+  </div>
+</template>

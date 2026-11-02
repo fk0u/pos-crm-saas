@@ -8,20 +8,33 @@
 @theme {
     --font-sans: 'Plus Jakarta Sans', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+    --color-navy-50:  #eef3fb;
+    --color-navy-100: #d9e3f5;
+    --color-navy-200: #b3c6ea;
+    --color-navy-300: #829fd9;
+    --color-navy-400: #5276c2;
+    --color-navy-500: #2f56a6;
+    --color-navy-600: #1f3f86;
+    --color-navy-700: #1a336c;   /* primary */
+    --color-navy-800: #142852;   /* sidebar background */
+    --color-navy-900: #0d1b38;
+    --color-navy-950: #08112a;
 }
 
-/* Custom scrollbars and styling utilities */
+/* Modern subtle scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.6);
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.8);
+    background: #cbd5e1;
     border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(71, 85, 105, 1);
+    background: #94a3b8;
 }
+
