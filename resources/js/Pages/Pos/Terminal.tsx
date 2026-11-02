@@ -22,6 +22,11 @@ import {
   X,
   Volume2,
   VolumeX,
+  Percent,
+  Wifi,
+  WifiOff,
+  Barcode,
+  Delete,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Button } from '@/Components/ui/button';
@@ -32,7 +37,15 @@ import { SearchInput } from '@/Components/ui/search-input';
 import { useToast } from '@/Components/ui/toast';
 import { categoryTone, initials } from '@/lib/analytics';
 import { formatMoney, formatNumber, newClientKey } from '@/lib/format';
-import { playTap, playSuccessChime, playError, isSoundEnabled, setSoundEnabled } from '@/lib/sound';
+import {
+  playTap,
+  playBeep,
+  playSuccessChime,
+  playError,
+  isSoundEnabled,
+  setSoundEnabled,
+  triggerHaptic,
+} from '@/lib/sound';
 
 export type POSProduct = {
   id: string | number;
@@ -131,9 +144,26 @@ export default function PosTerminal({
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState<any | null>(null);
 
+  // Advanced features: Discount & Offline status
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [soundActive, setSoundActive] = useState<boolean>(isSoundEnabled());
+
   // New customer quick-add state
   const [newCustName, setNewCustName] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
+
+  // Online / offline detector
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Products normalisation
   const products: POSProduct[] = useMemo(() => {
@@ -176,17 +206,21 @@ export default function PosTerminal({
   });
 
   const totals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const discountAmount = discountPercent > 0 ? Math.round((rawSubtotal * discountPercent) / 100) : 0;
+    const subtotal = Math.max(0, rawSubtotal - discountAmount);
     const tax = settings.taxEnabled ? Math.round((subtotal * settings.taxRate) / 100) : 0;
     const service = settings.serviceEnabled ? Math.round((subtotal * settings.serviceRate) / 100) : 0;
     return {
+      rawSubtotal,
+      discountAmount,
       subtotal,
       tax,
       service,
       total: subtotal + tax + service,
       items: cart.reduce((sum, item) => sum + item.quantity, 0),
     };
-  }, [cart, settings]);
+  }, [cart, settings, discountPercent]);
 
   const selectedCustomer = customersList.find((c) => String(c.id) === String(customerId));
   const pointsPreview =
@@ -210,24 +244,71 @@ export default function PosTerminal({
     return [...new Set(candidates)].filter((value) => value >= total && value > 0).slice(0, 4);
   }, [totals.total]);
 
-  // Keyboard shortcut '/' to search
+  // Keyboard shortcut '/' to search & 'F2' or 'b' to pay
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+
+      if (event.key === '/') {
         event.preventDefault();
         searchRef.current?.focus();
+      } else if (event.key === 'F2' || (event.key === 'b' && cart.length > 0 && !paymentOpen)) {
+        event.preventDefault();
+        openPayment();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [cart, paymentOpen]);
+
+  // Hardware Barcode Scanner Listener buffer
+  useEffect(() => {
+    let buffer = '';
+    let lastTime = 0;
+
+    const onBarcodeKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA'].includes(target.tagName)) return;
+
+      const now = Date.now();
+      if (now - lastTime > 200) buffer = '';
+      lastTime = now;
+
+      if (e.key === 'Enter') {
+        if (buffer.length >= 3) {
+          const needle = buffer.trim().toLowerCase();
+          const found = products.find(
+            (p) => p.sku.toLowerCase() === needle || String(p.id).toLowerCase() === needle
+          );
+          if (found) {
+            add(found);
+            playBeep();
+            triggerHaptic('medium');
+            toast({
+              title: 'Barcode Berhasil Discan',
+              description: `${found.name} telah masuk ke pesanan.`,
+              tone: 'primary',
+            });
+          }
+        }
+        buffer = '';
+      } else if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', onBarcodeKey);
+    return () => window.removeEventListener('keydown', onBarcodeKey);
+  }, [products]);
 
   const add = (product: POSProduct) => {
     playTap();
+    triggerHaptic('light');
     const inCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
     if (product.stock !== undefined && inCart + 1 > product.stock) {
       playError();
+      triggerHaptic('error');
       toast({
         title: 'Stok tidak cukup',
         description: `${product.name} tersisa ${product.stock}.`,
@@ -244,6 +325,7 @@ export default function PosTerminal({
 
   const adjust = (id: string | number, delta: number) => {
     playTap();
+    triggerHaptic('light');
     setCart((current) =>
       current
         .map((item) => {
@@ -258,22 +340,45 @@ export default function PosTerminal({
 
   const openPayment = () => {
     playTap();
+    triggerHaptic('medium');
     if (!checkoutKey) setCheckoutKey(newClientKey());
     setReceived(String(totals.total));
     setPaymentOpen(true);
   };
 
+  const handleNumpadPress = (digit: string | number) => {
+    playTap();
+    triggerHaptic('light');
+    if (digit === 'C') {
+      setReceived('');
+    } else if (digit === '00') {
+      if (receivedValue > 0) {
+        setReceived(String(receivedValue * 100));
+      }
+    } else if (digit === '000') {
+      if (receivedValue > 0) {
+        setReceived(String(receivedValue * 1000));
+      }
+    } else {
+      setReceived(`${receivedValue ? receivedValue : ''}${digit}`);
+    }
+  };
+
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (method === 'cash' && change < 0) return;
+    if (method === 'cash' && change < 0) {
+      playError();
+      triggerHaptic('error');
+      return;
+    }
 
     setPending(true);
     playTap();
+    triggerHaptic('heavy');
 
     const receiptNum = `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      // Attempt backend API call if available
       await fetch('/api/v1/pos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -282,7 +387,7 @@ export default function PosTerminal({
           items: cart.map((i) => ({ product_id: String(i.id), quantity: i.quantity })),
           customer_phone: selectedCustomer?.phone ?? null,
           customer_name: selectedCustomer?.name ?? null,
-          discount_amount: 0,
+          discount_amount: totals.discountAmount,
           tax_amount: totals.tax,
           points_redeemed: 0,
           payment_method: method === 'cash' ? 'cash' : 'qris',
@@ -295,6 +400,7 @@ export default function PosTerminal({
 
     setPending(false);
     playSuccessChime();
+    triggerHaptic('success');
 
     setSuccess({
       receiptNumber: receiptNum,
@@ -302,9 +408,12 @@ export default function PosTerminal({
       changeAmount: method === 'cash' ? Math.max(0, change) : 0,
       pointsEarned: pointsPreview,
       itemsCount: totals.items,
+      items: [...cart],
+      date: new Date().toLocaleString('id-ID'),
     });
 
     setCart([]);
+    setDiscountPercent(0);
     setCustomerId('');
     setPaymentOpen(false);
     setCartOpen(false);
@@ -329,13 +438,21 @@ export default function PosTerminal({
     setNewCustPhone('');
     setQuickAddOpen(false);
     playTap();
+    triggerHaptic('light');
+  };
+
+  const toggleSound = () => {
+    const next = !soundActive;
+    setSoundActive(next);
+    setSoundEnabled(next);
+    if (next) playTap();
   };
 
   // Cart Panel Subcomponent
   const cartPanel = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col select-none">
       {/* Customer Selector */}
-      <div className="grid gap-2 border-b border-slate-100 p-4">
+      <div className="grid gap-2 border-b border-slate-100 p-4 bg-white">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -344,9 +461,10 @@ export default function PosTerminal({
               value={customerId}
               onChange={(e) => {
                 playTap();
+                triggerHaptic('light');
                 setCustomerId(e.target.value);
               }}
-              className="pl-9"
+              className="pl-9 h-11"
             >
               <option value="">Pelanggan umum</option>
               {customersList.map((customer) => (
@@ -359,7 +477,7 @@ export default function PosTerminal({
           </div>
           <Button
             variant="secondary"
-            className="size-11 shrink-0 px-0 rounded-lg"
+            className="size-11 shrink-0 px-0 rounded-xl"
             aria-label="Tambah pelanggan baru"
             onClick={() => {
               playTap();
@@ -371,7 +489,7 @@ export default function PosTerminal({
         </div>
 
         {selectedCustomer ? (
-          <div className="flex items-center justify-between rounded-lg bg-navy-50 px-3 py-2 text-xs animate-fade-in">
+          <div className="flex items-center justify-between rounded-lg bg-navy-50 px-3 py-2 text-xs animate-fade-in border border-navy-100">
             <span className="font-semibold capitalize text-navy-800">
               {selectedCustomer.segment} · {formatNumber(selectedCustomer.points)} poin
             </span>
@@ -382,10 +500,37 @@ export default function PosTerminal({
             ) : null}
           </div>
         ) : null}
+
+        {/* Quick Discount Selector */}
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+            <Percent className="size-3.5" /> Diskon
+          </span>
+          <div className="flex gap-1">
+            {[0, 5, 10, 15].map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => {
+                  playTap();
+                  triggerHaptic('light');
+                  setDiscountPercent(pct);
+                }}
+                className={`px-2 py-1 rounded-md text-[10px] font-bold transition ${
+                  discountPercent === pct
+                    ? 'bg-navy-800 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {pct === 0 ? '0%' : `${pct}%`}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Cart Items List */}
-      <div className="min-h-48 flex-1 overflow-y-auto">
+      <div className="min-h-48 flex-1 overflow-y-auto overscroll-contain">
         {cart.length ? (
           <ul className="divide-y divide-slate-100">
             {cart.map((item) => (
@@ -406,7 +551,7 @@ export default function PosTerminal({
                     type="button"
                     onClick={() => adjust(item.id, -1)}
                     aria-label={`Kurangi ${item.name}`}
-                    className="grid size-9 place-items-center text-slate-500 transition hover:text-rose-600"
+                    className="grid size-9 place-items-center text-slate-500 transition hover:text-rose-600 active:scale-90"
                   >
                     {item.quantity === 1 ? <Trash2 className="size-3.5" /> : <Minus className="size-3.5" />}
                   </button>
@@ -420,7 +565,7 @@ export default function PosTerminal({
                     type="button"
                     onClick={() => adjust(item.id, 1)}
                     aria-label={`Tambah ${item.name}`}
-                    className="grid size-9 place-items-center text-slate-500 transition hover:text-navy-700"
+                    className="grid size-9 place-items-center text-slate-500 transition hover:text-navy-700 active:scale-90"
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -442,12 +587,18 @@ export default function PosTerminal({
       </div>
 
       {/* Cart Summary & Payment Button */}
-      <div className="border-t border-slate-100 bg-slate-50/70 p-4">
+      <div className="border-t border-slate-100 bg-slate-50/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <dl className="grid gap-1.5 text-sm">
           <div className="flex justify-between text-slate-500">
             <dt>Subtotal</dt>
-            <dd className="money">{formatMoney(totals.subtotal)}</dd>
+            <dd className="money">{formatMoney(totals.rawSubtotal)}</dd>
           </div>
+          {totals.discountAmount > 0 ? (
+            <div className="flex justify-between text-emerald-600 font-medium">
+              <dt>Diskon {discountPercent}%</dt>
+              <dd className="money">-{formatMoney(totals.discountAmount)}</dd>
+            </div>
+          ) : null}
           {settings.taxEnabled ? (
             <div className="flex justify-between text-slate-500">
               <dt>Pajak {settings.taxRate}%</dt>
@@ -468,10 +619,11 @@ export default function PosTerminal({
           <Button
             variant="secondary"
             size="lg"
-            className="px-3 rounded-xl"
+            className="px-3.5 rounded-xl active:scale-95"
             disabled={!cart.length}
             onClick={() => {
               playTap();
+              triggerHaptic('light');
               setCart([]);
             }}
             aria-label="Kosongkan keranjang"
@@ -480,7 +632,7 @@ export default function PosTerminal({
           </Button>
           <Button
             size="lg"
-            className="rounded-xl shadow-sm"
+            className="rounded-xl shadow-sm active:scale-[0.98] font-bold text-base"
             disabled={!cart.length}
             onClick={openPayment}
           >
@@ -493,31 +645,57 @@ export default function PosTerminal({
 
   return (
     <AppShell userName={cashierName} role={userRole} outletName={outletName} tenantName={tenantName}>
-      <div className="grid gap-5 xl:grid-cols-[1fr_25rem]">
+      <div className="grid gap-5 lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_25rem]">
         {/* Left Side: Product Catalog */}
         <section className="grid min-w-0 content-start gap-4">
-          {/* Search & Shift Status */}
+          {/* Top Search, Status & Scanner Badges */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <SearchInput
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari produk atau SKU..."
+              placeholder="Cari produk, SKU atau scan barcode..."
               shortcut="/"
               className="flex-1"
               aria-label="Cari produk"
             />
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 shadow-2xs">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-              </span>
-              Shift aktif · {shift.outletName}
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Online / Local Cache Status */}
+              <div
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-semibold shadow-2xs ${
+                  isOnline
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                }`}
+              >
+                {isOnline ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
+                <span className="hidden sm:inline">{isOnline ? 'Online' : 'Offline'}</span>
+              </div>
+
+              {/* Shift status badge */}
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="truncate max-w-32 sm:max-w-none">{shift.outletName}</span>
+              </div>
+
+              {/* Audio toggle button */}
+              <button
+                type="button"
+                onClick={toggleSound}
+                className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition active:scale-90"
+                aria-label="Suara"
+              >
+                {soundActive ? <Volume2 className="size-4" /> : <VolumeX className="size-4 text-slate-400" />}
+              </button>
             </div>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {/* Category Filter Pills (Touch Momentum Scroll) */}
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none overscroll-x-contain">
             {[{ id: 'all', name: 'Semua', color: 'navy' }, ...categories].map((item) => {
               const active = category === item.id;
               const count =
@@ -532,9 +710,10 @@ export default function PosTerminal({
                   aria-pressed={active}
                   onClick={() => {
                     playTap();
+                    triggerHaptic('light');
                     setCategory(item.id);
                   }}
-                  className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 ${
+                  className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 active:scale-95 ${
                     active
                       ? 'border-navy-700 bg-navy-700 text-white shadow-md shadow-navy-700/20'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-navy-200 hover:text-navy-700 shadow-2xs'
@@ -552,9 +731,9 @@ export default function PosTerminal({
             })}
           </div>
 
-          {/* Product Grid */}
+          {/* Product Grid (Responsive: 2 cols on mobile, 3 on tablet, 4 on large screens) */}
           {filtered.length ? (
-            <div className="grid grid-cols-2 gap-3 pb-28 sm:grid-cols-3 xl:pb-0 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 pb-28 sm:grid-cols-3 lg:pb-4 2xl:grid-cols-4">
               {filtered.map((product, index) => {
                 const inCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
                 const soldOut = product.stock !== undefined && product.stock <= 0;
@@ -567,10 +746,10 @@ export default function PosTerminal({
                     disabled={soldOut}
                     onClick={() => add(product)}
                     style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
-                    className={`group relative overflow-hidden rounded-2xl border bg-white p-3 text-left shadow-2xs transition duration-200 animate-fade-up focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55 ${
+                    className={`group relative overflow-hidden rounded-2xl border bg-white p-3 text-left shadow-2xs transition duration-200 animate-fade-up focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 active:scale-[0.97] touch-manipulation disabled:cursor-not-allowed disabled:opacity-55 ${
                       inCart
                         ? 'border-navy-400 ring-2 ring-navy-100'
-                        : 'border-slate-200 hover:-translate-y-1 hover:border-navy-200 hover:shadow-md'
+                        : 'border-slate-200 hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-md'
                     }`}
                   >
                     {/* Top Tile with Initials */}
@@ -636,8 +815,8 @@ export default function PosTerminal({
           )}
         </section>
 
-        {/* Right Side: Sticky Cart Panel (Desktop) */}
-        <aside className="hidden h-[calc(100vh-8.5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs xl:sticky xl:top-24 xl:block">
+        {/* Right Side: Sticky Cart Panel (Tablet & Desktop dual-pane) */}
+        <aside className="hidden h-[calc(100vh-8.5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs lg:sticky lg:top-24 lg:block">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
             <p className="font-semibold text-slate-950">Pesanan saat ini</p>
             <Badge tone="primary">{totals.items} item</Badge>
@@ -646,15 +825,16 @@ export default function PosTerminal({
         </aside>
       </div>
 
-      {/* Floating Bottom Bar (Mobile) */}
-      <div className="fixed inset-x-3 bottom-20 z-30 xl:hidden">
+      {/* Floating Bottom Bar (Mobile Only: lg:hidden) */}
+      <div className="fixed inset-x-3 bottom-20 z-30 lg:hidden">
         <button
           type="button"
           onClick={() => {
             playTap();
+            triggerHaptic('light');
             setCartOpen(true);
           }}
-          className={`flex h-14 w-full items-center justify-between rounded-2xl px-4 text-white shadow-xl transition ${
+          className={`flex h-14 w-full items-center justify-between rounded-2xl px-4 text-white shadow-xl transition active:scale-[0.98] ${
             cart.length ? 'bg-navy-800 shadow-navy-900/30' : 'bg-slate-700/90'
           }`}
         >
@@ -671,14 +851,14 @@ export default function PosTerminal({
         </button>
       </div>
 
-      {/* Mobile Cart Drawer */}
+      {/* Mobile Cart Drawer Bottom Sheet */}
       <Drawer
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         title="Pesanan saat ini"
         description={`${totals.items} item di keranjang`}
       >
-        <div className="-mx-6 -my-5 h-[70vh]">{cartPanel}</div>
+        <div className="-mx-6 -my-5 h-[72vh]">{cartPanel}</div>
       </Drawer>
 
       {/* Quick Add Customer Drawer */}
@@ -724,10 +904,17 @@ export default function PosTerminal({
         description={selectedCustomer ? `Pelanggan: ${selectedCustomer.name}` : 'Pelanggan umum'}
         variant="center"
       >
-        <form onSubmit={handleCheckoutSubmit} className="grid gap-5">
+        <form onSubmit={handleCheckoutSubmit} className="grid gap-4">
           {/* Total Tagihan Card */}
           <div className="rounded-2xl bg-gradient-to-br from-navy-700 to-navy-950 p-5 text-white shadow-md">
-            <p className="text-xs font-medium text-navy-200">Total tagihan</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-navy-200">Total tagihan</p>
+              {discountPercent > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
+                  Diskon {discountPercent}%
+                </span>
+              )}
+            </div>
             <p className="money mt-1 text-3xl font-bold tracking-tight">
               {formatMoney(totals.total)}
             </p>
@@ -749,9 +936,10 @@ export default function PosTerminal({
                   aria-checked={active}
                   onClick={() => {
                     playTap();
+                    triggerHaptic('light');
                     setMethod(option.value);
                   }}
-                  className={`grid h-20 place-items-center gap-1 rounded-xl border text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 ${
+                  className={`grid h-20 place-items-center gap-1 rounded-xl border text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 active:scale-95 ${
                     active
                       ? 'border-navy-600 bg-navy-50 text-navy-800 ring-2 ring-navy-100 shadow-2xs'
                       : 'border-slate-200 text-slate-600 hover:border-navy-200 bg-white'
@@ -779,6 +967,7 @@ export default function PosTerminal({
                 />
               </label>
 
+              {/* Quick Cash Options */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {quickCash.map((value, index) => (
                   <button
@@ -786,9 +975,10 @@ export default function PosTerminal({
                     type="button"
                     onClick={() => {
                       playTap();
+                      triggerHaptic('light');
                       setReceived(String(value));
                     }}
-                    className={`h-10 rounded-lg border text-xs font-semibold transition ${
+                    className={`h-10 rounded-lg border text-xs font-semibold transition active:scale-95 ${
                       receivedValue === value
                         ? 'border-navy-600 bg-navy-700 text-white shadow-2xs'
                         : 'border-slate-200 text-slate-700 hover:border-navy-300 bg-white'
@@ -799,9 +989,25 @@ export default function PosTerminal({
                 ))}
               </div>
 
+              {/* Native Touch Numpad for Tablet/Mobile */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '000', 0, 'C'].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => handleNumpadPress(k)}
+                    className="h-11 rounded-lg border border-slate-200 bg-white font-mono text-base font-bold text-slate-800 transition active:scale-95 hover:bg-slate-50"
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+
               <div
                 className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold ${
-                  change >= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                  change >= 0
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-100'
+                    : 'bg-rose-50 text-rose-700 border border-rose-100'
                 }`}
               >
                 <span>{change >= 0 ? 'Kembalian' : 'Kurang'}</span>
@@ -847,7 +1053,7 @@ export default function PosTerminal({
           <Button
             type="submit"
             size="lg"
-            className="h-13 text-base rounded-xl font-bold shadow-sm"
+            className="h-13 text-base rounded-xl font-bold shadow-sm active:scale-[0.98]"
             disabled={pending || (method === 'cash' && change < 0)}
           >
             {pending ? (
@@ -860,7 +1066,7 @@ export default function PosTerminal({
         </form>
       </Drawer>
 
-      {/* Success Modal (Drawer variant="center") */}
+      {/* Success Modal (Drawer variant="center") with Thermal Receipt Preview */}
       <Drawer
         open={Boolean(success)}
         onClose={() => setSuccess(null)}
@@ -895,20 +1101,53 @@ export default function PosTerminal({
               </div>
             </div>
 
+            {/* Printable Thermal Receipt Slip (hidden on screen, visible on print) */}
+            <div className="hidden print:block text-left font-mono text-xs p-4 bg-white">
+              <div className="text-center pb-2 border-b border-black">
+                <p className="font-bold text-sm">{tenantName}</p>
+                <p>{outletName}</p>
+                <p className="text-[10px]">{success.date}</p>
+                <p className="text-[10px]">{success.receiptNumber}</p>
+              </div>
+              <div className="py-2 border-b border-black space-y-1">
+                {success.items?.map((it: CartItem) => (
+                  <div key={it.id} className="flex justify-between">
+                    <span>{it.name} x{it.quantity}</span>
+                    <span>{formatMoney(it.price * it.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 text-right font-bold">
+                <div className="flex justify-between">
+                  <span>TOTAL:</span>
+                  <span>{formatMoney(success.grandTotal)}</span>
+                </div>
+                <div className="flex justify-between font-normal">
+                  <span>Kembalian:</span>
+                  <span>{formatMoney(success.changeAmount)}</span>
+                </div>
+              </div>
+              <p className="text-center text-[10px] pt-4">Terima kasih atas kunjungan Anda!</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+                onClick={() => {
+                  playTap();
+                  window.print();
+                }}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs active:scale-95"
               >
                 <Printer className="size-4" />
                 Cetak struk
               </button>
               <Button
                 size="lg"
-                className="rounded-xl"
+                className="rounded-xl active:scale-95"
                 onClick={() => {
                   playTap();
+                  triggerHaptic('light');
                   setSuccess(null);
                   searchRef.current?.focus();
                 }}

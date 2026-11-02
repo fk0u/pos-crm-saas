@@ -41,7 +41,7 @@ import { CountUp } from '@/Components/ui/count-up';
 import { RevenueChart } from '@/Components/dashboard/revenue-chart';
 import { categoryTone, initials, buildDailySeries, type DailyPoint } from '@/lib/analytics';
 import { formatMoney, formatNumber, formatDateTime, formatCompactMoney } from '@/lib/format';
-import { playTap, playSuccessChime } from '@/lib/sound';
+import { playTap, playSuccessChime, triggerHaptic } from '@/lib/sound';
 
 const methodMeta = {
   cash: { label: 'Tunai', icon: Banknote, bar: 'bg-emerald-500' },
@@ -127,6 +127,26 @@ export default function DashboardIndex({
   const [refundReason, setRefundReason] = useState('');
   const [isRefunding, setIsRefunding] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    playTap();
+    triggerHaptic('light');
+    setIsRefreshing(true);
+    try {
+      const res = await fetch('/dashboard/recent');
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setOrdersList(json.data);
+      }
+    } catch {}
+    setTimeout(() => {
+      setIsRefreshing(false);
+      triggerHaptic('success');
+      setToastMessage('Data transaksi telah disinkronkan');
+      setTimeout(() => setToastMessage(null), 3000);
+    }, 600);
+  };
 
   // Sync hash with active tab
   useEffect(() => {
@@ -334,13 +354,24 @@ export default function DashboardIndex({
                     href="#reports"
                     onClick={() => {
                       playTap();
+                      triggerHaptic('light');
                       setActiveTab('reports');
                     }}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95"
                   >
                     Laporan
                     <ArrowUpRight className="size-4" />
                   </a>
+                  <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 px-3.5 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95"
+                    aria-label="Segarkan data"
+                  >
+                    <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Sinkron</span>
+                  </button>
                 </div>
               </div>
             </section>

@@ -122,3 +122,31 @@ export function playError(): void {
     // quiet fallback
   }
 }
+
+/**
+ * Native Haptic Feedback for Mobile / Tablet devices
+ */
+export function triggerHaptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error' = 'light'): void {
+  if (typeof window === 'undefined' || !navigator.vibrate) return;
+  try {
+    switch (type) {
+      case 'light':
+        navigator.vibrate(8);
+        break;
+      case 'medium':
+        navigator.vibrate(18);
+        break;
+      case 'heavy':
+        navigator.vibrate(32);
+        break;
+      case 'success':
+        navigator.vibrate([12, 40, 20]);
+        break;
+      case 'error':
+        navigator.vibrate([30, 60, 40]);
+        break;
+    }
+  } catch {
+    // quiet fallback
+  }
+}
