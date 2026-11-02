@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import '../css/app.css';
 
 createInertiaApp({
-  title: (title) => (title ? `${title} - Omnipoint POS` : 'Omnipoint POS & CRM'),
+  title: (title) => (title ? `${title} - QLon Native POS` : 'QLon - Next-Gen POS & CRM Cloud'),
   resolve: (name) => {
     const pages = import.meta.glob('./Pages/**/*.tsx', { eager: true });
     const page = pages[`./Pages/${name}.tsx`];

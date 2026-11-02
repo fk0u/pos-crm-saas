@@ -37,6 +37,7 @@ import { Drawer } from '@/Components/ui/drawer';
 import { CountUp } from '@/Components/ui/count-up';
 import { RevenueChart } from '@/Components/dashboard/revenue-chart';
 import { formatMoney, formatDateTime, formatCompactMoney } from '@/lib/format';
+import { playTap, playSuccessChime } from '@/lib/sound';
 import type { DailyPoint } from '@/lib/analytics';
 
 interface Outlet {
@@ -285,10 +286,10 @@ export default function DashboardIndex({
                   ))}
                 </select>
 
-                <Link href="/pos">
-                  <Button size="md" className="bg-navy-900 hover:bg-navy-800 text-white shadow-sm font-semibold">
+                <Link href="/pos" onClick={() => playTap()}>
+                  <Button size="md" className="bg-navy-900 hover:bg-navy-800 text-white shadow-sm glow-cyan font-bold">
                     <Store className="size-4 mr-1.5 text-sky-400" />
-                    Buka Kasir POS
+                    Buka Kasir QLon (Native)
                   </Button>
                 </Link>
               </div>

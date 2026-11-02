@@ -14,6 +14,7 @@ import {
 import { Button } from '@/Components/ui/button';
 import { Card, FormError } from '@/Components/ui/card';
 import { Field, Input } from '@/Components/ui/input';
+import { playTap, playSuccessChime } from '@/lib/sound';
 
 export default function Register() {
   const { data, setData, post, processing, errors, reset } = useForm({
@@ -27,7 +28,9 @@ export default function Register() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    playTap();
     post('/register', {
+      onSuccess: () => playSuccessChime(),
       onFinish: () => reset('password', 'password_confirmation'),
     });
   };
@@ -36,24 +39,27 @@ export default function Register() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="size-12 rounded-2xl bg-navy-900 border border-navy-800 text-white flex items-center justify-center shadow-md">
-            <Store className="size-6 text-sky-400" />
+          <div className="relative size-14 rounded-2xl bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 border border-sky-400/40 text-white flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.3)]">
+            <span className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">
+              Q
+            </span>
+            <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 ring-2 ring-navy-950 animate-pulse" />
           </div>
         </div>
-        <h1 className="mt-4 text-center text-2xl font-bold tracking-tight text-slate-900">
-          Daftarkan Bisnis Anda
+        <h1 className="mt-4 text-center text-2xl font-black tracking-tight text-slate-900">
+          Daftarkan Bisnis Anda di QLon
         </h1>
         <p className="mt-1.5 text-center text-sm text-slate-500">
-          Mulai kelola kasir POS, loyalitas member WhatsApp CRM &amp; inventori multi-cabang.
+          Mulai kelola kasir POS native, CRM WhatsApp &amp; pantau omzet multi-cabang.
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
         <Card className="p-6 sm:p-8 bg-white border-slate-200 shadow-sm">
-          <div className="mb-6 p-3 rounded-xl bg-sky-50/70 border border-sky-100 flex items-start gap-3">
+          <div className="mb-6 p-3.5 rounded-xl bg-sky-50/80 border border-sky-100 flex items-start gap-3">
             <Sparkles className="size-5 text-sky-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-sky-900 leading-relaxed">
-              Pendaftaran ini akan otomatis membuat workspace owner baru, outlet pusat default, dan mengaktifkan seluruh fitur kasir realtime.
+            <p className="text-xs text-sky-950 leading-relaxed font-medium">
+              Pendaftaran ini akan otomatis membuat workspace owner baru di <strong>QLon Cloud</strong>, mengaktifkan outlet pusat default, dan membuka akses kasir realtime.
             </p>
           </div>
 
@@ -186,9 +192,9 @@ export default function Register() {
               type="submit"
               size="lg"
               disabled={processing}
-              className="w-full mt-4 bg-navy-900 hover:bg-navy-800 text-white font-medium"
+              className="w-full mt-4 bg-navy-900 hover:bg-navy-800 text-white font-bold glow-cyan"
             >
-              {processing ? 'Menyiapkan Workspace...' : 'Daftarkan Workspace Sekarang'}
+              {processing ? 'Menyiapkan Workspace QLon...' : 'Daftarkan Workspace Sekarang'}
               <ArrowRight className="size-4 ml-1" />
             </Button>
           </form>
@@ -198,7 +204,7 @@ export default function Register() {
               Sudah memiliki akun?{' '}
               <Link
                 href="/login"
-                className="font-semibold text-navy-800 hover:text-navy-900 underline underline-offset-2"
+                className="font-bold text-navy-900 hover:text-navy-950 underline underline-offset-2"
               >
                 Masuk di sini
               </Link>
