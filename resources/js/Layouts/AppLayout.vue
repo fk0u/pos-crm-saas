@@ -303,7 +303,9 @@ const selectOutlet = (outlet) => {
                 :class="selectedOutlet === out ? 'text-navy-700 font-semibold bg-navy-50/50' : 'text-slate-700'"
               >
                 <span>{{ out }}</span>
-                <span v-if="selectedOutlet === out" class="text-navy-700 text-xs">✓</span>
+                <svg v-if="selectedOutlet === out" class="w-3.5 h-3.5 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
               </button>
             </div>
           </div>

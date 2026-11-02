@@ -72,21 +72,27 @@ function submit() {
         <div class="space-y-3 pt-2">
           <div class="flex items-center gap-3 text-xs text-navy-100">
             <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              ✓
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <span>Kasir Cepat multi-pembayaran dengan auto-calc kembalian</span>
           </div>
 
           <div class="flex items-center gap-3 text-xs text-navy-100">
             <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              ✓
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <span>Deteksi Member CRM via WhatsApp dalam &lt; 3 detik</span>
           </div>
 
           <div class="flex items-center gap-3 text-xs text-navy-100">
             <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              ✓
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <span>Live Gross Profit, Margin HPP & Audit Rekap Shift</span>
           </div>
@@ -140,8 +146,11 @@ function submit() {
                   ? 'bg-navy-50 border-navy-300 text-navy-800 font-semibold shadow-xs'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
               >
-                <div class="flex items-center gap-1 text-slate-900 font-medium">
-                  👑 Owner HQ
+                <div class="flex items-center gap-1.5 text-slate-900 font-semibold">
+                  <svg class="w-3.5 h-3.5 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span>Owner HQ</span>
                 </div>
                 <div class="text-[10px] text-slate-500 truncate mt-0.5">
                   Hendra Setiawan
@@ -156,8 +165,11 @@ function submit() {
                   ? 'bg-navy-50 border-navy-300 text-navy-800 font-semibold shadow-xs'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
               >
-                <div class="flex items-center gap-1 text-slate-900 font-medium">
-                  ☕ Kasir Outlet
+                <div class="flex items-center gap-1.5 text-slate-900 font-semibold">
+                  <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>Kasir Outlet</span>
                 </div>
                 <div class="text-[10px] text-slate-500 truncate mt-0.5">
                   Siti Aminah

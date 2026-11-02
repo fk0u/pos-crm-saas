@@ -104,7 +104,7 @@ function renderCart(): void {
 
     if (items.length === 0) {
         list.innerHTML =
-            '<div class="py-10 text-center"><p class="text-slate-300 text-4xl">🛒</p><p class="mt-2 text-sm text-slate-400">Keranjang kosong. Tap produk untuk mulai.</p></div>';
+            '<div class="py-10 text-center flex flex-col items-center justify-center"><div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></div><p class="text-sm font-semibold text-slate-600">Keranjang masih kosong</p><p class="mt-1 text-xs text-slate-400">Tap produk untuk mulai transaksi.</p></div>';
     }
 
     for (const line of items) {
@@ -124,7 +124,9 @@ function renderCart(): void {
             </div>
             <div class="w-24 text-right text-sm font-bold text-slate-800">${rupiah.format(line.lineTotal)}</div>
             <button type="button" data-remove="${line.product.id}" aria-label="Hapus ${line.product.name}"
-                class="h-9 w-9 rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-500">🗑</button>
+                class="h-9 w-9 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
         `;
         list.appendChild(row);
     }

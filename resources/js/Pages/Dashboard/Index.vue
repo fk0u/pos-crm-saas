@@ -445,9 +445,10 @@ function formatRupiah(val) {
                 </div>
                 <div class="text-right">
                   <AppMoney :value="outlet.revenue" size="lg" />
-                  <p class="text-[11px] text-emerald-600 font-medium mt-0.5">
-                    {{ outlet.transactions > 0 ? '🟢 Beroperasi' : '⚪ Belum ada order' }}
-                  </p>
+                  <div class="flex items-center justify-end gap-1.5 text-[11px] font-medium mt-0.5" :class="outlet.transactions > 0 ? 'text-emerald-700' : 'text-slate-400'">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="outlet.transactions > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'"></span>
+                    <span>{{ outlet.transactions > 0 ? 'Beroperasi' : 'Belum ada order' }}</span>
+                  </div>
                 </div>
               </div>
             </div>
