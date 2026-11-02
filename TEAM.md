@@ -11,6 +11,7 @@ Repository: [fk0u/pos-crm-saas](https://github.com/fk0u/pos-crm-saas)
 | **Lixu** | **Senior Software Engineer (SWE)** | Core Laravel implementation, POS checkout flow, CRM loyalty points engine. |
 | **Austin** | **Staff Reviewer & QA Lead** | Code quality gate, security audit, edge-case testing, PR review. |
 | **Design & Motion Critic** | **UI/UX Design Lead** | Tablet-friendly POS ergonomics, fast numpad flow, owner mobile analytics UI. |
+| **BendoReal** ([@BendoReal](https://github.com/BendoReal)) | **Collaborator / Engineering Partner** | Feature development, architecture review, and sprint contributor. |
 | **Abang DevOps** | **DevOps & Infrastructure** | Docker compose, PostgreSQL connection tuning, Redis, VPS deployment & CI/CD. |
 | **Client Ops** | **Product & Business Operations** | PRD scoping, user personas, client/SME feedback loops. |
 
