@@ -37,7 +37,7 @@ import {
   Package,
   Phone,
 } from 'lucide-react';
-import { AppShell } from '@/Components/app/app-shell';
+import { AppShell, getGreeting } from '@/Components/app/app-shell';
 import { Card } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -144,6 +144,8 @@ export default function DashboardIndex({
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
+  const [hoveredHourIndex, setHoveredHourIndex] = useState<number | null>(4);
+
   // Sync hash with tab
   useEffect(() => {
     const syncHash = () => {
@@ -178,11 +180,11 @@ export default function DashboardIndex({
 
   // Hourly spline chart data for "Today Transaction" (Changx reference)
   const hourlyData = [
-    { time: '10.00 AM', count: 12 },
-    { time: '11.00 AM', count: 24 },
-    { time: '12.00 PM', count: 58 },
-    { time: '01.00 PM', count: 42 },
-    { time: '02.00 PM', count: 84, active: true },
+    { time: '10.00 AM', count: 12, sales: 240000 },
+    { time: '11.00 AM', count: 24, sales: 520000 },
+    { time: '12.00 PM', count: 58, sales: 1390000 },
+    { time: '01.00 PM', count: 42, sales: 980000 },
+    { time: '02.00 PM', count: 84, sales: 1840000, active: true },
   ];
   const maxHourly = 100;
   const chartW = 540;
@@ -234,36 +236,44 @@ export default function DashboardIndex({
         {/* ===================== TAB: OVERVIEW (Changx Match) ===================== */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Top Page Header & Controls (Changx Style) */}
+            {/* Top Page Header & Controls (Dynamic Greeting + Actions) */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Overview</h1>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  Manage and monitoring your sales with one page
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                    {getGreeting()}, {userName}!
+                  </h1>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Central Online
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                  Ringkasan penjualan dan operasional {outletName} hari ini.
                 </p>
               </div>
 
-              {/* Top Search & Filter Bar */}
+              {/* Quick Actions Bar */}
               <div className="flex items-center gap-2.5">
-                <div className="relative w-48 sm:w-64">
+                <Link href="/pos">
+                  <Button
+                    size="md"
+                    onClick={() => playTap()}
+                    className="bg-navy-900 hover:bg-navy-950 text-white font-bold rounded-xl text-xs h-10 px-4 shadow-sm flex items-center gap-2"
+                  >
+                    <ShoppingBag className="size-3.5 text-sky-400" />
+                    <span>Buka Kasir</span>
+                  </Button>
+                </Link>
+
+                <div className="relative w-44 sm:w-56">
                   <Input
-                    placeholder="Search..."
+                    placeholder="Cari transaksi..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 h-10 bg-white border-slate-200/90 rounded-xl text-xs shadow-2xs placeholder:text-slate-400"
                   />
                   <Search className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => playTap()}
-                  className="bg-white border-slate-200/90 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs h-10 px-3.5 flex items-center gap-1.5"
-                >
-                  <SlidersHorizontal className="size-3.5 text-slate-500" />
-                  <span>Sort</span>
-                </Button>
               </div>
             </div>
 
@@ -396,24 +406,32 @@ export default function DashboardIndex({
                         </g>
                       ))}
 
-                      {/* Active Column Highlight Box (at 02.00 PM) */}
-                      <rect
-                        x={x(4) - 20}
-                        y="0"
-                        width="40"
-                        height={chartH}
-                        rx="8"
-                        fill="rgba(59, 130, 246, 0.08)"
-                      />
-                      <line
-                        x1={x(4)}
-                        x2={x(4)}
-                        y1={y(84)}
-                        y2={chartH}
-                        stroke="#2563eb"
-                        strokeDasharray="3 3"
-                        strokeWidth="1.5"
-                      />
+                      {/* Active Column Highlight Box */}
+                      {(() => {
+                        const activeIdx = hoveredHourIndex ?? 4;
+                        const activePt = hourlyData[activeIdx] || hourlyData[4];
+                        return (
+                          <>
+                            <rect
+                              x={x(activeIdx) - 24}
+                              y="0"
+                              width="48"
+                              height={chartH}
+                              rx="10"
+                              fill="rgba(37, 99, 235, 0.08)"
+                            />
+                            <line
+                              x1={x(activeIdx)}
+                              x2={x(activeIdx)}
+                              y1={y(activePt.count)}
+                              y2={chartH}
+                              stroke="#2563eb"
+                              strokeDasharray="3 3"
+                              strokeWidth="1.5"
+                            />
+                          </>
+                        );
+                      })()}
 
                       {/* Spline Path */}
                       <path
@@ -425,33 +443,59 @@ export default function DashboardIndex({
                         strokeLinejoin="round"
                       />
 
-                      {/* Data Dots */}
-                      {hourlyData.map((pt, i) => (
-                        <circle
-                          key={pt.time}
-                          cx={x(i)}
-                          cy={y(pt.count)}
-                          r={pt.active ? '6' : '3.5'}
-                          fill={pt.active ? '#ffffff' : '#2563eb'}
-                          stroke="#2563eb"
-                          strokeWidth={pt.active ? '3' : '1'}
-                          className="transition-transform hover:scale-125 cursor-pointer"
-                        />
-                      ))}
+                      {/* Data Dots with Hover and Click Action */}
+                      {hourlyData.map((pt, i) => {
+                        const isHovered = (hoveredHourIndex ?? 4) === i;
+                        return (
+                          <g key={pt.time}>
+                            <circle
+                              cx={x(i)}
+                              cy={y(pt.count)}
+                              r={isHovered ? '6' : '3.5'}
+                              fill={isHovered ? '#ffffff' : '#2563eb'}
+                              stroke="#2563eb"
+                              strokeWidth={isHovered ? '3' : '1'}
+                              onMouseEnter={() => {
+                                playTap();
+                                setHoveredHourIndex(i);
+                              }}
+                              className="transition-all cursor-pointer"
+                            />
+                          </g>
+                        );
+                      })}
                     </svg>
                   </div>
                 </div>
 
-                {/* X-axis labels */}
-                <div className="flex justify-between text-[11px] text-slate-400 font-medium pt-3 border-t border-slate-100 mt-2">
-                  {hourlyData.map((pt) => (
-                    <span
-                      key={pt.time}
-                      className={pt.active ? 'text-blue-600 font-bold' : 'text-slate-400'}
-                    >
-                      {pt.time}
-                    </span>
-                  ))}
+                {/* X-axis labels + Active Tooltip Summary */}
+                <div className="pt-3 border-t border-slate-100 mt-2 flex items-center justify-between">
+                  <div className="flex gap-4 sm:gap-8 text-[11px] font-medium">
+                    {hourlyData.map((pt, i) => {
+                      const isHovered = (hoveredHourIndex ?? 4) === i;
+                      return (
+                        <button
+                          key={pt.time}
+                          onClick={() => {
+                            playTap();
+                            setHoveredHourIndex(i);
+                          }}
+                          className={`transition-colors ${
+                            isHovered ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          {pt.time}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active Tooltip Pill */}
+                  <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-navy-800 animate-fade-in font-mono">
+                    <span>{hourlyData[hoveredHourIndex ?? 4]?.count} Trx</span>
+                    <span>•</span>
+                    <span className="text-blue-700">{formatMoney(hourlyData[hoveredHourIndex ?? 4]?.sales || 0)}</span>
+                  </div>
                 </div>
               </Card>
 

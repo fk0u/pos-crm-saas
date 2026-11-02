@@ -31,7 +31,16 @@ import {
 import { Button } from '@/Components/ui/button';
 import { ToastProvider } from '@/Components/ui/toast';
 import { LiveClock } from './live-clock';
+import { CommandPalette } from './command-palette';
 import { isSoundEnabled, setSoundEnabled, playTap } from '@/lib/sound';
+
+export function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 11) return 'Selamat Pagi';
+  if (hour >= 11 && hour < 15) return 'Selamat Siang';
+  if (hour >= 15 && hour < 18) return 'Selamat Sore';
+  return 'Selamat Malam';
+}
 
 export type AppUser = {
   name: string;
@@ -219,6 +228,7 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [soundActive, setSoundActive] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
     setSoundActive(isSoundEnabled());
@@ -304,8 +314,25 @@ export function AppShell({
               </div>
             </div>
 
-            {/* Right Tools: Clock, Sound Toggle, Fullscreen, POS Button */}
+            {/* Right Tools: Command Palette, Clock, Sound Toggle, Fullscreen, POS Button */}
             <div className="flex items-center gap-2.5">
+              {/* Command Palette Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  setCommandOpen(true);
+                }}
+                className="hidden md:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-colors shadow-2xs"
+                title="Tekan Cmd+K untuk cari"
+              >
+                <Search className="size-3.5 text-slate-400" />
+                <span>Cari aksi atau menu...</span>
+                <kbd className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 font-bold">
+                  ⌘K
+                </kbd>
+              </button>
+
               <LiveClock />
 
               {/* Sound Toggle Button */}
@@ -345,6 +372,13 @@ export function AppShell({
               </Link>
             </div>
           </header>
+
+          {/* Universal Command Palette (Cmd+K) */}
+          <CommandPalette
+            isOpen={commandOpen}
+            onClose={() => setCommandOpen(false)}
+            outletName={outletName}
+          />
 
           {/* Main Body */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 animate-fade-in">{children}</main>

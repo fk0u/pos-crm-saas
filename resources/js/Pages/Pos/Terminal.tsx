@@ -48,6 +48,7 @@ import {
 import { Button } from '@/Components/ui/button';
 import { Card } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
+import { CommandPalette } from '@/Components/app/command-palette';
 import { formatMoney, formatNumber, formatCompactMoney } from '@/lib/format';
 import { playTap, playBeep, playSuccessChime, playError, isSoundEnabled, setSoundEnabled } from '@/lib/sound';
 
@@ -344,6 +345,7 @@ export default function PosTerminal({
   const [edcApprovalCode, setEdcApprovalCode] = useState('');
   const [copiedBankInfo, setCopiedBankInfo] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
@@ -506,17 +508,40 @@ export default function PosTerminal({
   // Native POS Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1') {
+      // Cmd+K or Ctrl+K for Universal Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        playTap();
+        setCommandOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === 'F1' || (e.key === '/' && (e.target as HTMLElement)?.tagName !== 'INPUT' && (e.target as HTMLElement)?.tagName !== 'TEXTAREA')) {
         e.preventDefault();
         searchInputRef.current?.focus();
         playTap();
       } else if (
+        e.key === 'F2' ||
         e.key === 'F4' ||
         (e.code === 'Space' && (e.target as HTMLElement)?.tagName !== 'INPUT' && (e.target as HTMLElement)?.tagName !== 'TEXTAREA')
       ) {
         if (cart.length > 0 && !showPaymentModal && !completedOrder) {
           e.preventDefault();
           openPaymentModal();
+        }
+      } else if (e.key === 'Enter' && showPaymentModal && !isProcessing) {
+        // Instant Enter to complete transaction in modal!
+        e.preventDefault();
+        handleCheckout();
+      } else if (e.key === '+' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          updateQuantity(cart[cart.length - 1].product.id, 1);
+        }
+      } else if (e.key === '-' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          updateQuantity(cart[cart.length - 1].product.id, -1);
         }
       } else if (e.key === 'F9') {
         e.preventDefault();
@@ -527,6 +552,7 @@ export default function PosTerminal({
           setShowShortcutHelp((prev) => !prev);
         }
       } else if (e.key === 'Escape') {
+        if (commandOpen) setCommandOpen(false);
         if (showPaymentModal) setShowPaymentModal(false);
         if (completedOrder) setCompletedOrder(null);
         if (showShortcutHelp) setShowShortcutHelp(false);
@@ -534,7 +560,7 @@ export default function PosTerminal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, showPaymentModal, completedOrder, showShortcutHelp, grandTotal]);
+  }, [cart, showPaymentModal, completedOrder, showShortcutHelp, grandTotal, isProcessing, commandOpen]);
 
   return (
     <div className={`h-screen w-screen flex flex-col bg-[#f5f5f0] text-slate-800 overflow-hidden font-sans select-none ${scanFlash ? 'ring-4 ring-navy-800' : ''}`}>
@@ -1484,10 +1510,13 @@ export default function PosTerminal({
 
             <div className="space-y-2 text-xs">
               {[
-                { key: 'F1', desc: 'Fokus ke pencarian menu / barcode scanner' },
-                { key: 'F4 atau Spasi', desc: 'Buka modal pembayaran transaksi' },
-                { key: 'F9', desc: 'Toggle mode layar penuh (Kiosk Mode)' },
+                { key: '⌘K / Ctrl+K', desc: 'Buka Command Palette navigasi universal' },
+                { key: '/ atau F1', desc: 'Fokus ke pencarian menu / barcode scanner' },
                 { key: 'Enter di Search', desc: 'Scan instan masukkan barang ke keranjang' },
+                { key: '+ dan -', desc: 'Tambah atau kurangi jumlah pesanan terakhir' },
+                { key: 'F2, F4 atau Spasi', desc: 'Buka modal tender pembayaran transaksi' },
+                { key: 'Enter di Pembayaran', desc: 'Konfirmasi dan selesaikan transaksi' },
+                { key: 'F9', desc: 'Toggle mode layar penuh (Kiosk Mode)' },
                 { key: 'Escape', desc: 'Tutup modal / batal' },
                 { key: '?', desc: 'Buka bantuan shortcut ini' },
               ].map((s) => (
@@ -1510,6 +1539,14 @@ export default function PosTerminal({
           </Card>
         </div>
       )}
+
+      {/* Universal Command Palette (Cmd+K) */}
+      <CommandPalette
+        isOpen={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onOpenShortcuts={() => setShowShortcutHelp(true)}
+        outletName={outletName}
+      />
     </div>
   );
 }
