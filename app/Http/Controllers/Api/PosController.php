@@ -68,7 +68,7 @@ class PosController extends Controller
             'discount_amount' => 'nullable|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'points_redeemed' => 'nullable|integer|min:0',
-            'payment_method' => 'required|string|in:cash,qris,bank_transfer,debit,split',
+            'payment_method' => 'required|string|in:cash,qris,bank_transfer,debit,split,card,transfer',
             'cash_tendered' => 'nullable|numeric',
             'payment_details' => 'nullable|array',
             'notes' => 'nullable|string',

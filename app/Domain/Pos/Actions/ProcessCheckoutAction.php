@@ -33,6 +33,11 @@ class ProcessCheckoutAction
         $targetOutletId = $outletId ?: $user->outlet_id;
 
         if (! $targetOutletId) {
+            $defaultOutlet = Outlet::where('tenant_id', $user->tenant_id)->first();
+            if ($defaultOutlet) {
+                return $defaultOutlet;
+            }
+
             throw ValidationException::withMessages([
                 'outlet_id' => 'Outlet wajib diisi bila user tidak punya outlet default.',
             ]);

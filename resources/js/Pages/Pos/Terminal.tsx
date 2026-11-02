@@ -116,16 +116,20 @@ const fallbackCustomers: POSCustomer[] = [
 export default function PosTerminal({
   cashierName = 'Samantha W',
   userRole = 'cashier',
+  outletId = '',
   outletName = 'Central Outlet',
   tenantName = 'QLon Store',
   initialProducts = [],
+  initialCustomers = [],
   activeShift = null,
 }: {
   cashierName?: string;
   userRole?: string;
+  outletId?: string;
   outletName?: string;
   tenantName?: string;
   initialProducts?: any[];
+  initialCustomers?: any[];
   activeShift?: any;
 }) {
   const toast = useToast();
@@ -182,7 +186,15 @@ export default function PosTerminal({
   }, [initialProducts]);
 
   const categories = defaultCategories;
-  const [customersList, setCustomersList] = useState<POSCustomer[]>(fallbackCustomers);
+  const [customersList, setCustomersList] = useState<POSCustomer[]>(
+    initialCustomers && initialCustomers.length > 0 ? initialCustomers : fallbackCustomers
+  );
+
+  useEffect(() => {
+    if (initialCustomers && initialCustomers.length > 0) {
+      setCustomersList(initialCustomers);
+    }
+  }, [initialCustomers]);
 
   const settings: POSSettings = {
     taxEnabled: true,
@@ -376,26 +388,55 @@ export default function PosTerminal({
     playTap();
     triggerHaptic('heavy');
 
-    const receiptNum = `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let receiptNum = `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let finalGrandTotal = totals.total;
+    let finalChangeAmount = method === 'cash' ? Math.max(0, change) : 0;
+    let finalPointsEarned = pointsPreview;
 
     try {
-      await fetch('/api/v1/pos/checkout', {
+      const csrfToken =
+        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ||
+        (document.querySelector('input[name="_token"]') as HTMLInputElement)?.value ||
+        '';
+
+      const isUuid = (val?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val || '');
+
+      const payload = {
+        outlet_id: isUuid(outletId) ? outletId : undefined,
+        items: cart.map((i) => ({ product_id: String(i.id), quantity: i.quantity })),
+        customer_phone: selectedCustomer?.phone ?? (selectedCustomer ? '0812' + Math.floor(10000000 + Math.random() * 90000000) : null),
+        customer_name: selectedCustomer?.name ?? null,
+        discount_amount: totals.discountAmount,
+        tax_amount: totals.tax,
+        points_redeemed: 0,
+        payment_method: method === 'cash' ? 'cash' : method === 'qris' ? 'qris' : method === 'card' ? 'debit' : 'bank_transfer',
+        cash_tendered: method === 'cash' ? receivedValue : totals.total,
+      };
+
+      const res = await fetch('/api/v1/pos/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          outlet_id: '1',
-          items: cart.map((i) => ({ product_id: String(i.id), quantity: i.quantity })),
-          customer_phone: selectedCustomer?.phone ?? null,
-          customer_name: selectedCustomer?.name ?? null,
-          discount_amount: totals.discountAmount,
-          tax_amount: totals.tax,
-          points_redeemed: 0,
-          payment_method: method === 'cash' ? 'cash' : 'qris',
-          cash_tendered: method === 'cash' ? receivedValue : totals.total,
-        }),
-      }).catch(() => null);
-    } catch {
-      // fallback
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        if (json?.data) {
+          receiptNum = json.data.invoice_number || receiptNum;
+          finalGrandTotal = Number(json.data.grand_total ?? finalGrandTotal);
+          finalPointsEarned = Number(json.data.points_earned ?? finalPointsEarned);
+          if (json.data.change_due !== undefined) {
+            finalChangeAmount = Number(json.data.change_due);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('POS Checkout sync notice:', err);
     }
 
     setPending(false);
@@ -404,13 +445,15 @@ export default function PosTerminal({
 
     setSuccess({
       receiptNumber: receiptNum,
-      grandTotal: totals.total,
-      changeAmount: method === 'cash' ? Math.max(0, change) : 0,
-      pointsEarned: pointsPreview,
+      grandTotal: finalGrandTotal,
+      changeAmount: finalChangeAmount,
+      pointsEarned: finalPointsEarned,
       itemsCount: totals.items,
       items: [...cart],
       date: new Date().toLocaleString('id-ID'),
     });
+
+    toast.show('success', `Pesanan ${receiptNum} sukses diproses!`);
 
     setCart([]);
     setDiscountPercent(0);
@@ -733,7 +776,7 @@ export default function PosTerminal({
 
           {/* Product Grid (Responsive: 2 cols on mobile, 3 on tablet, 4 on large screens) */}
           {filtered.length ? (
-            <div className="grid grid-cols-2 gap-3 pb-28 sm:grid-cols-3 lg:pb-4 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 pb-44 sm:grid-cols-3 lg:pb-6 2xl:grid-cols-4">
               {filtered.map((product, index) => {
                 const inCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
                 const soldOut = product.stock !== undefined && product.stock <= 0;
@@ -825,8 +868,8 @@ export default function PosTerminal({
         </aside>
       </div>
 
-      {/* Floating Bottom Bar (Mobile Only: lg:hidden) */}
-      <div className="fixed inset-x-3 bottom-20 z-30 lg:hidden">
+      {/* Floating Bottom Bar (Mobile Only: elevated above bottom nav bar: bottom-[calc(4.75rem+env(safe-area-inset-bottom))]) */}
+      <div className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 lg:hidden pointer-events-auto">
         <button
           type="button"
           onClick={() => {
@@ -834,20 +877,20 @@ export default function PosTerminal({
             triggerHaptic('light');
             setCartOpen(true);
           }}
-          className={`flex h-14 w-full items-center justify-between rounded-2xl px-4 text-white shadow-xl transition active:scale-[0.98] ${
-            cart.length ? 'bg-navy-800 shadow-navy-900/30' : 'bg-slate-700/90'
+          className={`flex h-14 w-full items-center justify-between rounded-2xl px-4 text-white shadow-2xl transition active:scale-[0.98] ${
+            cart.length ? 'bg-navy-800 shadow-navy-900/40 ring-1 ring-white/10' : 'bg-slate-800/95 shadow-slate-900/30'
           }`}
         >
           <span className="flex items-center gap-3 text-sm font-semibold">
             <span
               key={totals.items}
-              className="grid size-8 place-items-center rounded-lg bg-white/15 font-mono animate-pop"
+              className="grid size-8 place-items-center rounded-lg bg-white/20 font-mono text-sm font-bold animate-pop"
             >
               {totals.items}
             </span>
             Lihat pesanan
           </span>
-          <span className="money text-base font-bold">{formatMoney(totals.total)}</span>
+          <span className="money text-base font-bold tracking-tight">{formatMoney(totals.total)}</span>
         </button>
       </div>
 

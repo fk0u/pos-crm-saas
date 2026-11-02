@@ -50,17 +50,32 @@ class SalesMetricsService
 
         $grossProfit = max(0.0, $revenue - $totalCogs);
         $profitMargin = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 1) : 0.0;
+        $aov = $transactions > 0 ? round($revenue / $transactions, 2) : 0.0;
+        $newCustomersCount = (int) Customer::where('tenant_id', $tenantId)->where('created_at', '>=', $todayStart)->count();
+
+        $yesterdayStart = Carbon::yesterday();
+        $yesterdayRevenue = (float) Order::where('tenant_id', $tenantId)
+            ->whereBetween('created_at', [$yesterdayStart, $todayStart])
+            ->sum('grand_total');
+        $growthRevenue = $yesterdayRevenue > 0
+            ? round((($revenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
+            : ($revenue > 0 ? 100.0 : 0.0);
 
         return [
             'gross_sales' => $grossSales,
             'discount_total' => $discountTotal,
             'tax_total' => $taxTotal,
             'revenue' => $revenue,
+            'today_revenue' => $revenue,
             'cogs' => $totalCogs,
             'gross_profit' => $grossProfit,
             'profit_margin' => $profitMargin,
             'transactions' => $transactions,
-            'aov' => $transactions > 0 ? round($revenue / $transactions, 2) : 0.0,
+            'today_orders_count' => $transactions,
+            'aov' => $aov,
+            'avg_order_value' => $aov,
+            'new_customers_count' => $newCustomersCount,
+            'growth_revenue' => $growthRevenue,
             'active_outlets' => (int) Outlet::where('tenant_id', $tenantId)->count(),
             'open_shifts' => (int) Shift::where('tenant_id', $tenantId)->where('status', 'open')->count(),
         ];
@@ -118,9 +133,11 @@ class SalesMetricsService
             ->orderByDesc('total_qty')
             ->take($limit)
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn ($row, $idx) => [
+                'id' => $idx + 1,
                 'name' => $row->name,
                 'category' => $row->category,
+                'sold_count' => (int) $row->total_qty,
                 'total_qty' => (int) $row->total_qty,
                 'total_revenue' => (float) $row->total_revenue,
             ]);

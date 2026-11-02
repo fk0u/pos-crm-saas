@@ -32,9 +32,16 @@ readonly class CheckoutData
             $data['items'] ?? []
         );
 
+        $rawMethod = (string) ($data['payment_method'] ?? 'cash');
+        $paymentMethod = match ($rawMethod) {
+            'card' => 'debit',
+            'transfer' => 'bank_transfer',
+            default => $rawMethod,
+        };
+
         return new self(
             items: $items,
-            paymentMethod: (string) ($data['payment_method'] ?? 'cash'),
+            paymentMethod: $paymentMethod,
             outletId: isset($data['outlet_id']) ? (string) $data['outlet_id'] : null,
             shiftId: isset($data['shift_id']) ? (string) $data['shift_id'] : null,
             customerPhone: isset($data['customer_phone']) ? (string) $data['customer_phone'] : null,

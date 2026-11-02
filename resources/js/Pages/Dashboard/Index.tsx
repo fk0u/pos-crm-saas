@@ -129,24 +129,26 @@ export default function DashboardIndex({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     playTap();
     triggerHaptic('light');
     setIsRefreshing(true);
-    try {
-      const res = await fetch('/dashboard/recent');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setOrdersList(json.data);
-      }
-    } catch {}
-    setTimeout(() => {
-      setIsRefreshing(false);
-      triggerHaptic('success');
-      setToastMessage('Data transaksi telah disinkronkan');
-      setTimeout(() => setToastMessage(null), 3000);
-    }, 600);
+    router.reload({
+      only: ['summary', 'recentOrders', 'topProducts', 'customers'],
+      onFinish: () => {
+        setIsRefreshing(false);
+        triggerHaptic('success');
+        setToastMessage('Data dashboard telah disinkronkan');
+        setTimeout(() => setToastMessage(null), 3000);
+      },
+    });
   };
+
+  useEffect(() => {
+    if (recentOrders && recentOrders.length > 0) {
+      setOrdersList(recentOrders);
+    }
+  }, [recentOrders]);
 
   // Sync hash with active tab
   useEffect(() => {
@@ -169,7 +171,7 @@ export default function DashboardIndex({
       try {
         const res = await fetch('/dashboard/recent');
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           setOrdersList(json.data);
         }
       } catch {
@@ -180,12 +182,12 @@ export default function DashboardIndex({
     return () => clearInterval(timer);
   }, []);
 
-  // Normalise values matching Improve App Appearance
-  const revenue = summary?.today_revenue ?? 1840000;
-  const todayCount = summary?.today_orders_count ?? (ordersList.length || 18);
-  const avgOrder = summary?.avg_order_value ?? (todayCount ? Math.round(revenue / todayCount) : 0);
-  const newCustomersCount = summary?.new_customers_count ?? 4;
-  const growth = summary?.growth_revenue ?? 12.5;
+  // Normalise values matching live backend database data
+  const revenue = Number(summary?.today_revenue ?? summary?.revenue ?? (recentOrders.reduce((acc, o) => acc + Number(o.grand_total || 0), 0) || 0));
+  const todayCount = Number(summary?.today_orders_count ?? summary?.transactions ?? ordersList.length);
+  const avgOrder = Number(summary?.avg_order_value ?? summary?.aov ?? (todayCount ? Math.round(revenue / todayCount) : 0));
+  const newCustomersCount = Number(summary?.new_customers_count ?? customers.length);
+  const growth = Number(summary?.growth_revenue ?? 12.5);
 
   // Build daily series for RevenueChart
   const series: DailyPoint[] = useMemo(() => {
