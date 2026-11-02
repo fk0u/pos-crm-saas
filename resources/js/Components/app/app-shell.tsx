@@ -1,29 +1,32 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import {
-  BarChart3,
-  Boxes,
-  ClipboardList,
   LayoutDashboard,
+  ShoppingCart,
+  ReceiptText,
+  Boxes,
+  Users,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  Package,
+  ClipboardList,
   LogOut,
   Menu,
-  Package,
-  ReceiptText,
-  Settings,
-  ShoppingCart,
-  Store,
-  Users,
-  Maximize2,
-  Minimize2,
+  X,
   Volume2,
   VolumeX,
-  Sparkles,
-  Zap,
-  ShieldCheck,
-  Radio,
+  Maximize2,
+  Minimize2,
+  Search,
+  SlidersHorizontal,
   ChevronRight,
-  HelpCircle,
-  X,
+  Store,
+  Sparkles,
+  Tag,
+  CreditCard,
+  Truck,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { ToastProvider } from '@/Components/ui/toast';
@@ -38,60 +41,57 @@ export type AppUser = {
   tenantName?: string;
 };
 
-const mobileTabs = [
-  { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
-  { href: '/pos', label: 'Kasir', icon: ShoppingCart },
-  { href: '/dashboard#sales', label: 'Transaksi', icon: ReceiptText },
-  { href: '/dashboard#crm', label: 'Pelanggan', icon: Users },
-];
-
-const groups = [
+const navigationGroups = [
   {
-    label: 'Overview',
-    items: [{ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }],
-  },
-  {
-    label: 'Penjualan',
+    label: 'Main Menu',
     items: [
-      { href: '/pos', label: 'Kasir POS (Native)', icon: ShoppingCart, highlight: true },
-      { href: '/dashboard#sales', label: 'Transaksi & Retur', icon: ReceiptText },
-      { href: '/dashboard#shifts', label: 'Shift & Kasir Laci', icon: ClipboardList },
+      { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+      { href: '/pos', label: 'Kasir POS', icon: ShoppingCart, highlight: true },
+      { href: '/dashboard#sales', label: 'Orders & Retur', icon: ReceiptText },
+      { href: '/dashboard#categories', label: 'Categories', icon: Boxes },
     ],
   },
   {
-    label: 'Operasional',
+    label: 'Inventory',
     items: [
-      { href: '/dashboard#inventory', label: 'Inventori & Stok', icon: Package },
-      { href: '/dashboard#crm', label: 'CRM & Loyalitas', icon: Users },
-      { href: '/dashboard#reports', label: 'Laporan Keuangan', icon: BarChart3 },
+      { href: '/dashboard#inventory', label: 'Products & Stock', icon: Package },
+      { href: '/dashboard#crm', label: 'Pelanggan & CRM', icon: Users },
     ],
   },
   {
-    label: 'Sistem',
+    label: 'Report',
     items: [
-      { href: '/dashboard#settings', label: 'Pengaturan QLon', icon: Settings },
-      { href: '/dashboard#audit', label: 'Audit Log Keamanan', icon: ShieldCheck },
+      { href: '/dashboard#reports', label: 'Reporting & Sales', icon: BarChart3 },
+      { href: '/dashboard#shifts', label: 'Shift Kasir', icon: ClipboardList },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { href: '/dashboard#settings', label: 'User Management', icon: UserCheck },
+      { href: '/dashboard#audit', label: 'Security & Audit', icon: ShieldCheck },
     ],
   },
 ];
 
-function BrandLogo() {
+function QLonLogo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative size-10 rounded-xl bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 border border-sky-400/30 flex items-center justify-center text-white shadow-[0_0_15px_rgba(56,189,248,0.25)]">
-        <span className="font-extrabold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">
+      {/* Changx-style geometric icon */}
+      <div className="size-10 rounded-2xl bg-navy-800 text-white flex items-center justify-center shadow-sm relative overflow-hidden">
+        <div className="size-6 rounded-xl border-2 border-sky-400 flex items-center justify-center font-black text-xs text-sky-400">
           Q
-        </span>
-        <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 ring-2 ring-navy-950 animate-pulse" />
+        </div>
+        <span className="absolute bottom-1 right-1 size-2 rounded-full bg-emerald-400 ring-2 ring-navy-800" />
       </div>
       <div>
         <div className="flex items-center gap-1.5">
-          <span className="text-base font-black tracking-tight text-white">QLon</span>
-          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm bg-sky-500/20 text-sky-300 border border-sky-400/30">
-            PRO OS
+          <span className="text-lg font-bold tracking-tight text-slate-900">QLon</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-navy-700 border border-blue-200">
+            Cloud
           </span>
         </div>
-        <p className="text-[10px] text-navy-200/80 tracking-wide font-medium">Native POS &amp; CRM</p>
+        <p className="text-[11px] text-slate-400 font-medium">POS &amp; Central Ops</p>
       </div>
     </div>
   );
@@ -107,17 +107,17 @@ function Sidebar({
   user: AppUser;
 }) {
   return (
-    <div className="flex h-full flex-col bg-navy-950 text-white border-r border-navy-900/80 shadow-xl">
-      {/* Brand Header */}
-      <div className="flex h-18 items-center justify-between border-b border-white/10 px-5">
-        <BrandLogo />
+    <div className="flex h-full flex-col bg-white border-r border-slate-200/90 text-slate-800 shadow-xs">
+      {/* Top Brand Logo */}
+      <div className="flex h-20 items-center px-6 border-b border-slate-100">
+        <QLonLogo />
       </div>
 
-      {/* Nav List */}
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 scrollbar-none">
-        {groups.map((group) => (
+      {/* Navigation Groups */}
+      <nav className="flex-1 space-y-6 overflow-y-auto p-4 scrollbar-none">
+        {navigationGroups.map((group) => (
           <div key={group.label}>
-            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-navy-400/80">
+            <p className="mb-2 px-3 text-[11px] font-semibold text-slate-400 tracking-wider">
               {group.label}
             </p>
             <div className="space-y-1">
@@ -133,7 +133,8 @@ function Sidebar({
                   const Icon = item.icon;
                   const active =
                     pathname === item.href ||
-                    (item.href === '/dashboard' && pathname === '/dashboard');
+                    (item.href === '/dashboard' && (pathname === '/dashboard' || pathname === '/dashboard#overview'));
+
                   return (
                     <Link
                       key={item.href}
@@ -142,18 +143,20 @@ function Sidebar({
                         playTap();
                         onNavigate?.();
                       }}
-                      className={`group flex h-10 items-center justify-between rounded-lg px-3 text-xs font-semibold transition-all ${
+                      className={`group flex h-11 items-center justify-between rounded-xl px-3.5 text-xs font-semibold transition-all ${
                         active
-                          ? 'bg-gradient-to-r from-sky-600 to-navy-700 text-white shadow-sm glow-cyan border border-sky-400/20'
-                          : 'text-navy-200/80 hover:bg-white/5 hover:text-white'
+                          ? 'bg-navy-800 text-white shadow-sm font-bold'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`size-4 transition-transform group-hover:scale-110 ${active ? 'text-sky-300' : 'text-navy-400'}`} />
+                        <Icon className={`size-4.5 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
                         <span>{item.label}</span>
                       </div>
-                      {item.highlight && (
-                        <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                      {item.highlight && !active && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-navy-700">
+                          Live
+                        </span>
                       )}
                     </Link>
                   );
@@ -163,10 +166,10 @@ function Sidebar({
         ))}
       </nav>
 
-      {/* User profile info at bottom */}
-      <div className="border-t border-white/10 p-3 bg-navy-900/60">
-        <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5 border border-white/5">
-          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-navy-800 border border-sky-400/20 text-xs font-bold text-sky-400">
+      {/* User Card at Bottom (Like Changx) */}
+      <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+          <div className="size-9 rounded-full bg-navy-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
             {user.name
               .split(/\s+/)
               .filter(Boolean)
@@ -175,8 +178,8 @@ function Sidebar({
               .join('')}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-white">{user.name}</p>
-            <p className="truncate text-[10px] capitalize text-sky-300 font-mono">{user.role}</p>
+            <p className="truncate text-xs font-bold text-slate-900">{user.name}</p>
+            <p className="truncate text-[10px] text-slate-400">{user.email || 'user@qlon.id'}</p>
           </div>
           <button
             type="button"
@@ -184,8 +187,8 @@ function Sidebar({
               playTap();
               router.post('/logout');
             }}
-            title="Keluar Akun"
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-navy-300 transition hover:bg-rose-500/20 hover:text-rose-400"
+            title="Keluar"
+            className="size-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
           >
             <LogOut className="size-4" />
           </button>
@@ -242,13 +245,14 @@ export function AppShell({
   const user: AppUser = {
     name: userName,
     role: role as any,
+    email: `${userName.toLowerCase().replace(/\s+/g, '')}@qlon.id`,
     outletName,
     tenantName,
   };
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-slate-50 text-slate-950 font-sans">
+      <div className="min-h-screen bg-slate-50/70 text-slate-900 font-sans">
         {/* Desktop Sidebar */}
         <aside className="fixed inset-y-0 left-0 hidden w-64 lg:block z-40">
           <Sidebar pathname={url} user={user} />
@@ -259,7 +263,7 @@ export function AppShell({
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
-              className="absolute inset-0 bg-navy-950/70 backdrop-blur-xs animate-fade-in"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs animate-fade-in"
               onClick={() => setMobileOpen(false)}
               aria-label="Tutup menu"
             />
@@ -275,8 +279,8 @@ export function AppShell({
 
         {/* Main Content Area */}
         <div className="flex min-h-screen flex-col pb-20 lg:pb-0 lg:pl-64">
-          {/* Top Bar Navigation */}
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 backdrop-blur-md sm:px-6 shadow-xs">
+          {/* Top Bar Header with Breadcrumb (Like Changx) */}
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md sm:px-8">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -284,25 +288,23 @@ export function AppShell({
                   playTap();
                   setMobileOpen(true);
                 }}
-                className="grid size-9 place-items-center rounded-lg text-slate-700 transition hover:bg-slate-100 lg:hidden border border-slate-200"
+                className="grid size-9 place-items-center rounded-xl text-slate-600 transition hover:bg-slate-100 lg:hidden border border-slate-200"
                 aria-label="Buka menu navigasi"
               >
                 <Menu className="size-5" />
               </button>
 
-              {/* Live Status Chip */}
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs">
-                <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+              {/* Breadcrumb Navigation */}
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                <span>Main Menu</span>
+                <ChevronRight className="size-3 text-slate-300" />
+                <span className="font-semibold text-slate-900 capitalize">
+                  {activeTab === 'overview' ? 'Overview' : activeTab}
                 </span>
-                <span className="font-bold text-slate-900">{tenantName}</span>
-                <span className="text-slate-300">•</span>
-                <span className="text-slate-600 hidden sm:inline">{outletName}</span>
               </div>
             </div>
 
-            {/* Header Right Tools: Clock, Sound Toggle, Fullscreen, POS Button */}
+            {/* Right Tools: Clock, Sound Toggle, Fullscreen, POS Button */}
             <div className="flex items-center gap-2.5">
               <LiveClock />
 
@@ -310,9 +312,9 @@ export function AppShell({
               <button
                 type="button"
                 onClick={toggleSound}
-                className={`p-2 rounded-lg border text-xs font-medium transition-all ${
+                className={`p-2 rounded-xl border text-xs transition-all ${
                   soundActive
-                    ? 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
+                    ? 'bg-blue-50 text-navy-800 border-blue-200 hover:bg-blue-100'
                     : 'bg-slate-100 text-slate-400 border-slate-200 hover:text-slate-600'
                 }`}
                 title={soundActive ? 'Suara Haptic Aktif' : 'Suara Dimatikan'}
@@ -320,37 +322,42 @@ export function AppShell({
                 {soundActive ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
               </button>
 
-              {/* Fullscreen Toggle */}
+              {/* Fullscreen Kiosk Button */}
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="hidden sm:grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs transition-colors"
-                title="Layar Penuh (Kiosk Mode)"
+                className="hidden sm:grid size-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs"
+                title="Layar Penuh"
               >
                 {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
               </button>
 
-              {/* POS Jump Button */}
+              {/* Direct Kasir Button */}
               <Link href="/pos">
                 <Button
                   size="sm"
                   onClick={() => playTap()}
-                  className="bg-navy-900 hover:bg-navy-800 text-white font-bold shadow-sm glow-cyan flex items-center gap-1.5"
+                  className="bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-xl shadow-sm flex items-center gap-2 px-3.5 h-9"
                 >
                   <ShoppingCart className="size-3.5 text-sky-400" />
-                  <span className="hidden sm:inline">Kasir QLon</span>
+                  <span className="hidden sm:inline">Kasir POS</span>
                 </Button>
               </Link>
             </div>
           </header>
 
-          {/* Page Body */}
+          {/* Main Body */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 animate-fade-in">{children}</main>
         </div>
 
         {/* Mobile Bottom Navigation Bar */}
         <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md lg:hidden shadow-lg">
-          {mobileTabs.map((tab) => {
+          {[
+            { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+            { href: '/pos', label: 'Kasir', icon: ShoppingCart },
+            { href: '/dashboard#sales', label: 'Orders', icon: ReceiptText },
+            { href: '/dashboard#crm', label: 'Pelanggan', icon: Users },
+          ].map((tab) => {
             const Icon = tab.icon;
             const active = url.startsWith(tab.href);
             return (
@@ -358,11 +365,11 @@ export function AppShell({
                 key={tab.href}
                 href={tab.href}
                 onClick={() => playTap()}
-                className={`flex flex-col items-center gap-1 rounded-lg px-3 py-1 text-[10px] font-bold transition ${
-                  active ? 'text-navy-900 font-extrabold' : 'text-slate-400 hover:text-slate-700'
+                className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 text-[10px] font-bold transition ${
+                  active ? 'text-navy-800 font-extrabold' : 'text-slate-400 hover:text-slate-700'
                 }`}
               >
-                <Icon className={`size-5 ${active ? 'text-sky-600' : ''}`} />
+                <Icon className={`size-5 ${active ? 'text-navy-800' : ''}`} />
                 <span>{tab.label}</span>
               </Link>
             );

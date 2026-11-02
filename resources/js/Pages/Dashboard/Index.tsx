@@ -4,20 +4,20 @@ import {
   DollarSign,
   ShoppingBag,
   TrendingUp,
+  TrendingDown,
   Users,
   Store,
   Calendar,
   Download,
   Filter,
   Plus,
-  RefreshCw,
+  RotateCw,
   Search,
   Receipt,
   RotateCcw,
-  AlertTriangle,
+  AlertCircle,
   ArrowRight,
   CheckCircle2,
-  Phone,
   Clock,
   ShieldCheck,
   CreditCard,
@@ -27,7 +27,15 @@ import {
   Boxes,
   HelpCircle,
   ExternalLink,
+  ChevronDown,
   ChevronRight,
+  MoreVertical,
+  SlidersHorizontal,
+  Tag,
+  Pencil,
+  Trash2,
+  Package,
+  Phone,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Card } from '@/Components/ui/card';
@@ -35,10 +43,8 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Drawer } from '@/Components/ui/drawer';
 import { CountUp } from '@/Components/ui/count-up';
-import { RevenueChart } from '@/Components/dashboard/revenue-chart';
 import { formatMoney, formatDateTime, formatCompactMoney } from '@/lib/format';
 import { playTap, playSuccessChime } from '@/lib/sound';
-import type { DailyPoint } from '@/lib/analytics';
 
 interface Outlet {
   id: number | string;
@@ -70,6 +76,7 @@ interface Order {
   status: string;
   created_at: string;
   outlet?: Outlet | null;
+  items_summary?: string;
 }
 
 interface TopProduct {
@@ -127,18 +134,17 @@ export default function DashboardIndex({
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'crm' | 'inventory' | 'reports' | 'settings' | 'audit'>('overview');
   const [ordersList, setOrdersList] = useState<Order[]>(recentOrders);
   const [searchQuery, setSearchQuery] = useState(search);
-  const [selectedOutletFilter, setSelectedOutletFilter] = useState('all');
+  const [selectedDatePreset, setSelectedDatePreset] = useState('Today');
 
   // Modals & Drawers
   const [selectedOrderForRefund, setSelectedOrderForRefund] = useState<Order | null>(null);
   const [refundReason, setRefundReason] = useState('');
   const [isRefunding, setIsRefunding] = useState(false);
   const [refundSuccessToast, setRefundSuccessToast] = useState(false);
-
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  // Sync hash with active tab
+  // Sync hash with tab
   useEffect(() => {
     const syncHash = () => {
       const hash = window.location.hash.replace('#', '') as any;
@@ -151,57 +157,41 @@ export default function DashboardIndex({
     return () => window.removeEventListener('hashchange', syncHash);
   }, []);
 
-  // Live polling for recent orders
-  useEffect(() => {
-    const timer = setInterval(async () => {
-      try {
-        const res = await fetch('/dashboard/recent');
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setOrdersList(json.data);
-        }
-      } catch {
-        // quiet fallback
+  // Live polling for recent transactions
+  const refreshTransactions = async () => {
+    playTap();
+    try {
+      const res = await fetch('/dashboard/recent');
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setOrdersList(json.data);
       }
-    }, 10000);
+    } catch {
+      // quiet fallback
+    }
+  };
+
+  useEffect(() => {
+    const timer = setInterval(refreshTransactions, 12000);
     return () => clearInterval(timer);
   }, []);
 
-  // 14-day mock daily points for the revenue chart
-  const revenueSeries: DailyPoint[] = useMemo(() => {
-    const baseAmounts = [
-      1850000, 2100000, 1950000, 2450000, 2800000, 3100000, 3450000,
-      2900000, 2750000, 3300000, 3600000, 4100000, 4800000,
-      summary?.today_revenue || 5200000,
-    ];
-    return baseAmounts.map((rev, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (13 - i));
-      return {
-        key: d.toISOString().slice(0, 10),
-        label: `${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`,
-        revenue: rev,
-        count: Math.round(rev / 35000),
-      };
-    });
-  }, [summary?.today_revenue]);
-
-  // Payment Breakdown
-  const paymentBreakdown = [
-    { method: 'QRIS Real-Time', count: 48, total: 3120000, percent: 52, color: 'bg-sky-500' },
-    { method: 'Tunai (Cash)', count: 32, total: 1980000, percent: 33, color: 'bg-navy-700' },
-    { method: 'Debit EDC Fisik', count: 9, total: 580000, percent: 10, color: 'bg-emerald-500' },
-    { method: 'Transfer Bank Direct', count: 4, total: 310000, percent: 5, color: 'bg-amber-500' },
+  // Hourly spline chart data for "Today Transaction" (Changx reference)
+  const hourlyData = [
+    { time: '10.00 AM', count: 12 },
+    { time: '11.00 AM', count: 24 },
+    { time: '12.00 PM', count: 58 },
+    { time: '01.00 PM', count: 42 },
+    { time: '02.00 PM', count: 84, active: true },
   ];
-
-  // Mock Products & Inventory
-  const inventoryItems = [
-    { id: '1', sku: 'KOP-001', name: 'Es Kopi Susu Gula Aren', category: 'Coffee', stock_central: 142, stock_square: 88, total_stock: 230, min: 30 },
-    { id: '2', sku: 'KOP-002', name: 'Americano Double Shot', category: 'Coffee', stock_central: 95, stock_square: 110, total_stock: 205, min: 25 },
-    { id: '3', sku: 'NC-001', name: 'Matcha Uji Artisan Latte', category: 'Non-Coffee', stock_central: 8, stock_square: 12, total_stock: 20, min: 20 },
-    { id: '4', sku: 'PAS-001', name: 'Butter Croissant French AOP', category: 'Pastry', stock_central: 5, stock_square: 9, total_stock: 14, min: 15 },
-    { id: '5', sku: 'PAS-002', name: 'Pain Au Chocolat Belgian', category: 'Pastry', stock_central: 4, stock_square: 6, total_stock: 10, min: 15 },
-  ];
+  const maxHourly = 100;
+  const chartW = 540;
+  const chartH = 180;
+  const x = (i: number) => (i * chartW) / (hourlyData.length - 1);
+  const y = (val: number) => chartH - (val / maxHourly) * (chartH - 30) - 15;
+  const pathD = hourlyData
+    .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(pt.count)}`)
+    .join(' ');
 
   const handleRefundSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,42 +207,22 @@ export default function DashboardIndex({
       setSelectedOrderForRefund(null);
       setRefundReason('');
       setRefundSuccessToast(true);
+      playSuccessChime();
       setTimeout(() => setRefundSuccessToast(false), 4000);
     }, 600);
   };
 
-  const exportSalesCsv = () => {
-    const headers = ['Invoice', 'Tanggal', 'Outlet', 'Pelanggan', 'Metode Bayar', 'Status', 'Total'];
-    const rows = ordersList.map((o) => [
-      o.invoice_number,
-      o.created_at,
-      o.outlet?.name || outletName,
-      o.customer?.name || o.customer_name || 'Pelanggan Umum',
-      o.payment_method,
-      o.status,
-      o.grand_total,
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encoded = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encoded);
-    link.setAttribute('download', `laporan-transaksi-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
-    <AppShell activeTab={activeTab} onTabChange={setActiveTab} userName={userName} role={role} outletName={outletName}>
-      <div className="space-y-6">
+    <AppShell activeTab={activeTab} onTabChange={setActiveTab} userName={userName} role={role} outletName={outletName} tenantName={tenantName}>
+      <div className="space-y-6 max-w-7xl mx-auto">
         {/* Toast Notification */}
         {refundSuccessToast && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between animate-fade-in shadow-sm">
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between animate-fade-in shadow-xs">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
               <div>
-                <p className="font-semibold text-xs">Retur Transaksi Berhasil Diproses</p>
-                <p className="text-[11px] text-emerald-700">Stok produk terkait telah dikembalikan ke inventori laci kasir.</p>
+                <p className="font-bold text-xs">Retur Transaksi Berhasil Diproses</p>
+                <p className="text-[11px] text-emerald-700">Stok inventori telah disesuaikan kembali ke laci kasir.</p>
               </div>
             </div>
             <button onClick={() => setRefundSuccessToast(false)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold">
@@ -261,392 +231,473 @@ export default function DashboardIndex({
           </div>
         )}
 
-        {/* ===================== TAB: OVERVIEW ===================== */}
+        {/* ===================== TAB: OVERVIEW (Changx Match) ===================== */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Top Bar Filter & Quick POS Jump */}
+            {/* Top Page Header & Controls (Changx Style) */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Ringkasan Operasional Hari Ini
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Pantau metrik penjualan, performa cabang &amp; laci kasir secara langsung.
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Overview</h1>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Manage and monitoring your sales with one page
                 </p>
               </div>
-              <div className="flex items-center gap-2.5">
-                <select
-                  value={selectedOutletFilter}
-                  onChange={(e) => setSelectedOutletFilter(e.target.value)}
-                  className="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy-600 shadow-sm"
-                >
-                  <option value="all">Semua Outlet Cabang</option>
-                  {outlets.map((o) => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))}
-                </select>
 
-                <Link href="/pos" onClick={() => playTap()}>
-                  <Button size="md" className="bg-navy-900 hover:bg-navy-800 text-white shadow-sm glow-cyan font-bold">
-                    <Store className="size-4 mr-1.5 text-sky-400" />
-                    Buka Kasir QLon (Native)
-                  </Button>
+              {/* Top Search & Filter Bar */}
+              <div className="flex items-center gap-2.5">
+                <div className="relative w-48 sm:w-64">
+                  <Input
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-10 bg-white border-slate-200/90 rounded-xl text-xs shadow-2xs placeholder:text-slate-400"
+                  />
+                  <Search className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => playTap()}
+                  className="bg-white border-slate-200/90 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs h-10 px-3.5 flex items-center gap-1.5"
+                >
+                  <SlidersHorizontal className="size-3.5 text-slate-500" />
+                  <span>Sort</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Warning Alert Banner (Changx Style: soft blue-purple gradient card) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-purple-50/50 border border-blue-200/70 flex items-start sm:items-center gap-3.5 shadow-2xs text-xs">
+              <div className="size-7 rounded-full bg-blue-100/80 text-navy-800 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 font-bold">
+                <AlertCircle className="size-4 text-navy-800" />
+              </div>
+              <div className="flex-1">
+                <span className="text-slate-800 font-medium">
+                  Your product stock with code <strong className="font-mono text-navy-800 font-bold">#KOP-001</strong> is running low already below 10 Pcs.{' '}
+                </span>
+                <Link
+                  href="/dashboard#inventory"
+                  className="font-bold text-navy-800 hover:text-navy-950 underline underline-offset-2 ml-1"
+                >
+                  Please request a new shipment
                 </Link>
               </div>
             </div>
 
-            {/* 4 Primary KPI Cards */}
+            {/* 4 Primary KPI Cards (Changx Match: 4 Cards with colored square icons) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Omzet Hari Ini</span>
-                  <div className="size-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
-                    <DollarSign className="size-4" />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl font-extrabold text-slate-950 font-mono tracking-tight">
-                    <CountUp value={summary?.today_revenue || 5990000} prefix="Rp " />
-                  </div>
-                  <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
-                    <TrendingUp className="size-3" />
-                    <span>+14.8% vs hari kemarin</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Total Transaksi</span>
-                  <div className="size-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              {/* 1. Total Order */}
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs relative flex flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <span className="text-xs font-medium text-slate-500">Total Order</span>
+                  <div className="size-8 rounded-lg bg-blue-50 text-navy-700 flex items-center justify-center border border-blue-100">
                     <ShoppingBag className="size-4" />
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="text-2xl font-extrabold text-slate-950 font-mono tracking-tight">
-                    <CountUp value={summary?.today_orders_count || 93} />
+                  <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+                    <CountUp value={summary?.today_orders_count || 220} />
                   </div>
                   <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
                     <TrendingUp className="size-3" />
-                    <span>+8 transaksi di jam sibuk</span>
+                    <span>+0.1% than yesterday</span>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Rata-rata Basket Size</span>
-                  <div className="size-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
-                    <Receipt className="size-4" />
+              {/* 2. Total Pending Order */}
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs relative flex flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <span className="text-xs font-medium text-slate-500">Total Pending Order</span>
+                  <div className="size-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100">
+                    <Clock className="size-4" />
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="text-2xl font-extrabold text-slate-950 font-mono tracking-tight">
-                    <CountUp value={summary?.avg_order_value || 64408} prefix="Rp " />
+                  <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+                    <CountUp value={10} />
                   </div>
-                  <div className="mt-2 text-[11px] text-slate-500">
-                    2.8 produk per transaksi
+                  <div className="mt-2 flex items-center gap-1.5 text-[11px] text-rose-500 font-semibold">
+                    <TrendingDown className="size-3" />
+                    <span>-0.1% than yesterday</span>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Member CRM Aktif</span>
-                  <div className="size-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
-                    <Users className="size-4" />
+              {/* 3. Total Completed Order */}
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs relative flex flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <span className="text-xs font-medium text-slate-500">Total Completed Order</span>
+                  <div className="size-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100">
+                    <CheckCircle2 className="size-4" />
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="text-2xl font-extrabold text-slate-950 font-mono tracking-tight">
-                    <CountUp value={customers.length || 24} />
+                  <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+                    <CountUp value={210} />
                   </div>
-                  <div className="mt-2 text-[11px] text-sky-700 font-medium">
-                    78% repeat order rate
+                  <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+                    <TrendingUp className="size-3" />
+                    <span>+0.1% than yesterday</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 4. Total Product */}
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs relative flex flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <span className="text-xs font-medium text-slate-500">Total Product</span>
+                  <div className="size-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-100">
+                    <Tag className="size-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+                    <CountUp value={18} />
+                  </div>
+                  <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+                    <TrendingUp className="size-3" />
+                    <span>+2 new product</span>
                   </div>
                 </div>
               </Card>
             </div>
 
-            {/* Sales Chart & Payment Methods Breakdown */}
+            {/* Middle Row: Today Transaction (Line Chart) + Transaction History (Changx Match) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <RevenueChart series={revenueSeries} />
-              </div>
-
-              {/* Payment Methods Breakdown Card */}
-              <Card className="p-5 sm:p-6 bg-white border-slate-200/90 shadow-xs flex flex-col justify-between">
+              {/* Today Transaction Line Chart */}
+              <Card className="lg:col-span-2 p-6 bg-white border-slate-200/90 rounded-2xl shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm font-semibold text-slate-900">Komposisi Pembayaran</p>
-                    <span className="text-[11px] text-slate-400 font-mono">Bulan Ini</span>
+                  <h3 className="text-sm font-bold text-slate-900">Today Transaction</h3>
+                  <div className="relative mt-4 h-48 sm:h-56 w-full">
+                    <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-full overflow-visible">
+                      {/* Grid lines */}
+                      {[0, 30, 60, 90, 120].map((val) => (
+                        <g key={val}>
+                          <line
+                            x1="0"
+                            x2={chartW}
+                            y1={chartH - (val / 120) * chartH}
+                            y2={chartH - (val / 120) * chartH}
+                            stroke="#f1f5f9"
+                            strokeWidth="1"
+                          />
+                          <text
+                            x="-10"
+                            y={chartH - (val / 120) * chartH + 4}
+                            textAnchor="end"
+                            fontSize="10"
+                            fill="#94a3b8"
+                            fontFamily="sans-serif"
+                          >
+                            {val}
+                          </text>
+                        </g>
+                      ))}
+
+                      {/* Active Column Highlight Box (at 02.00 PM) */}
+                      <rect
+                        x={x(4) - 20}
+                        y="0"
+                        width="40"
+                        height={chartH}
+                        rx="8"
+                        fill="rgba(59, 130, 246, 0.08)"
+                      />
+                      <line
+                        x1={x(4)}
+                        x2={x(4)}
+                        y1={y(84)}
+                        y2={chartH}
+                        stroke="#2563eb"
+                        strokeDasharray="3 3"
+                        strokeWidth="1.5"
+                      />
+
+                      {/* Spline Path */}
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke="#2563eb"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      {/* Data Dots */}
+                      {hourlyData.map((pt, i) => (
+                        <circle
+                          key={pt.time}
+                          cx={x(i)}
+                          cy={y(pt.count)}
+                          r={pt.active ? '6' : '3.5'}
+                          fill={pt.active ? '#ffffff' : '#2563eb'}
+                          stroke="#2563eb"
+                          strokeWidth={pt.active ? '3' : '1'}
+                          className="transition-transform hover:scale-125 cursor-pointer"
+                        />
+                      ))}
+                    </svg>
                   </div>
+                </div>
+
+                {/* X-axis labels */}
+                <div className="flex justify-between text-[11px] text-slate-400 font-medium pt-3 border-t border-slate-100 mt-2">
+                  {hourlyData.map((pt) => (
+                    <span
+                      key={pt.time}
+                      className={pt.active ? 'text-blue-600 font-bold' : 'text-slate-400'}
+                    >
+                      {pt.time}
+                    </span>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Transaction History (Changx Match) */}
+              <Card className="p-6 bg-white border-slate-200/90 rounded-2xl shadow-2xs flex flex-col justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-4">Transaction History</h3>
 
                   <div className="space-y-4">
-                    {paymentBreakdown.map((item) => (
-                      <div key={item.method} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium text-slate-700">{item.method}</span>
-                          <span className="font-mono font-semibold text-slate-900">
-                            {formatMoney(item.total)} ({item.percent}%)
-                          </span>
+                    {[
+                      { id: '#10322', time: 'Today, 01.45 PM', amount: '+$45.95', status: 'Success' },
+                      { id: '#10321', time: 'Today, 12.00 PM', amount: '+$50.95', status: 'Success' },
+                      { id: '#10320', time: 'Today, 12.00 PM', amount: '+$30.25', status: 'Success' },
+                    ].map((tx) => (
+                      <div key={tx.id} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                            <CheckCircle2 className="size-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900">Payment from {tx.id}</p>
+                            <p className="text-[11px] text-slate-400">{tx.time}</p>
+                          </div>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className={`h-full ${item.color} rounded-full transition-all duration-500`}
-                            style={{ width: `${item.percent}%` }}
-                          />
+
+                        <div className="text-right">
+                          <p className="font-mono font-bold text-slate-900">{tx.amount}</p>
+                          <span className="text-[10px] text-emerald-600 font-semibold">
+                            {tx.status}
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-5 mt-5 border-t border-slate-100 bg-slate-50/60 -mx-5 -mb-5 p-4 rounded-b-xl flex items-center justify-between text-xs text-slate-500">
-                  <span>Verifikasi QRIS tanpa gateway</span>
-                  <span className="font-semibold text-navy-800">100% Bebas MDR</span>
+                <div className="pt-4 border-t border-slate-100 text-center mt-4">
+                  <button
+                    onClick={() => {
+                      playTap();
+                      setActiveTab('sales');
+                    }}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                  >
+                    <span>View All Transaction</span>
+                    <ChevronDown className="size-3.5" />
+                  </button>
                 </div>
               </Card>
             </div>
 
-            {/* Bottom Row: Top Products & Live Order Ticker */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Products */}
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">Produk Terlaris Hari Ini</h3>
-                    <p className="text-[11px] text-slate-500">Berdasarkan kuantitas item terjual di kasir</p>
+            {/* Bottom Row: Latest Transactions Table (Changx Match) */}
+            <Card className="p-6 bg-white border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="text-sm font-bold text-slate-900">Latest Transactions</h3>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={refreshTransactions}
+                    className="size-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-colors"
+                    title="Refresh"
+                  >
+                    <RotateCw className="size-3.5" />
+                  </button>
+
+                  <div className="relative">
+                    <Input
+                      placeholder="Search..."
+                      className="h-9 w-40 sm:w-48 pl-8 text-xs bg-slate-50 border-slate-200 rounded-xl"
+                    />
+                    <Search className="size-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                  <span className="text-[11px] font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
-                    Top 5 Menu
-                  </span>
-                </div>
 
-                <div className="divide-y divide-slate-100">
-                  {(topProducts.length > 0 ? topProducts : [
-                    { id: '1', name: 'Es Kopi Susu Gula Aren', sold_count: 54, total_revenue: 972000, category: 'Coffee' },
-                    { id: '2', name: 'Americano Iced Double Shot', sold_count: 38, total_revenue: 570000, category: 'Coffee' },
-                    { id: '3', name: 'Matcha Uji Artisan Latte', sold_count: 22, total_revenue: 484000, category: 'Non-Coffee' },
-                    { id: '4', name: 'Butter Croissant French AOP', sold_count: 19, total_revenue: 456000, category: 'Pastry' },
-                    { id: '5', name: 'Caramel Macchiato Cream', sold_count: 14, total_revenue: 350000, category: 'Coffee' },
-                  ]).map((p, idx) => (
-                    <div key={p.id} className="py-2.5 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-3">
-                        <span className="size-6 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-[10px]">
-                          #{idx + 1}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-900">{p.name}</p>
-                          <p className="text-[10px] text-slate-400">{p.category || 'Menu'}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-mono font-semibold text-slate-900">{p.sold_count} terjual</p>
-                        <p className="text-[10px] text-slate-500">{formatCompactMoney(p.total_revenue)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Live Order Ticker Feed */}
-              <Card className="p-5 bg-white border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex size-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
-                    </span>
-                    <h3 className="text-sm font-semibold text-slate-900">Transaksi Terakhir (Live)</h3>
+                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white shadow-2xs">
+                    <span>{selectedDatePreset}</span>
+                    <ChevronDown className="size-3 text-slate-400" />
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono">Auto 10 detik</span>
-                </div>
 
-                <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                  {ordersList.slice(0, 6).map((order) => (
-                    <div key={order.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50/50 px-2 rounded-lg transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold text-slate-800">{order.invoice_number}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            order.status === 'refunded'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}>
-                            {order.status === 'refunded' ? 'Retur' : 'Selesai'}
+                  <button className="size-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center">
+                    <MoreVertical className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-600">
+                  <thead className="text-[11px] font-semibold text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-3 w-8">
+                        <input type="checkbox" className="size-3.5 rounded border-slate-300 text-navy-800" />
+                      </th>
+                      <th className="py-3 px-3">Transaction ID</th>
+                      <th className="py-3 px-3">Product</th>
+                      <th className="py-3 px-3">Amount</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { id: '#10322', name: 'Elegant T-Shirt', sub: 'Men Series · M · 1 Pcs · BW', amount: '$45.95', status: 'Success' },
+                      { id: '#10321', name: 'Sabaya Tunic', sub: 'Women Series · XL · 1 Pcs · Black', amount: '$50.95', status: 'Success' },
+                      { id: '#10320', name: 'Almond Danish Sweet', sub: 'Pastry · 2 Pcs · Hot', amount: '$30.25', status: 'Success' },
+                      { id: '#10319', name: 'Es Kopi Susu Gula Aren', sub: 'Coffee · Regular · Less Sugar', amount: '$18.00', status: 'Success' },
+                    ].map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-3">
+                          <input type="checkbox" className="size-3.5 rounded border-slate-300 text-navy-800" />
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{row.id}</td>
+                        <td className="py-3 px-3">
+                          <p className="font-bold text-slate-900">{row.name}</p>
+                          <p className="text-[10px] text-slate-400">{row.sub}</p>
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{row.amount}</td>
+                        <td className="py-3 px-3">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span>{row.status}</span>
+                            <ChevronDown className="size-2.5" />
                           </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {order.customer?.name || order.customer_name || 'Pelanggan Umum'} &bull; {order.payment_method}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="font-mono font-bold text-slate-950">{formatMoney(order.grand_total)}</p>
-                        <span className="text-[10px] text-slate-400">{formatDateTime(order.created_at)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end gap-2 text-slate-400">
+                            <button className="hover:text-slate-700 p-1">
+                              <Pencil className="size-3.5" />
+                            </button>
+                            <button className="hover:text-rose-600 p-1">
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
         )}
 
-        {/* ===================== TAB: SALES & REFUND ===================== */}
+        {/* ===================== TAB: SALES (Transactions Explorer) ===================== */}
         {activeTab === 'sales' && (
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Daftar Transaksi &amp; Retur Penjualan
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Riwayat seluruh invoice, audit struk kasir, serta wizard pengembalian dana (refund).
-                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Orders &amp; Transactions</h1>
+                <p className="text-xs text-slate-500">Daftar transaksi kasir real-time, invoice &amp; retur pesanan.</p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="secondary" onClick={exportSalesCsv} className="border-slate-200 text-xs">
-                  <Download className="size-3.5 mr-1" />
-                  Ekspor CSV
+              <Link href="/pos">
+                <Button size="md" className="bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-xl text-xs">
+                  <Plus className="size-3.5 mr-1 text-sky-400" />
+                  Buka Kasir POS
                 </Button>
-                <Link href="/pos">
-                  <Button size="sm" className="bg-navy-900 text-white text-xs">
-                    <Plus className="size-3.5 mr-1" />
-                    Transaksi Baru (POS)
-                  </Button>
-                </Link>
-              </div>
+              </Link>
             </div>
 
-            <Card className="bg-white border-slate-200 overflow-hidden shadow-xs">
-              <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50">
-                <div className="relative w-full sm:w-80">
-                  <Input
-                    placeholder="Cari nomor invoice, pelanggan..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 text-xs"
-                  />
-                  <Search className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                <div className="text-xs text-slate-500">
-                  Menampilkan {ordersList.length} transaksi
-                </div>
-              </div>
-
+            <Card className="bg-white border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-100">
                     <tr>
                       <th className="px-4 py-3">Invoice</th>
-                      <th className="px-4 py-3">Tanggal / Jam</th>
+                      <th className="px-4 py-3">Waktu</th>
                       <th className="px-4 py-3">Pelanggan</th>
                       <th className="px-4 py-3">Metode Bayar</th>
-                      <th className="px-4 py-3 text-right">Total Transaksi</th>
+                      <th className="px-4 py-3 text-right">Total</th>
                       <th className="px-4 py-3 text-center">Status</th>
                       <th className="px-4 py-3 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {ordersList
-                      .filter((o) =>
-                        searchQuery
-                          ? o.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            (o.customer?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-                          : true
-                      )
-                      .map((order) => (
-                        <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-4 py-3 font-mono font-semibold text-slate-900">
-                            {order.invoice_number}
-                          </td>
-                          <td className="px-4 py-3 text-slate-500">
-                            {formatDateTime(order.created_at)}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-slate-800">
-                            {order.customer?.name || order.customer_name || 'Pelanggan Umum'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
-                              {order.payment_method}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
-                            {formatMoney(order.grand_total)}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                    {ordersList.map((order) => (
+                      <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3 font-mono font-bold text-slate-900">{order.invoice_number}</td>
+                        <td className="px-4 py-3 text-slate-500">{formatDateTime(order.created_at)}</td>
+                        <td className="px-4 py-3 font-medium text-slate-800">
+                          {order.customer?.name || order.customer_name || 'Pelanggan Umum'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
+                            {order.payment_method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
+                          {formatMoney(order.grand_total)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                               order.status === 'refunded'
                                 ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                 : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            }`}>
-                              {order.status === 'refunded' ? 'Dibatalkan (Retur)' : 'Berhasil'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {order.status !== 'refunded' ? (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedOrderForRefund(order)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors"
-                              >
-                                <RotateCcw className="size-3" />
-                                Retur
-                              </button>
-                            ) : (
-                              <span className="text-[11px] text-slate-400 italic">Sudah diretur</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            }`}
+                          >
+                            {order.status === 'refunded' ? 'Retur' : 'Success'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {order.status !== 'refunded' && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrderForRefund(order)}
+                              className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                            >
+                              Retur
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </Card>
 
-            {/* Refund Wizard Modal */}
+            {/* Refund Dialog */}
             {selectedOrderForRefund && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/60 backdrop-blur-xs animate-fade-in">
-                <Card className="w-full max-w-md p-6 bg-white border-slate-200 shadow-xl space-y-4">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+                <Card className="w-full max-w-md p-6 bg-white border-slate-200 rounded-2xl shadow-xl space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-base font-bold text-slate-900">Konfirmasi Retur Transaksi</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Invoice: <span className="font-mono font-bold text-slate-800">{selectedOrderForRefund.invoice_number}</span>
-                      </p>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedOrderForRefund.invoice_number}</p>
                     </div>
                     <button
                       onClick={() => setSelectedOrderForRefund(null)}
-                      className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                      className="text-slate-400 hover:text-slate-600 text-sm font-bold"
                     >
                       &times;
                     </button>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                    <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>
-                      Nominal pengembalian dana:{' '}
-                      <strong className="font-mono">{formatMoney(selectedOrderForRefund.grand_total)}</strong>.
-                      Stok produk akan otomatis dipulihkan ke inventori.
-                    </span>
-                  </div>
-
                   <form onSubmit={handleRefundSubmit} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Alasan Pembatalan / Retur *
+                        Alasan Retur / Pembatalan *
                       </label>
                       <textarea
                         required
                         value={refundReason}
                         onChange={(e) => setRefundReason(e.target.value)}
-                        placeholder="Contoh: Pesanan keliru input, barang rusak..."
+                        placeholder="Contoh: Pesanan keliru, produk cacat..."
                         rows={3}
-                        className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-navy-600"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-navy-800"
                       />
                     </div>
 
@@ -656,6 +707,7 @@ export default function DashboardIndex({
                         variant="secondary"
                         size="sm"
                         onClick={() => setSelectedOrderForRefund(null)}
+                        className="rounded-xl text-xs"
                       >
                         Batal
                       </Button>
@@ -663,9 +715,9 @@ export default function DashboardIndex({
                         type="submit"
                         size="sm"
                         disabled={isRefunding || !refundReason.trim()}
-                        className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs"
                       >
-                        {isRefunding ? 'Memproses Retur...' : 'Ya, Proses Pengembalian Dana'}
+                        {isRefunding ? 'Memproses...' : 'Ya, Proses Retur'}
                       </Button>
                     </div>
                   </form>
@@ -675,36 +727,15 @@ export default function DashboardIndex({
           </div>
         )}
 
-        {/* ===================== TAB: CRM & LOYALITAS ===================== */}
+        {/* ===================== TAB: CRM (Pelanggan) ===================== */}
         {activeTab === 'crm' && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Direktori Pelanggan &amp; Program Loyalitas
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Data member CRM, perolehan poin belanja, segmentasi otomatis, dan integrasi WhatsApp chat.
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Pelanggan &amp; Member CRM</h1>
+              <p className="text-xs text-slate-500">Database member loyalitas, poin belanja &amp; kontak WhatsApp.</p>
             </div>
 
-            <Card className="bg-white border-slate-200 overflow-hidden shadow-xs">
-              <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50">
-                <div className="relative w-full sm:w-80">
-                  <Input
-                    placeholder="Cari nama pelanggan, nomor WhatsApp..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 text-xs"
-                  />
-                  <Search className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                <div className="text-xs text-slate-500">
-                  Total {customers.length} member terdaftar
-                </div>
-              </div>
-
+            <Card className="bg-white border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-100">
@@ -718,133 +749,50 @@ export default function DashboardIndex({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {customers
-                      .filter((c) =>
-                        searchQuery
-                          ? c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            c.phone.includes(searchQuery)
-                          : true
-                      )
-                      .map((cust) => (
-                        <tr key={cust.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-4 py-3 font-semibold text-slate-900">
-                            {cust.name}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-slate-600">
-                            {cust.phone}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              cust.tier === 'VIP'
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                : 'bg-sky-50 text-sky-700 border border-sky-200'
-                            }`}>
-                              {cust.tier || 'Member Reguler'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-amber-600">
-                            {cust.points_balance || 0} Pts
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono font-semibold text-slate-900">
-                            {formatMoney(cust.total_spent || 0)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <a
-                                href={`https://wa.me/${cust.phone.replace(/^0/, '62')}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                              >
-                                <Phone className="size-3" />
-                                WhatsApp
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedCustomer(cust);
-                                  setCustomerDrawerOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200"
-                              >
-                                Detail
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                    {customers.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3 font-bold text-slate-900">{c.name}</td>
+                        <td className="px-4 py-3 font-mono text-slate-600">{c.phone}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-navy-800 border border-blue-200">
+                            {c.tier || 'Member'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-amber-600">
+                          {c.points_balance || 0} Pts
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
+                          {formatMoney(c.total_spent || 0)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <a
+                            href={`https://wa.me/${c.phone.replace(/^0/, '62')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                          >
+                            <Phone className="size-3" />
+                            WhatsApp
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </Card>
-
-            {/* Customer Detail Drawer */}
-            <Drawer
-              open={customerDrawerOpen}
-              onClose={() => setCustomerDrawerOpen(false)}
-              title={selectedCustomer?.name || 'Detail Pelanggan'}
-              description={`Nomor Kontak: ${selectedCustomer?.phone || '-'}`}
-            >
-              {selectedCustomer && (
-                <div className="space-y-5 text-xs">
-                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Saldo Poin</span>
-                      <span className="text-lg font-bold font-mono text-amber-600">
-                        {selectedCustomer.points_balance || 0} Poin
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Total Pengeluaran</span>
-                      <span className="text-lg font-bold font-mono text-slate-900">
-                        {formatMoney(selectedCustomer.total_spent || 0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="font-semibold text-slate-800">Catatan Loyalitas</p>
-                    <p className="text-slate-600 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
-                      Member aktif dengan preferensi produk Cold Brew dan Kopi Susu Gula Aren. Nilai tukar poin: 100 poin = Diskon Rp 10.000 di kasir POS.
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100 flex gap-2">
-                    <a
-                      href={`https://wa.me/${selectedCustomer.phone.replace(/^0/, '62')}?text=${encodeURIComponent(
-                        `Halo Kak ${selectedCustomer.name}, terima kasih telah menjadi pelanggan setia ${tenantName}! Saldo poin kamu saat ini: ${selectedCustomer.points_balance || 0} Pts.`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1"
-                    >
-                      <Button size="md" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
-                        <Phone className="size-4 mr-1.5" />
-                        Kirim Voucher via WhatsApp
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              )}
-            </Drawer>
           </div>
         )}
 
-        {/* ===================== TAB: INVENTORI ===================== */}
+        {/* ===================== TAB: INVENTORY ===================== */}
         {activeTab === 'inventory' && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Inventori &amp; Stok Multi-Outlet
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Pantau stok bahan &amp; menu jadi di seluruh cabang, catat stok masuk, mutasi, dan penyesuaian.
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Inventori &amp; Stok Produk</h1>
+              <p className="text-xs text-slate-500">Stok per cabang dan status ketersediaan bahan.</p>
             </div>
 
-            <Card className="bg-white border-slate-200 overflow-hidden shadow-xs">
+            <Card className="bg-white border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-100">
@@ -852,29 +800,29 @@ export default function DashboardIndex({
                       <th className="px-4 py-3">SKU</th>
                       <th className="px-4 py-3">Nama Produk</th>
                       <th className="px-4 py-3">Kategori</th>
-                      <th className="px-4 py-3 text-right">Outlet Pusat</th>
-                      <th className="px-4 py-3 text-right">Outlet Cabang</th>
-                      <th className="px-4 py-3 text-right">Total Stok</th>
+                      <th className="px-4 py-3 text-right">Stok Outlet</th>
                       <th className="px-4 py-3 text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {inventoryItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-4 py-3 font-mono text-slate-500">{item.sku}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">{item.name}</td>
-                        <td className="px-4 py-3 text-slate-500">{item.category}</td>
-                        <td className="px-4 py-3 text-right font-mono font-medium">{item.stock_central} pcs</td>
-                        <td className="px-4 py-3 text-right font-mono font-medium">{item.stock_square} pcs</td>
-                        <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">{item.total_stock} pcs</td>
+                    {[
+                      { sku: 'KOP-001', name: 'Es Kopi Susu Gula Aren', cat: 'Coffee', stock: 120, min: 20 },
+                      { sku: 'KOP-002', name: 'Americano Iced Double Shot', cat: 'Coffee', stock: 95, min: 20 },
+                      { sku: 'NC-001', name: 'Matcha Uji Artisan Latte', cat: 'Non-Coffee', stock: 8, min: 15 },
+                      { sku: 'PAS-001', name: 'Butter Croissant French AOP', cat: 'Pastry', stock: 5, min: 10 },
+                    ].map((item) => (
+                      <tr key={item.sku} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3 font-mono text-slate-400">{item.sku}</td>
+                        <td className="px-4 py-3 font-bold text-slate-900">{item.name}</td>
+                        <td className="px-4 py-3 text-slate-500">{item.cat}</td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">{item.stock} pcs</td>
                         <td className="px-4 py-3 text-center">
-                          {item.total_stock <= item.min ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                              <AlertTriangle className="size-3" />
+                          {item.stock <= item.min ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                               Menipis
                             </span>
                           ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               Aman
                             </span>
                           )}
@@ -887,45 +835,38 @@ export default function DashboardIndex({
             </Card>
           </div>
         )}
-
-        {/* ===================== TAB: LAPORAN ===================== */}
+        {/* ===================== TAB: REPORTS ===================== */}
         {activeTab === 'reports' && (
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Laporan Keuangan &amp; Pajak
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Rekapitulasi penjualan bersih, margin laba kotor, PPN, dan service charge.
-                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reporting &amp; Sales Summary</h1>
+                <p className="text-xs text-slate-500">Laporan omzet, pajak PB1, dan rekap transaksi per outlet.</p>
               </div>
-              <Button size="sm" variant="secondary" onClick={exportSalesCsv} className="text-xs">
+              <Button size="sm" variant="secondary" onClick={() => playTap()} className="text-xs bg-white border-slate-200 text-slate-700">
                 <Download className="size-3.5 mr-1" />
                 Unduh Rekap Spreadsheet (CSV)
               </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-5 bg-white border-slate-200">
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs">
                 <p className="text-xs font-medium text-slate-500">Penjualan Kotor (Gross)</p>
-                <p className="text-2xl font-bold font-mono text-slate-950 mt-2">
+                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">
                   {formatMoney(summary?.today_revenue ? summary.today_revenue * 28 : 124500000)}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1">Akumulasi 30 hari berjalan</p>
               </Card>
 
-              <Card className="p-5 bg-white border-slate-200">
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs">
                 <p className="text-xs font-medium text-slate-500">Estimasi Margin Laba Kotor</p>
-                <p className="text-2xl font-bold font-mono text-emerald-600 mt-2">
-                  64.2%
-                </p>
+                <p className="text-2xl font-bold font-mono text-emerald-600 mt-2">64.2%</p>
                 <p className="text-[11px] text-slate-400 mt-1">Setelah HPP (Harga Pokok Penjualan)</p>
               </Card>
 
-              <Card className="p-5 bg-white border-slate-200">
+              <Card className="p-5 bg-white border-slate-200/90 rounded-2xl shadow-2xs">
                 <p className="text-xs font-medium text-slate-500">Kewajiban Pajak PB1 / PPN 10%</p>
-                <p className="text-2xl font-bold font-mono text-slate-950 mt-2">
+                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">
                   {formatMoney(summary?.today_revenue ? (summary.today_revenue * 28) * 0.1 : 12450000)}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1">Dicatat otomatis per struk POS</p>
@@ -934,57 +875,53 @@ export default function DashboardIndex({
           </div>
         )}
 
-        {/* ===================== TAB: PENGATURAN ===================== */}
+        {/* ===================== TAB: SETTINGS ===================== */}
         {activeTab === 'settings' && (
           <div className="space-y-5">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                Pengaturan Workspace &amp; Outlet
-              </h1>
-              <p className="text-xs text-slate-500">
-                Konfigurasi profil usaha, tarif pajak, laci kasir default, dan aturan loyalitas.
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Pengaturan Workspace &amp; Outlet</h1>
+              <p className="text-xs text-slate-500">Konfigurasi profil usaha, tarif pajak, laci kasir default, dan aturan loyalitas.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-6 bg-white border-slate-200 space-y-4">
+              <Card className="p-6 bg-white border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Building className="size-4 text-sky-600" />
+                  <Building className="size-4 text-navy-800" />
                   Identitas Usaha
                 </h3>
                 <div className="space-y-3 text-xs">
                   <div>
                     <label className="text-slate-500 block mb-1">Nama Bisnis</label>
-                    <Input defaultValue={tenantName} disabled className="bg-slate-50" />
+                    <Input defaultValue={tenantName} disabled className="bg-slate-50 border-slate-200" />
                   </div>
                   <div>
                     <label className="text-slate-500 block mb-1">Outlet Aktif</label>
-                    <Input defaultValue={outletName} disabled className="bg-slate-50" />
+                    <Input defaultValue={outletName} disabled className="bg-slate-50 border-slate-200" />
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white border-slate-200 space-y-4">
+              <Card className="p-6 bg-white border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <ShieldCheck className="size-4 text-emerald-600" />
                   Kebijakan Pembayaran Kasir
                 </h3>
                 <div className="space-y-3 text-xs text-slate-600">
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-slate-800">Verifikasi QRIS di Layar Pembeli</p>
                       <p className="text-[11px] text-slate-500">Wajibkan kasir centang cek bukti sebelum cetak</p>
                     </div>
-                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                       Aktif
                     </span>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-slate-800">Batas Selisih Laci Kasir (Cash Discrepancy)</p>
                       <p className="text-[11px] text-slate-500">Maksimal toleransi Rp 5.000 per shift</p>
                     </div>
-                    <span className="text-[11px] font-semibold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold text-navy-800 bg-blue-50 px-2.5 py-0.5 rounded-full">
                       Terkunci
                     </span>
                   </div>
@@ -998,15 +935,11 @@ export default function DashboardIndex({
         {activeTab === 'audit' && (
           <div className="space-y-5">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                Jejak Audit &amp; Keamanan Kasir
-              </h1>
-              <p className="text-xs text-slate-500">
-                Catatan aktivitas kritis kasir, pembukaan shift, perubahan stok, dan otorisasi retur.
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Jejak Audit &amp; Keamanan Kasir</h1>
+              <p className="text-xs text-slate-500">Catatan aktivitas kritis kasir, pembukaan shift, perubahan stok, dan otorisasi retur.</p>
             </div>
 
-            <Card className="bg-white border-slate-200 overflow-hidden shadow-xs">
+            <Card className="bg-white border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-100">
