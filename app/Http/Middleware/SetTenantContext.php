@@ -16,7 +16,13 @@ class SetTenantContext
 {
     public function handle(Request $request, Closure $next): Response
     {
-        TenantContext::set($request->user()?->tenant_id);
+        $tenantId = $request->user()?->tenant_id;
+
+        if (! $tenantId && $request->user()?->isSuperAdmin() && $request->hasSession() && $request->session()->has('delegated_tenant_id')) {
+            $tenantId = $request->session()->get('delegated_tenant_id');
+        }
+
+        TenantContext::set($tenantId);
 
         return $next($request);
     }
