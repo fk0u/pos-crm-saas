@@ -8,13 +8,13 @@ services:
     restart: unless-stopped
     volumes:
       - ./.env:/var/www/.env:z
-      - ./app:/var/www/app
-      - ./bootstrap:/var/www/bootstrap
-      - ./config:/var/www/config
-      - ./database:/var/www/database
-      - ./public:/var/www/public
-      - ./resources:/var/www/resources
-      - ./routes:/var/www/routes
+      - ./app:/var/www/app:z
+      - ./bootstrap:/var/www/bootstrap:z
+      - ./config:/var/www/config:z
+      - ./database:/var/www/database:z
+      - ./public:/var/www/public:z
+      - ./resources:/var/www/resources:z
+      - ./routes:/var/www/routes:z
       - appstorage:/var/www/storage
     depends_on:
       db:
@@ -46,7 +46,7 @@ services:
     ports:
       - "${APP_PORT:-8085}:80"
     volumes:
-      - ./public:/var/www/public:ro
+      - ./public:/var/www/public:ro,z
       - appstorage:/var/www/storage:ro
     depends_on:
       - app
