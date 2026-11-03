@@ -171,15 +171,6 @@ class ProductController extends Controller
             'stock' => $validated['stock'],
             'is_active' => $validated['is_active'] ?? true,
         ]);
-            'name' => $validated['name'],
-            'category' => $validated['category'],
-            'sku' => $validated['sku'] ?: $product->sku,
-            'barcode' => $validated['barcode'],
-            'cost_price' => $validated['cost_price'],
-            'selling_price' => $validated['selling_price'],
-            'stock' => $validated['stock'],
-            'is_active' => $validated['is_active'] ?? $product->is_active,
-        ]);
 
         return redirect()->back()->with('success', "Produk {$product->name} berhasil diperbarui");
     }
