@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\InvoiceController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\PosTerminalController;
 use App\Http\Controllers\Web\RegisterController;
@@ -27,3 +28,9 @@ Route::get('/dashboard/recent', [DashboardController::class, 'recentSales'])
 Route::get('/pos', [PosTerminalController::class, 'index'])
     ->middleware('auth')
     ->name('pos.terminal');
+
+// Invoices & Thermal Receipts
+Route::get('/invoices/{order}/receipt', [InvoiceController::class, 'receipt'])
+    ->name('invoices.receipt');
+Route::get('/invoices/{order}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])
+    ->name('invoices.whatsapp');

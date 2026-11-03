@@ -93,7 +93,10 @@ interface TopProduct {
 interface DashboardProps {
   userName?: string;
   role?: string;
+  isSuperAdmin?: boolean;
   tenantName?: string;
+  tenantId?: string;
+  allTenants?: { id: string; name: string; subdomain: string }[];
   outletName?: string;
   summary?: {
     today_revenue?: number;
@@ -112,7 +115,10 @@ interface DashboardProps {
 export default function DashboardIndex({
   userName = 'Samantha W',
   role = 'owner',
+  isSuperAdmin = false,
   tenantName = 'QLon Store',
+  tenantId,
+  allTenants = [],
   outletName = 'Central Outlet',
   summary = {},
   outlets = [],
@@ -310,6 +316,48 @@ export default function DashboardIndex({
       onTabChange={setActiveTab}
     >
       <div className="space-y-6 max-w-7xl mx-auto">
+        {/* SuperAdmin Master Access Switcher */}
+        {isSuperAdmin && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-slate-900 to-navy-950 text-white border border-purple-500/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/30 flex items-center justify-center shrink-0">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-400">Mode Master Administrator</span>
+                  <span className="text-[10px] bg-purple-500/20 text-purple-200 border border-purple-400/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                    Superadmin Akses Penuh
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Anda memiliki wewenang untuk memantau metrik seluruh tenant dan cabang bisnis secara realtime.
+                </p>
+              </div>
+            </div>
+
+            {allTenants.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium shrink-0">Pilih Tenant:</span>
+                <select
+                  value={tenantId || ''}
+                  onChange={(e) => {
+                    playTap();
+                    router.get('/dashboard', { tenant_id: e.target.value }, { preserveState: true });
+                  }}
+                  className="bg-slate-800 text-white text-xs font-semibold rounded-xl border border-slate-700 px-3 py-2 focus:ring-2 focus:ring-purple-400 focus:outline-none cursor-pointer"
+                >
+                  {allTenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.subdomain})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Toast Alert */}
         {toastMessage && (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between animate-fade-in shadow-2xs">
@@ -857,6 +905,26 @@ export default function DashboardIndex({
               <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                 <span>Pelanggan: {selectedOrder.customer_name || 'Pelanggan umum'}</span>
                 <span className="capitalize font-semibold">{selectedOrder.payment_method}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-200">
+                <a
+                  href={`/invoices/${selectedOrder.id}/receipt`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+                >
+                  <Printer className="size-3.5" />
+                  Cetak Struk
+                </a>
+                <a
+                  href={`/invoices/${selectedOrder.id}/whatsapp`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-2xs"
+                >
+                  <Phone className="size-3.5" />
+                  Kirim WhatsApp
+                </a>
               </div>
             </div>
 

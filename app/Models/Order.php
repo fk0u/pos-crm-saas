@@ -70,4 +70,14 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    /**
+     * Allow resolving orders for public digital receipts and WhatsApp invoice redirection.
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        return $this->withoutGlobalScope(\App\Scopes\TenantScope::class)
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
 }

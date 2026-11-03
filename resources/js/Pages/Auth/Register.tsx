@@ -36,27 +36,33 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-sky-50/20 to-slate-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Soft background ambient decor */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-100/60 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-100/40 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center">
-          <div className="relative size-14 rounded-2xl bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 border border-sky-400/40 text-white flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.3)]">
-            <span className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">
-              Q
-            </span>
-            <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 ring-2 ring-navy-950 animate-pulse" />
+          <div className="relative size-14 rounded-2xl bg-gradient-to-br from-sky-400 via-teal-400 to-emerald-400 p-[1.5px] shadow-[0_0_25px_rgba(56,189,248,0.35)]">
+            <div className="w-full h-full rounded-[14px] bg-[#09132d] flex items-center justify-center">
+              <span className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-teal-200 to-emerald-300">
+                Q
+              </span>
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-emerald-400 ring-2 ring-[#070e24] animate-pulse" />
           </div>
         </div>
-        <h1 className="mt-4 text-center text-2xl font-black tracking-tight text-slate-900">
+        <h1 className="mt-4 text-center text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
           Daftarkan Bisnis Anda di QLon
         </h1>
-        <p className="mt-1.5 text-center text-sm text-slate-500">
-          Mulai kelola kasir POS native, CRM WhatsApp &amp; pantau omzet multi-cabang.
+        <p className="mt-1.5 text-center text-sm text-slate-500 max-w-sm mx-auto">
+          Mulai kelola kasir POS pintar, CRM WhatsApp &amp; pantau omzet multi-cabang.
         </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
-        <Card className="p-6 sm:p-8 bg-white border-slate-200 shadow-sm">
-          <div className="mb-6 p-3.5 rounded-xl bg-sky-50/80 border border-sky-100 flex items-start gap-3">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl relative z-10">
+        <Card className="p-7 sm:p-9 bg-white/95 backdrop-blur-md border-slate-200/90 shadow-[0_20px_50px_rgba(8,17,42,0.07)] rounded-3xl">
+          <div className="mb-6 p-4 rounded-2xl bg-sky-50/80 border border-sky-100 flex items-start gap-3">
             <Sparkles className="size-5 text-sky-600 shrink-0 mt-0.5" />
             <p className="text-xs text-sky-950 leading-relaxed font-medium">
               Pendaftaran ini akan otomatis membuat workspace owner baru di <strong>QLon Cloud</strong>, mengaktifkan outlet pusat default, dan membuka akses kasir realtime.
@@ -77,9 +83,9 @@ export default function Register() {
                   placeholder="Contoh: Kopi Kawan Indonesia"
                   value={data.business_name}
                   onChange={(e) => setData('business_name', e.target.value)}
-                  className="pl-9"
+                  className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                 />
-                <Building2 className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Building2 className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </Field>
 
@@ -97,9 +103,9 @@ export default function Register() {
                     placeholder="Contoh: Hendra Setiawan"
                     value={data.name}
                     onChange={(e) => setData('name', e.target.value)}
-                    className="pl-9"
+                    className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                   />
-                  <User className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <User className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </Field>
 
@@ -116,9 +122,9 @@ export default function Register() {
                     placeholder="081234567890"
                     value={data.phone}
                     onChange={(e) => setData('phone', e.target.value)}
-                    className="pl-9"
+                    className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                   />
-                  <Phone className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Phone className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </Field>
             </div>
@@ -138,9 +144,9 @@ export default function Register() {
                   placeholder="owner@bisnisanda.com"
                   value={data.email}
                   onChange={(e) => setData('email', e.target.value)}
-                  className="pl-9"
+                  className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                 />
-                <Mail className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Mail className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </Field>
 
@@ -160,9 +166,9 @@ export default function Register() {
                     placeholder="Minimal 8 karakter"
                     value={data.password}
                     onChange={(e) => setData('password', e.target.value)}
-                    className="pl-9"
+                    className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                   />
-                  <Lock className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </Field>
 
@@ -181,9 +187,9 @@ export default function Register() {
                     placeholder="Ulangi kata sandi"
                     value={data.password_confirmation}
                     onChange={(e) => setData('password_confirmation', e.target.value)}
-                    className="pl-9"
+                    className="pl-10 h-11 rounded-xl border-slate-200 focus:border-navy-600 focus:ring-2 focus:ring-navy-100 font-medium"
                   />
-                  <ShieldCheck className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ShieldCheck className="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </Field>
             </div>
@@ -192,10 +198,10 @@ export default function Register() {
               type="submit"
               size="lg"
               disabled={processing}
-              className="w-full mt-4 bg-navy-900 hover:bg-navy-800 text-white font-bold glow-cyan"
+              className="w-full mt-4 h-12 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 hover:from-navy-900 hover:to-navy-800 text-white font-bold rounded-xl shadow-lg shadow-navy-950/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group cursor-pointer"
             >
               {processing ? 'Menyiapkan Workspace QLon...' : 'Daftarkan Workspace Sekarang'}
-              <ArrowRight className="size-4 ml-1" />
+              <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </form>
 
@@ -204,7 +210,7 @@ export default function Register() {
               Sudah memiliki akun?{' '}
               <Link
                 href="/login"
-                className="font-bold text-navy-900 hover:text-navy-950 underline underline-offset-2"
+                className="font-bold text-navy-900 hover:text-sky-700 underline underline-offset-2 transition-colors"
               >
                 Masuk di sini
               </Link>

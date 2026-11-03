@@ -28,8 +28,16 @@ class DashboardController extends Controller
             return redirect()->route('pos.terminal');
         }
 
-        $tenant = $user->tenant;
-        $tenantId = $user->tenant_id;
+        $isSuperAdmin = $user->isSuperAdmin();
+        $selectedTenantId = $request->query('tenant_id');
+
+        if ($isSuperAdmin && $selectedTenantId) {
+            $tenant = \App\Models\Tenant::find($selectedTenantId) ?? $user->tenant;
+            $tenantId = $tenant?->id ?? $user->tenant_id;
+        } else {
+            $tenant = $user->tenant;
+            $tenantId = $user->tenant_id;
+        }
 
         $searchQuery = $request->query('q');
         $summary = $this->metrics->summary($tenantId);
@@ -38,11 +46,15 @@ class DashboardController extends Controller
         $recentOrders = $this->metrics->recentOrders($tenantId, 10);
         $topProducts = $this->metrics->topProducts($tenantId, 5);
         $auditLogs = $this->metrics->recentAuditLogs($tenantId, 8);
+        $allTenants = $isSuperAdmin ? \App\Models\Tenant::select(['id', 'name', 'subdomain'])->get() : [];
 
         return Inertia::render('Dashboard/Index', [
             'userName' => $user->name,
             'role' => $user->role,
-            'tenantName' => $tenant?->name ?? '—',
+            'isSuperAdmin' => $isSuperAdmin,
+            'tenantName' => $tenant?->name ?? 'Semua Tenant (SaaS Master)',
+            'tenantId' => $tenantId,
+            'allTenants' => $allTenants,
             'outletName' => $user->outlet?->name ?? 'Semua Outlet',
             'summary' => $summary,
             'outlets' => $outlets,

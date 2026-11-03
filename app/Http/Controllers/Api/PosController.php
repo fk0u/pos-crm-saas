@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Shift;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PosController extends Controller
 {
@@ -27,27 +28,46 @@ class PosController extends Controller
     ) {}
 
     /**
-     * Get active products for the POS terminal.
+     * Get active products for the POS terminal with event caching.
      */
     public function getProducts(Request $request): JsonResponse
     {
-        $query = Product::where('is_active', true);
+        $tenantId = $request->user()?->tenant_id;
+        $search = $request->input('search');
+        $category = $request->input('category');
 
-        if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->whereLike('name', "%{$search}%")
-                    ->orWhereLike('sku', "%{$search}%")
-                    ->orWhereLike('barcode', "%{$search}%");
-            });
-        }
+        $buildQuery = function () use ($tenantId, $search, $category) {
+            $query = Product::where('is_active', true);
 
-        if ($category = $request->input('category')) {
-            $query->where('category', $category);
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereLike('name', "%{$search}%")
+                        ->orWhereLike('sku', "%{$search}%")
+                        ->orWhereLike('barcode', "%{$search}%");
+                });
+            }
+
+            if ($category) {
+                $query->where('category', $category);
+            }
+
+            return $query->orderBy('name')->get();
+        };
+
+        if ($search) {
+            $products = $buildQuery();
+        } else {
+            $cacheKey = "pos_products_" . ($tenantId ?? 'global') . "_" . ($category ?? 'all');
+            $products = Cache::remember($cacheKey, 30, $buildQuery);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $query->orderBy('name')->get(),
+            'data' => $products,
         ]);
     }
 

@@ -40,7 +40,16 @@ class DatabaseSeeder extends Seeder
             'phone' => '081233334444',
         ]);
 
-        // 3. Create Users (Owner & Cashier)
+        // 3. Create Users (Master Administrator, Owner & Cashier)
+        $master = User::create([
+            'tenant_id' => $tenant->id,
+            'outlet_id' => $outlet1->id,
+            'name' => 'Master Administrator (Superadmin)',
+            'email' => 'master@qlon.id',
+            'password' => Hash::make('password123'),
+            'role' => 'superadmin',
+        ]);
+
         $owner = User::create([
             'tenant_id' => $tenant->id,
             'outlet_id' => $outlet1->id,

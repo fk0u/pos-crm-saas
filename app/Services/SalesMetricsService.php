@@ -13,6 +13,7 @@ use App\Models\Outlet;
 use App\Models\Shift;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,56 +30,58 @@ class SalesMetricsService
      */
     public function summary(string $tenantId): array
     {
-        $todayStart = Carbon::today();
+        return Cache::remember("sales_metrics_summary_{$tenantId}", 5, function () use ($tenantId) {
+            $todayStart = Carbon::today();
 
-        $todayOrders = Order::where('tenant_id', $tenantId)->where('created_at', '>=', $todayStart);
+            $todayOrders = Order::where('tenant_id', $tenantId)->where('created_at', '>=', $todayStart);
 
-        $grossSales = (float) (clone $todayOrders)->sum('subtotal');
-        $discountTotal = (float) (clone $todayOrders)->sum('discount_amount');
-        $taxTotal = (float) (clone $todayOrders)->sum('tax_amount');
-        $revenue = (float) (clone $todayOrders)->sum('grand_total');
-        $transactions = (int) (clone $todayOrders)->count();
+            $grossSales = (float) (clone $todayOrders)->sum('subtotal');
+            $discountTotal = (float) (clone $todayOrders)->sum('discount_amount');
+            $taxTotal = (float) (clone $todayOrders)->sum('tax_amount');
+            $revenue = (float) (clone $todayOrders)->sum('grand_total');
+            $transactions = (int) (clone $todayOrders)->count();
 
-        // Calculate Cost of Goods Sold (HPP) for today
-        $orderIds = (clone $todayOrders)->pluck('id');
-        $totalCogs = 0.0;
-        if ($orderIds->isNotEmpty()) {
-            $totalCogs = (float) OrderItem::whereIn('order_id', $orderIds)
-                ->selectRaw('SUM(unit_cost_price * quantity) as total_cogs')
-                ->value('total_cogs') ?? 0.0;
-        }
+            // Calculate Cost of Goods Sold (HPP) for today
+            $orderIds = (clone $todayOrders)->pluck('id');
+            $totalCogs = 0.0;
+            if ($orderIds->isNotEmpty()) {
+                $totalCogs = (float) OrderItem::whereIn('order_id', $orderIds)
+                    ->selectRaw('SUM(unit_cost_price * quantity) as total_cogs')
+                    ->value('total_cogs') ?? 0.0;
+            }
 
-        $grossProfit = max(0.0, $revenue - $totalCogs);
-        $profitMargin = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 1) : 0.0;
-        $aov = $transactions > 0 ? round($revenue / $transactions, 2) : 0.0;
-        $newCustomersCount = (int) Customer::where('tenant_id', $tenantId)->where('created_at', '>=', $todayStart)->count();
+            $grossProfit = max(0.0, $revenue - $totalCogs);
+            $profitMargin = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 1) : 0.0;
+            $aov = $transactions > 0 ? round($revenue / $transactions, 2) : 0.0;
+            $newCustomersCount = (int) Customer::where('tenant_id', $tenantId)->where('created_at', '>=', $todayStart)->count();
 
-        $yesterdayStart = Carbon::yesterday();
-        $yesterdayRevenue = (float) Order::where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$yesterdayStart, $todayStart])
-            ->sum('grand_total');
-        $growthRevenue = $yesterdayRevenue > 0
-            ? round((($revenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
-            : ($revenue > 0 ? 100.0 : 0.0);
+            $yesterdayStart = Carbon::yesterday();
+            $yesterdayRevenue = (float) Order::where('tenant_id', $tenantId)
+                ->whereBetween('created_at', [$yesterdayStart, $todayStart])
+                ->sum('grand_total');
+            $growthRevenue = $yesterdayRevenue > 0
+                ? round((($revenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
+                : ($revenue > 0 ? 100.0 : 0.0);
 
-        return [
-            'gross_sales' => $grossSales,
-            'discount_total' => $discountTotal,
-            'tax_total' => $taxTotal,
-            'revenue' => $revenue,
-            'today_revenue' => $revenue,
-            'cogs' => $totalCogs,
-            'gross_profit' => $grossProfit,
-            'profit_margin' => $profitMargin,
-            'transactions' => $transactions,
-            'today_orders_count' => $transactions,
-            'aov' => $aov,
-            'avg_order_value' => $aov,
-            'new_customers_count' => $newCustomersCount,
-            'growth_revenue' => $growthRevenue,
-            'active_outlets' => (int) Outlet::where('tenant_id', $tenantId)->count(),
-            'open_shifts' => (int) Shift::where('tenant_id', $tenantId)->where('status', 'open')->count(),
-        ];
+            return [
+                'gross_sales' => $grossSales,
+                'discount_total' => $discountTotal,
+                'tax_total' => $taxTotal,
+                'revenue' => $revenue,
+                'today_revenue' => $revenue,
+                'cogs' => $totalCogs,
+                'gross_profit' => $grossProfit,
+                'profit_margin' => $profitMargin,
+                'transactions' => $transactions,
+                'today_orders_count' => $transactions,
+                'aov' => $aov,
+                'avg_order_value' => $aov,
+                'new_customers_count' => $newCustomersCount,
+                'growth_revenue' => $growthRevenue,
+                'active_outlets' => (int) Outlet::where('tenant_id', $tenantId)->count(),
+                'open_shifts' => (int) Shift::where('tenant_id', $tenantId)->where('status', 'open')->count(),
+            ];
+        });
     }
 
     /**

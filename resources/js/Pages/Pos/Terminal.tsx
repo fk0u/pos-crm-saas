@@ -27,6 +27,8 @@ import {
   WifiOff,
   Barcode,
   Delete,
+  MessageCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Button } from '@/Components/ui/button';
@@ -392,6 +394,7 @@ export default function PosTerminal({
     let finalGrandTotal = totals.total;
     let finalChangeAmount = method === 'cash' ? Math.max(0, change) : 0;
     let finalPointsEarned = pointsPreview;
+    let orderId = '';
 
     try {
       const csrfToken =
@@ -427,6 +430,7 @@ export default function PosTerminal({
       if (res.ok) {
         const json = await res.json().catch(() => null);
         if (json?.data) {
+          orderId = json.data.order_id || '';
           receiptNum = json.data.invoice_number || receiptNum;
           finalGrandTotal = Number(json.data.grand_total ?? finalGrandTotal);
           finalPointsEarned = Number(json.data.points_earned ?? finalPointsEarned);
@@ -444,7 +448,10 @@ export default function PosTerminal({
     triggerHaptic('success');
 
     setSuccess({
+      orderId,
       receiptNumber: receiptNum,
+      customerName: selectedCustomer?.name || 'Pelanggan Umum',
+      customerPhone: selectedCustomer?.phone || '',
       grandTotal: finalGrandTotal,
       changeAmount: finalChangeAmount,
       pointsEarned: finalPointsEarned,
@@ -1178,16 +1185,64 @@ export default function PosTerminal({
                 type="button"
                 onClick={() => {
                   playTap();
-                  window.print();
+                  if (success.orderId) {
+                    window.open(`/invoices/${success.orderId}/receipt`, '_blank');
+                  } else {
+                    window.print();
+                  }
                 }}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs active:scale-95"
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs active:scale-95"
               >
-                <Printer className="size-4" />
-                Cetak struk
+                <Printer className="size-3.5" />
+                Cetak Struk Thermal
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  if (success.orderId) {
+                    if (success.customerPhone) {
+                      window.open(`/invoices/${success.orderId}/whatsapp`, '_blank');
+                    } else {
+                      const p = prompt('Masukkan nomor WhatsApp pelanggan (contoh: 08123456789):');
+                      if (p) {
+                        window.open(`/invoices/${success.orderId}/whatsapp?phone=${encodeURIComponent(p)}`, '_blank');
+                      }
+                    }
+                  } else {
+                    const p = prompt('Masukkan nomor WhatsApp pelanggan (contoh: 08123456789):');
+                    if (p) {
+                      const text = encodeURIComponent(`*${tenantName}*\nNota: ${success.receiptNumber}\nTotal: Rp ${success.grandTotal.toLocaleString('id-ID')}\nTerima kasih!`);
+                      window.open(`https://wa.me/62${p.replace(/^0+/, '')}?text=${text}`, '_blank');
+                    }
+                  }
+                }}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-2xs active:scale-95"
+              >
+                <MessageCircle className="size-3.5" />
+                Kirim WhatsApp
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {success.orderId ? (
+                <a
+                  href={`/invoices/${success.orderId}/receipt`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 hover:bg-slate-100 transition active:scale-95 text-center"
+                >
+                  <ExternalLink className="size-3.5" />
+                  Buka Halaman Struk
+                </a>
+              ) : (
+                <div />
+              )}
+
               <Button
                 size="lg"
-                className="rounded-xl active:scale-95"
+                className="rounded-xl active:scale-95 h-11 text-xs"
                 onClick={() => {
                   playTap();
                   triggerHaptic('light');
@@ -1195,8 +1250,8 @@ export default function PosTerminal({
                   searchRef.current?.focus();
                 }}
               >
-                <Plus className="size-4" />
-                Transaksi baru
+                <Plus className="size-3.5" />
+                Transaksi Baru
               </Button>
             </div>
           </div>

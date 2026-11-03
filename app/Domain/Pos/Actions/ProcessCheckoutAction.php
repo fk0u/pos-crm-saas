@@ -14,6 +14,7 @@ use App\Models\Outlet;
 use App\Models\Product;
 use App\Models\Shift;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -209,6 +210,10 @@ class ProcessCheckoutAction
                     ],
                 );
             }
+
+            // 9. Invalidate event performance caches for tenant
+            Cache::forget("sales_metrics_summary_{$tenantId}");
+            Cache::forget("pos_products_{$tenantId}_all");
 
             return [
                 'order_id' => $order->id,
