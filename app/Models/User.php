@@ -60,9 +60,14 @@ class User extends Authenticatable
         return $this->role === 'cashier';
     }
 
+    public function isDeveloper(): bool
+    {
+        return $this->role === 'developer';
+    }
+
     public function canManage(): bool
     {
-        return in_array($this->role, ['owner', 'manager', 'superadmin'], true);
+        return in_array($this->role, ['owner', 'manager', 'developer', 'superadmin'], true);
     }
 
     public function activeShift(): ?Shift

@@ -18,12 +18,22 @@ class HelpController extends Controller
     public function index(Request $request): Response
     {
         $user = Auth::user();
+        $tenantId = $user?->tenant_id;
+
+        $activeDelegationTokens = $tenantId
+            ? \App\Models\SupportDelegationToken::where('tenant_id', $tenantId)
+                ->where('expires_at', '>', now())
+                ->latest()
+                ->get()
+            : [];
 
         return Inertia::render('Help/Index', [
             'userName' => $user?->name ?? 'Pengguna',
             'role' => $user?->role ?? 'owner',
             'outletName' => $user?->outlet?->name ?? 'Outlet Utama',
             'tenantName' => $user?->tenant?->name ?? 'QLon Store',
+            'activeDelegationTokens' => $activeDelegationTokens,
         ]);
     }
 }
+

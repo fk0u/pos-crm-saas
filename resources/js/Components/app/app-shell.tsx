@@ -34,6 +34,7 @@ import { CommandPalette } from './command-palette';
 import { playTap } from '@/lib/sound';
 import { QlonLogo } from '@/Components/ui/QlonLogo';
 import { VirtualKeyboard } from '@/Components/ui/VirtualKeyboard';
+import { RealtimeSupportWidget } from '@/Components/ui/RealtimeSupportWidget';
 
 export function getGreeting(): string {
   const hour = new Date().getHours();
@@ -124,6 +125,12 @@ export function AppShell({
     { href: '/cashflow', label: 'Arus Kas', icon: CircleDollarSign },
     { href: '/customers', label: 'Pelanggan', icon: Users },
     { href: '/reports', label: 'Laporan', icon: BarChart3 },
+    ...(role === 'developer' || role === 'owner' || role === 'superadmin'
+      ? [{ href: '/developer', label: 'Developer Hub', icon: Building2 }]
+      : []),
+    ...(role === 'superadmin'
+      ? [{ href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck }]
+      : []),
   ];
 
   const secondaryNavItems = [
@@ -559,6 +566,9 @@ export function AppShell({
 
         {/* Global On-Screen Virtual Keyboard for Touchscreens/POS */}
         <VirtualKeyboard />
+
+        {/* Global Real-time CS Live Support Widget */}
+        <RealtimeSupportWidget />
       </div>
     </ToastProvider>
   );

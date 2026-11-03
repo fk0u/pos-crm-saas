@@ -19,7 +19,11 @@ import {
   Layers,
   ExternalLink,
   ChevronDown,
+  KeyRound,
+  Trash2,
+  Lock,
 } from 'lucide-react';
+import { Modal } from '@/Components/ui/modal';
 import { AppShell } from '@/Components/app/app-shell';
 import { QlonLogo } from '@/Components/ui/QlonLogo';
 import { playTap } from '@/lib/sound';
@@ -29,6 +33,7 @@ interface HelpPageProps {
   role?: string;
   outletName?: string;
   tenantName?: string;
+  activeDelegationTokens?: any[];
 }
 
 export default function Help({
@@ -36,9 +41,13 @@ export default function Help({
   role = 'owner',
   outletName = 'Central Outlet',
   tenantName = 'QLon Store',
+  activeDelegationTokens = [],
 }: HelpPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [tokenReason, setTokenReason] = useState('Bantuan sinkronisasi printer & cek transaksi');
+  const [tokenDuration, setTokenDuration] = useState('2');
 
   const faqs = [
     {
@@ -115,6 +124,76 @@ export default function Help({
             <QlonLogo variant="icon" size="lg" />
           </div>
         </div>
+
+        {/* OWNER SUPPORT DELEGATION ACCESS SECTION */}
+        {(role === 'owner' || role === 'superadmin') && (
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="size-10 rounded-2xl bg-blue-50 border border-blue-200 text-[#0f2b5c] flex items-center justify-center">
+                  <KeyRound className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">
+                    Otorisasi Akses Bantuan Teknis Superadmin
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Kedaulatan data bisnis: Superadmin QLon tidak dapat melihat transaksi Anda tanpa token izin bertempo waktu ini.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  setIsTokenModalOpen(true);
+                }}
+                className="h-10 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center gap-2 shadow-sm transition active:scale-95 cursor-pointer shrink-0"
+              >
+                <KeyRound className="size-4" />
+                <span>Terbitkan Token Akses</span>
+              </button>
+            </div>
+
+            {activeDelegationTokens.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">
+                Tidak ada token izin aktif saat ini. Data keuangan &amp; transaksi toko Anda 100% terkunci aman.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {activeDelegationTokens.map((tk: any) => (
+                  <div
+                    key={tk.id}
+                    className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/70 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-xs text-[#0f2b5c] bg-white px-2 py-0.5 rounded border border-blue-200">
+                          {tk.token}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          Berlaku s/d: {new Date(tk.expires_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">{tk.reason}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        router.delete(`/help/delegation-tokens/${tk.id}`);
+                      }}
+                      className="p-2 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition"
+                      title="Cabut Izin Akses"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 3 REALTIME CONTACT CHANNELS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -254,6 +333,83 @@ export default function Help({
           </div>
         </div>
       </div>
+      {/* MODAL TERBITKAN TOKEN AKSES DUKUNGAN */}
+      <Modal
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
+        title="Terbitkan Token Akses Bantuan CS / Superadmin"
+        description="Berikan otorisasi bertempo waktu kepada pihak penyedia platform untuk memeriksa kendala transaksi Anda."
+        maxWidth="md"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            playTap();
+            router.post(
+              '/help/delegation-tokens',
+              { duration_hours: tokenDuration, reason: tokenReason },
+              {
+                onSuccess: () => {
+                  playSuccessChime();
+                  setIsTokenModalOpen(false);
+                },
+              }
+            );
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Durasi Izin Akses Bantuan
+            </label>
+            <select
+              value={tokenDuration}
+              onChange={(e) => setTokenDuration(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0f2b5c]"
+            >
+              <option value="1">1 Jam (Pemeriksaan Singkat)</option>
+              <option value="2">2 Jam (Direkomendasikan)</option>
+              <option value="6">6 Jam (Selama Event Berlangsung)</option>
+              <option value="24">24 Jam (Audit Penuh)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Alasan Permintaan Dukungan
+            </label>
+            <input
+              type="text"
+              required
+              value={tokenReason}
+              onChange={(e) => setTokenReason(e.target.value)}
+              placeholder="cth: Cek selisih transaksi QRIS shift sore"
+              className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#0f2b5c]"
+            />
+          </div>
+
+          <div className="p-3 rounded-xl bg-blue-50 text-blue-900 text-[11px] leading-relaxed">
+            Token ini dapat Anda cabut kapan saja secara instan. Superadmin tidak dapat melihat transaksi lagi begitu token kedaluwarsa atau dicabut.
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsTokenModalOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold shadow-xs active:scale-95"
+            >
+              Terbitkan Token Izin
+            </button>
+          </div>
+        </form>
+      </Modal>
     </AppShell>
   );
 }
+

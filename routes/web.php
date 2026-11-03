@@ -3,6 +3,8 @@
 use App\Http\Controllers\Web\CashflowController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DelegationTokenController;
+use App\Http\Controllers\Web\DeveloperHubController;
 use App\Http\Controllers\Web\HelpController;
 use App\Http\Controllers\Web\InvoiceController;
 use App\Http\Controllers\Web\LegalController;
@@ -11,6 +13,8 @@ use App\Http\Controllers\Web\PosTerminalController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\RegisterController;
 use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\SuperadminController;
+use App\Http\Controllers\Web\SupportChatController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -77,6 +81,28 @@ Route::middleware(['auth'])->group(function (): void {
     // 8. Pusat Bantuan & Layanan CS Realtime
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
     Route::get('/bantuan', fn () => redirect()->route('help.index'))->name('bantuan');
+    Route::post('/help/delegation-tokens', [DelegationTokenController::class, 'store'])->name('help.delegation.store');
+    Route::delete('/help/delegation-tokens/{id}', [DelegationTokenController::class, 'destroy'])->name('help.delegation.destroy');
+
+    // 9. Real-time CS Live Chat API
+    Route::get('/api/support/conversation', [SupportChatController::class, 'getActiveConversation']);
+    Route::post('/api/support/message', [SupportChatController::class, 'sendMessage']);
+
+    // 10. Semi-PaaS Developer Hub (developer, owner, superadmin)
+    Route::middleware(['role:developer,owner,superadmin'])->group(function (): void {
+        Route::get('/developer', [DeveloperHubController::class, 'index'])->name('developer.index');
+        Route::post('/developer/api-keys', [DeveloperHubController::class, 'createKey'])->name('developer.keys.store');
+        Route::delete('/developer/api-keys/{id}', [DeveloperHubController::class, 'destroyKey'])->name('developer.keys.destroy');
+        Route::post('/developer/webhooks', [DeveloperHubController::class, 'createWebhook'])->name('developer.webhooks.store');
+        Route::delete('/developer/webhooks/{id}', [DeveloperHubController::class, 'destroyWebhook'])->name('developer.webhooks.destroy');
+    });
+
+    // 11. Superadmin Sovereign Control Center (superadmin only)
+    Route::middleware(['role:superadmin'])->group(function (): void {
+        Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
+        Route::post('/superadmin/claim-token', [SuperadminController::class, 'claimToken'])->name('superadmin.claim_token');
+        Route::post('/superadmin/exit-delegation', [SuperadminController::class, 'exitDelegation'])->name('superadmin.exit_delegation');
+    });
 });
 
 // Invoices & Thermal Receipts (Publicly viewable by customers receiving WhatsApp/Print link)
