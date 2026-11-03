@@ -31,9 +31,19 @@ class DashboardController extends Controller
         $isSuperAdmin = $user->isSuperAdmin();
         $selectedTenantId = $request->query('tenant_id');
 
-        if ($isSuperAdmin && $selectedTenantId) {
-            $tenant = \App\Models\Tenant::find($selectedTenantId) ?? $user->tenant;
-            $tenantId = $tenant?->id ?? $user->tenant_id;
+        if ($isSuperAdmin) {
+            $delegatedTenantId = session('delegated_tenant_id') ?? $selectedTenantId;
+            if ($delegatedTenantId) {
+                $tenant = \App\Models\Tenant::find($delegatedTenantId);
+                $tenantId = $tenant?->id;
+            } else {
+                $tenant = \App\Models\Tenant::first();
+                $tenantId = $tenant?->id;
+            }
+
+            if (! $tenantId) {
+                return redirect()->route('superadmin.dashboard');
+            }
         } else {
             $tenant = $user->tenant;
             $tenantId = $user->tenant_id;

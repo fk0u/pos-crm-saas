@@ -47,13 +47,16 @@ class LoginController extends Controller
     }
 
     /**
-     * Kasir masuk ke terminal kasir, owner/manager/superadmin ke dashboard.
+     * Rute beranda sesuai peran pengguna.
      */
     private function homeRouteFor(User $user): string
     {
-        return $user->role === 'cashier'
-            ? route('pos.terminal')
-            : route('dashboard');
+        return match ($user->role) {
+            'superadmin' => route('superadmin.dashboard'),
+            'developer' => route('developer.index'),
+            'cashier' => route('pos.terminal'),
+            default => route('dashboard'),
+        };
     }
 
     /**

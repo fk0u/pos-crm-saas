@@ -64,3 +64,4 @@
 - [x] Run `npm run build` and `npx @fk0u/ruas audit .` to verify architectural boundaries.
 - [x] Deploy to AWS EC2 `ubuntu@13.228.178.42`.
 - [x] Run database migrations, restart containers, and verify HTTPS endpoints on `https://pos.kousozo.tech`.
+

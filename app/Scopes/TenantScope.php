@@ -28,7 +28,12 @@ class TenantScope implements Scope
         $tenantId = TenantContext::current();
 
         if (! $tenantId && Auth::hasUser()) {
-            $tenantId = Auth::user()->tenant_id;
+            $user = Auth::user();
+            $tenantId = $user->tenant_id;
+
+            if (! $tenantId && $user->isSuperAdmin() && session()->has('delegated_tenant_id')) {
+                $tenantId = session()->get('delegated_tenant_id');
+            }
         }
 
         if ($tenantId) {
@@ -42,6 +47,24 @@ class TenantScope implements Scope
         }
 
         if (app()->runningInConsole()) {
+            return;
+        }
+
+        // Platform Superadmin (without an active delegation token)
+        if (Auth::hasUser() && Auth::user()->isSuperAdmin()) {
+            // Strictly guard secret tenant business transactions
+            if (in_array(get_class($model), [
+                \App\Models\Order::class,
+                \App\Models\OrderItem::class,
+                \App\Models\Shift::class,
+                \App\Models\ShiftMovement::class,
+            ])) {
+                $builder->whereRaw('1 = 0');
+
+                return;
+            }
+
+            // Allow platform administration cross-tenant reads for registry, outlets, products counts, and CS tickets
             return;
         }
 
