@@ -46,7 +46,7 @@ export function getGreeting(): string {
 
 export type AppUser = {
   name: string;
-  role: 'superadmin' | 'owner' | 'manager' | 'cashier';
+  role: 'superadmin' | 'developer' | 'owner' | 'manager' | 'cashier';
   email?: string;
   outletName?: string;
   tenantName?: string;
@@ -104,6 +104,8 @@ export function AppShell({
   const roleLabel =
     user.role === 'superadmin'
       ? 'Master Admin'
+      : user.role === 'developer'
+      ? 'Developer PaaS'
       : user.role === 'owner'
       ? 'Owner Tenant'
       : user.role === 'manager'
