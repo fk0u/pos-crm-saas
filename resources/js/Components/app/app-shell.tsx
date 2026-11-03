@@ -567,10 +567,18 @@ export function AppShell({
         )}
 
         {/* On-Screen Virtual Keyboard for Touchscreens (Only on Kasir / POS terminal) */}
-        {(fullPath.startsWith('/kasir') || fullPath.startsWith('/pos')) && <VirtualKeyboard />}
+        {(url.startsWith('/kasir') || url.startsWith('/pos') || fullPath.startsWith('/kasir') || fullPath.startsWith('/pos')) && (
+          <VirtualKeyboard />
+        )}
 
-        {/* Global Real-time CS Live Support Widget (Active for all roles including Superadmin) */}
-        <RealtimeSupportWidget />
+        {/* Global Real-time CS Live Support Widget (Hidden for Superadmin and on POS / Kasir page) */}
+        {role !== 'superadmin' &&
+          !url.startsWith('/kasir') &&
+          !url.startsWith('/pos') &&
+          !fullPath.startsWith('/kasir') &&
+          !fullPath.startsWith('/pos') && (
+            <RealtimeSupportWidget />
+          )}
       </div>
     </ToastProvider>
   );
