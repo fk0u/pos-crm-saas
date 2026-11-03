@@ -125,31 +125,39 @@ export function AppShell({
   };
 
   const isManagementRole = role === 'owner' || role === 'manager' || role === 'superadmin' || role === 'developer';
+  const isSuperAdminUser = role === 'superadmin';
+  const isDelegatedSuperAdmin = isSuperAdminUser && Boolean(selectedTenantId);
 
-  const navMenuItems = [
-    { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
-    { href: '/kasir', label: 'Kasir POS', icon: ShoppingCart },
-    { href: '/products', label: 'Katalog Produk', icon: Package },
-    { href: '/inventory', label: 'Inventori & Stok', icon: Boxes },
-    { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
-    { href: '/promotions', label: 'Promosi & Kupon', icon: Tag },
-    { href: '/cashflow', label: 'Arus Kas Laci', icon: CircleDollarSign },
-    { href: '/customers', label: 'Pelanggan CRM', icon: Users },
-    { href: '/reports', label: 'Laporan', icon: BarChart3 },
-    ...(isManagementRole
-      ? [
-          { href: '/finance', label: 'Keuangan & Laba Rugi', icon: Coins },
-          { href: '/outlets', label: 'Cabang Outlet', icon: Store },
-          { href: '/staff', label: 'Manajemen Staf', icon: UserCheck },
-        ]
-      : []),
-    ...(role === 'developer' || role === 'owner' || role === 'superadmin'
-      ? [{ href: '/developer', label: 'Developer Hub', icon: Building2 }]
-      : []),
-    ...(role === 'superadmin'
-      ? [{ href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck }]
-      : []),
-  ];
+  // For Superadmin who has not claimed a delegation token, show only sovereign platform menus
+  const navMenuItems = isSuperAdminUser && !isDelegatedSuperAdmin
+    ? [
+        { href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck },
+        { href: '/developer', label: 'Developer Hub', icon: Building2 },
+      ]
+    : [
+        { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
+        { href: '/kasir', label: 'Kasir POS', icon: ShoppingCart },
+        { href: '/products', label: 'Katalog Produk', icon: Package },
+        { href: '/inventory', label: 'Inventori & Stok', icon: Boxes },
+        { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
+        { href: '/promotions', label: 'Promosi & Kupon', icon: Tag },
+        { href: '/cashflow', label: 'Arus Kas Laci', icon: CircleDollarSign },
+        { href: '/customers', label: 'Pelanggan CRM', icon: Users },
+        { href: '/reports', label: 'Laporan', icon: BarChart3 },
+        ...(isManagementRole
+          ? [
+              { href: '/finance', label: 'Keuangan & Laba Rugi', icon: Coins },
+              { href: '/outlets', label: 'Cabang Outlet', icon: Store },
+              { href: '/staff', label: 'Manajemen Staf', icon: UserCheck },
+            ]
+          : []),
+        ...(role === 'developer' || role === 'owner' || isSuperAdminUser
+          ? [{ href: '/developer', label: 'Developer Hub', icon: Building2 }]
+          : []),
+        ...(isSuperAdminUser
+          ? [{ href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck }]
+          : []),
+      ];
 
   const secondaryNavItems = [
     { label: 'Panduan (Tour)', icon: Sparkles, action: onOpenTour },
@@ -334,14 +342,16 @@ export function AppShell({
               )}
 
               {/* Quick POS Shortcut Button for Tablet/Desktop */}
-              <Link
-                href="/kasir"
-                onClick={() => playTap()}
-                className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold shadow-sm shadow-blue-950/20 hover:bg-[#163a75] active:scale-95 transition"
-              >
-                <ShoppingCart className="size-4" />
-                <span>Kasir POS</span>
-              </Link>
+              {(!isSuperAdminUser || isDelegatedSuperAdmin) && (
+                <Link
+                  href="/kasir"
+                  onClick={() => playTap()}
+                  className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold shadow-sm shadow-blue-950/20 hover:bg-[#163a75] active:scale-95 transition"
+                >
+                  <ShoppingCart className="size-4" />
+                  <span>Kasir POS</span>
+                </Link>
+              )}
 
               {/* Notification Bell */}
               <button
@@ -388,6 +398,29 @@ export function AppShell({
               </div>
             </div>
           </header>
+
+          {/* TOP DELEGATION NOTICE BANNER FOR SUPERADMIN */}
+          {isDelegatedSuperAdmin && (
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold shadow-xs">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="size-4 shrink-0 text-amber-200" />
+                <span>
+                  Mode Bantuan Tenant Aktif: Anda sedang mengakses workspace <strong>{tenantName}</strong> secara legal dengan Token Delegasi. Akses dibatasi untuk diagnostik (transaksi checkout dinonaktifkan).
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  router.post('/superadmin/exit-delegation');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/40 hover:bg-slate-900/60 text-white text-xs font-bold transition cursor-pointer"
+              >
+                <LogOut className="size-3.5" />
+                <span>Akhiri Sesi Delegasi</span>
+              </button>
+            </div>
+          )}
 
           {/* MAIN VIEWPORT CONTENT */}
           <main className="p-4 sm:p-6 lg:p-8 flex-1 bg-[#f8fafc]">

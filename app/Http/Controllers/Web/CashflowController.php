@@ -12,6 +12,7 @@ use App\Models\ShiftMovement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,19 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CashflowController extends Controller
 {
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            $selected = $request->query('tenant_id') ?? session('delegated_tenant_id');
-            if ($selected) {
-                return $selected;
-            }
-
-            return Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the cashflow & register shifts page.
@@ -44,13 +33,7 @@ class CashflowController extends Controller
         $user = Auth::user();
         $tenantId = $this->resolveTenantId($user, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $user->isSuperAdmin()
-            ? Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $outlets = Outlet::where('tenant_id', $tenantId)->get(['id', 'name']);
 
@@ -120,6 +103,11 @@ class CashflowController extends Controller
     public function openShift(Request $request): RedirectResponse
     {
         $user = Auth::user();
+
+        if ($user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Superadmin dilarang membuka shift kasir atas nama tenant.');
+        }
+
         $tenantId = $this->resolveTenantId($user, $request);
 
         if (! $tenantId) {
@@ -181,6 +169,11 @@ class CashflowController extends Controller
     public function movement(Request $request): RedirectResponse
     {
         $user = Auth::user();
+
+        if ($user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Superadmin dilarang mencatat mutasi kas laci tenant.');
+        }
+
         $tenantId = $this->resolveTenantId($user, $request);
 
         if (! $tenantId) {
@@ -260,6 +253,11 @@ class CashflowController extends Controller
     public function closeShift(Request $request): RedirectResponse
     {
         $user = Auth::user();
+
+        if ($user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Superadmin dilarang menutup shift kasir tenant.');
+        }
+
         $tenantId = $this->resolveTenantId($user, $request);
 
         if (! $tenantId) {

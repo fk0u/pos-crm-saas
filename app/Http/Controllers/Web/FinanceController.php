@@ -12,6 +12,7 @@ use App\Models\ShiftMovement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -21,14 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceController extends Controller
 {
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the financial overview and Profit & Loss (Laba Rugi) statement.
@@ -38,13 +32,7 @@ class FinanceController extends Controller
         $user = Auth::user();
         $tenantId = $this->resolveTenantId($user, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $user->isSuperAdmin()
-            ? Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $period = $request->query('period', 'this_month');
         $outletFilter = $request->query('outlet_id');

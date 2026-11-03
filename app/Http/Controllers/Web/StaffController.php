@@ -10,6 +10,7 @@ use App\Models\Outlet;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,14 +21,7 @@ use Inertia\Response;
 
 class StaffController extends Controller
 {
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the staff and team management page.
@@ -37,13 +31,7 @@ class StaffController extends Controller
         $currentUser = Auth::user();
         $tenantId = $this->resolveTenantId($currentUser, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $currentUser->isSuperAdmin()
-            ? Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $outlets = Outlet::where('tenant_id', $tenantId)->get(['id', 'name']);
 
@@ -181,6 +169,11 @@ class StaffController extends Controller
     public function destroy(Request $request, string $id): RedirectResponse
     {
         $currentUser = Auth::user();
+
+        if ($currentUser->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Superadmin dalam mode delegasi dilarang menghapus akun staf tenant.');
+        }
+
         $tenantId = $this->resolveTenantId($currentUser, $request);
 
         if (! $tenantId) {

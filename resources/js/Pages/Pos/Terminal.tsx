@@ -35,6 +35,7 @@ import {
   ChefHat,
   Globe,
   BellRing,
+  LogOut,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Button } from '@/Components/ui/button';
@@ -473,6 +474,14 @@ export default function PosTerminal({
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSuperAdmin || userRole === 'superadmin') {
+      playError();
+      triggerHaptic('error');
+      toast.show('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir demi integritas data tenant.', 'error');
+      return;
+    }
+
     if (method === 'cash' && change < 0) {
       playError();
       triggerHaptic('error');
@@ -776,10 +785,17 @@ export default function PosTerminal({
           <Button
             size="lg"
             className="rounded-xl shadow-sm active:scale-[0.98] font-bold text-base"
-            disabled={!cart.length}
-            onClick={openPayment}
+            disabled={!cart.length || isSuperAdmin || userRole === 'superadmin'}
+            onClick={() => {
+              if (isSuperAdmin || userRole === 'superadmin') {
+                playError();
+                toast.show('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir.', 'error');
+                return;
+              }
+              openPayment();
+            }}
           >
-            Bayar {cart.length ? formatMoney(totals.total) : ''}
+            {isSuperAdmin || userRole === 'superadmin' ? 'Transaksi Dibatasi (Superadmin)' : `Bayar ${cart.length ? formatMoney(totals.total) : ''}`}
           </Button>
         </div>
       </div>
@@ -796,42 +812,34 @@ export default function PosTerminal({
       allTenants={allTenants}
       selectedTenantId={tenantId}
     >
-      {/* Superadmin Tenant Switcher */}
+      {/* Superadmin Diagnostic Mode Warning Banner */}
       {isSuperAdmin && (
-        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-[#061325] via-[#0b1f3b] to-[#040e1d] text-white border border-blue-400/20 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-900 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-xl bg-[#0f2b5c] text-sky-300 border border-blue-400/30 flex items-center justify-center shrink-0">
+            <div className="size-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
               <ShieldCheck className="size-4" />
             </div>
             <div>
-              <span className="text-xs font-black uppercase tracking-wider text-sky-300">
-                Kasir Mode Superadmin (Simulasi Transaksi)
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                Mode Diagnostik Superadmin (Akses Baca Saja)
               </span>
-              <p className="text-[11px] text-slate-300">
-                Pilih tenant untuk menguji kasir pada database bisnis yang bersangkutan.
+              <p className="text-[11px] text-amber-800">
+                Sesuai kebijakan keamanan data multi-tenant, Superadmin dilarang memproses transaksi kasir, membuka laci kas, atau memanipulasi saldo atas nama tenant.
               </p>
             </div>
           </div>
 
-          {allTenants.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium">Tenant:</span>
-              <select
-                value={tenantId || ''}
-                onChange={(e) => {
-                  playTap();
-                  router.get('/kasir', { tenant_id: e.target.value }, { preserveState: false });
-                }}
-                className="bg-[#0f2b5c] text-white text-xs font-semibold rounded-xl border border-blue-400/40 px-3 py-1.5 focus:ring-2 focus:ring-sky-400 focus:outline-none cursor-pointer"
-              >
-                {allTenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.subdomain})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              playTap();
+              router.post('/superadmin/exit-delegation');
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition self-start sm:self-auto cursor-pointer shadow-2xs"
+          >
+            <LogOut className="size-3.5" />
+            <span>Keluar Delegasi</span>
+          </button>
         </div>
       )}
 

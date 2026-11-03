@@ -31,7 +31,7 @@ class ProcessCheckoutAction
      */
     public function resolveOutlet(User $user, ?string $outletId): Outlet
     {
-        $tenantId = $user->tenant_id ?? session('delegated_tenant_id') ?? \App\Models\Tenant::first()?->id;
+        $tenantId = $user->tenant_id ?? session('delegated_tenant_id');
         $targetOutletId = $outletId ?: $user->outlet_id;
 
         if (! $targetOutletId) {
@@ -48,7 +48,7 @@ class ProcessCheckoutAction
         /** @var Outlet|null $outlet */
         $outlet = Outlet::find($targetOutletId);
 
-        if (! $outlet || (! $user->isSuperAdmin() && $outlet->tenant_id !== $tenantId)) {
+        if (! $outlet || $outlet->tenant_id !== $tenantId) {
             throw ValidationException::withMessages([
                 'outlet_id' => 'Outlet tidak valid atau bukan milik outlet Anda.',
             ]);
@@ -70,6 +70,12 @@ class ProcessCheckoutAction
      */
     public function execute(User $user, CheckoutData $data): array
     {
+        if ($user->isSuperAdmin()) {
+            throw ValidationException::withMessages([
+                'user' => 'Superadmin dilarang keras melakukan transaksi finansial, checkout kasir, atau manipulasi saldo kasir atas nama tenant.',
+            ]);
+        }
+
         return DB::transaction(function () use ($user, $data) {
             $outlet = $this->resolveOutlet($user, $data->outletId);
             $tenantId = $user->tenant_id ?? session('delegated_tenant_id') ?? $outlet->tenant_id;

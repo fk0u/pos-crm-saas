@@ -11,6 +11,7 @@ use App\Models\StockAdjustment;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,14 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryController extends Controller
 {
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the inventory and stock management center.
@@ -38,13 +32,7 @@ class InventoryController extends Controller
         $user = Auth::user();
         $tenantId = $this->resolveTenantId($user, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $user->isSuperAdmin()
-            ? Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $search = $request->query('search');
         $category = $request->query('category');

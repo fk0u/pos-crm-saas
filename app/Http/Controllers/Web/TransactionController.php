@@ -8,7 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Tenant;
+use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,14 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
 {
-    private function resolveTenantId(\App\Models\User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? \App\Models\Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the transactions list page.
@@ -37,13 +33,7 @@ class TransactionController extends Controller
         $user = Auth::user();
         $tenantId = $this->resolveTenantId($user, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $user->isSuperAdmin()
-            ? \App\Models\Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $query = Order::where('tenant_id', $tenantId)
             ->with(['items.product', 'customer', 'cashier', 'outlet']);
@@ -127,6 +117,11 @@ class TransactionController extends Controller
     public function refund(Request $request, string $id): RedirectResponse
     {
         $user = Auth::user();
+
+        if ($user->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Superadmin dilarang melakukan refund atau transaksi keuangan atas nama tenant.');
+        }
+
         $tenantId = $user->tenant_id ?? TenantContext::current();
 
         $order = Order::where('tenant_id', $tenantId)->with('items')->findOrFail($id);

@@ -18,15 +18,24 @@ import {
   Send,
   PowerOff,
   Power,
+  Copy,
+  Check,
+  ShieldAlert,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Modal } from '@/Components/ui/modal';
-import { playTap, playSuccessChime } from '@/lib/sound';
+import { playTap, playSuccessChime, playError } from '@/lib/sound';
 
 interface SuperadminDashboardProps {
   tenants: any[];
   activeTokens: any[];
   tickets?: any[];
+  tenantUsers?: any[];
+  emergencyAuditLogs?: any[];
+  activeDelegation?: any;
+  emergencyResult?: any;
   serverStatus: {
     uptime: string;
     php_version: string;
@@ -42,6 +51,10 @@ export default function SuperadminDashboard({
   tenants = [],
   activeTokens = [],
   tickets = [],
+  tenantUsers = [],
+  emergencyAuditLogs = [],
+  activeDelegation = null,
+  emergencyResult = null,
   serverStatus,
   userName,
   role,
@@ -50,6 +63,18 @@ export default function SuperadminDashboard({
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  // Emergency Recovery Console State
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [emergencyTenantId, setEmergencyTenantId] = useState('');
+  const [emergencyUserId, setEmergencyUserId] = useState('');
+  const [verificationMethod, setVerificationMethod] = useState<'official_id' | 'phone_call' | 'legal_doc'>('official_id');
+  const [verificationEvidence, setVerificationEvidence] = useState('');
+  const [emergencyActionType, setEmergencyActionType] = useState<'reset_password' | 'emergency_token' | 'unlock_account'>('reset_password');
+  const [isEmergencyPending, setIsEmergencyPending] = useState(false);
+  const [copiedPass, setCopiedPass] = useState(false);
+
+  const filteredUsers = tenantUsers.filter((u) => !emergencyTenantId || u.tenant_id === emergencyTenantId);
 
   const handleClaimToken = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +95,7 @@ export default function SuperadminDashboard({
     e.preventDefault();
     if (!selectedTicket || !replyText.trim()) return;
     playTap();
+
     router.post(
       `/superadmin/tickets/${selectedTicket.id}/reply`,
       { message: replyText },
@@ -78,6 +104,35 @@ export default function SuperadminDashboard({
           playSuccessChime();
           setReplyText('');
           setSelectedTicket(null);
+        },
+      }
+    );
+  };
+
+  const handleEmergencySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    playTap();
+    setIsEmergencyPending(true);
+
+    router.post(
+      '/superadmin/emergency/recover',
+      {
+        tenant_id: emergencyTenantId,
+        user_id: emergencyUserId,
+        verification_method: verificationMethod,
+        verification_evidence: verificationEvidence,
+        action_type: emergencyActionType,
+      },
+      {
+        onSuccess: () => {
+          playSuccessChime();
+          setIsEmergencyPending(false);
+          setIsEmergencyModalOpen(false);
+          setVerificationEvidence('');
+        },
+        onError: () => {
+          playError();
+          setIsEmergencyPending(false);
         },
       }
     );
@@ -95,27 +150,63 @@ export default function SuperadminDashboard({
               <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-[#0f2b5c] text-[10px] font-black uppercase tracking-wider">
                 Platform Owner Mode
               </span>
+              {activeDelegation && (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                  Delegasi Aktif: {activeDelegation.name}
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
               <ShieldCheck className="size-6 text-[#0f2b5c]" />
               <span>Sovereign Platform Command Center</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Pantau kesehatan klaster server, kedaulatan data tenant, dan gunakan Token Akses Bantuan untuk pendampingan teknis.
+              Data bisnis setiap tenant terlindungi secara ketat. Superadmin hanya dapat mengakses data tenant melalui Token Delegasi resmi atau Verifikasi Identitas Darurat.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              playTap();
-              setIsClaimModalOpen(true);
-            }}
-            className="h-10 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-950/20 active:scale-95 transition cursor-pointer"
-          >
-            <KeyRound className="size-4" />
-            <span>Masukkan Token Akses Bantuan</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setIsEmergencyModalOpen(true);
+              }}
+              className="h-10 px-4 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-2 shadow-2xs active:scale-95 transition cursor-pointer"
+            >
+              <ShieldAlert className="size-4 text-amber-600" />
+              <span>Verifikasi &amp; Pemulihan Darurat</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setIsClaimModalOpen(true);
+              }}
+              className="h-10 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-950/20 active:scale-95 transition cursor-pointer"
+            >
+              <KeyRound className="size-4" />
+              <span>Klaim Token Bantuan</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SECURITY & DATA ISOLATION POLICY BANNER */}
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/70 to-slate-50 p-4 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="size-9 rounded-xl bg-[#0f2b5c] text-white grid place-items-center shrink-0 mt-0.5">
+              <Lock className="size-4.5" />
+            </div>
+            <div className="space-y-1 text-xs">
+              <p className="font-bold text-[#0f2b5c]">
+                Kebijakan Keamanan Kedaulatan Data Multi-Tenant
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                Superadmin dilarang keras melakukan transaksi penjualan, checkout kasir, maupun manipulasi saldo atas nama tenant. Seluruh akses pendampingan operasional wajib menggunakan <strong>Token Delegasi</strong> yang disetujui pemilik tenant, atau melalui <strong>Prosedur Verifikasi Darurat</strong> dengan pencatatan audit permanen.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* CLUSTER TELEMETRY METRICS */}
@@ -357,7 +448,316 @@ export default function SuperadminDashboard({
             )}
           </div>
         </div>
+
+        {/* EMERGENCY AUDIT TRAIL LOGS */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 grid place-items-center">
+                <ShieldAlert className="size-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">
+                  Log Audit Pemulihan Darurat &amp; Verifikasi Identitas
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Catatan permanen setiap tindakan verifikasi KTP, reset password darurat, dan token darurat platform.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+              {emergencyAuditLogs.length} Log Audit
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            {emergencyAuditLogs.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                Belum ada insiden atau tindakan pemulihan darurat yang tercatat.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#f8fafc] text-slate-500 font-bold text-[10px] uppercase border-b border-slate-100">
+                  <tr>
+                    <th className="py-3 px-5">Waktu</th>
+                    <th className="py-3 px-4">Tindakan</th>
+                    <th className="py-3 px-4">Tenant Sasaran</th>
+                    <th className="py-3 px-4">Eksekutor Superadmin</th>
+                    <th className="py-3 px-5">Metode &amp; Bukti Verifikasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {emergencyAuditLogs.map((log: any) => (
+                    <tr key={log.id} className="hover:bg-slate-50/80">
+                      <td className="py-3 px-5 font-mono text-[11px] text-slate-500">{log.created_at}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-900">{log.tenant_name}</td>
+                      <td className="py-3 px-4">{log.admin_name}</td>
+                      <td className="py-3 px-5 text-slate-600 max-w-xs truncate">
+                        {log.details?.verification_evidence || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* MODAL VERIFIKASI & PEMULIHAN DARURAT */}
+      <Modal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => setIsEmergencyModalOpen(false)}
+        title="Prosedur Verifikasi & Pemulihan Darurat"
+        description="Digunakan HANYA jika pemilik akun mengalami kondisi gawat (lupa password / akun terkunci). Seluruh tindakan diaudit secara permanen."
+        maxWidth="lg"
+      >
+        <form onSubmit={handleEmergencySubmit} className="space-y-4">
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <AlertTriangle className="size-3.5 text-amber-600" />
+              Protokol Verifikasi Identitas Wajib
+            </p>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Superadmin dilarang mengakses akun tenant tanpa bukti identitas resmi. Anda wajib memvalidasi foto identitas (KTP/Paspor) atau konfirmasi panggilan telepon resmi pemilik sebelum melanjutkan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Pilih Tenant / Bisnis *
+              </label>
+              <select
+                required
+                value={emergencyTenantId}
+                onChange={(e) => {
+                  setEmergencyTenantId(e.target.value);
+                  setEmergencyUserId('');
+                }}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0f2b5c] bg-white cursor-pointer"
+              >
+                <option value="">-- Pilih Tenant --</option>
+                {tenants.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.subdomain})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Pilih Akun Pengguna / Owner *
+              </label>
+              <select
+                required
+                disabled={!emergencyTenantId}
+                value={emergencyUserId}
+                onChange={(e) => setEmergencyUserId(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#0f2b5c] bg-white cursor-pointer disabled:bg-slate-100"
+              >
+                <option value="">-- Pilih Pengguna --</option>
+                {filteredUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email}) - {u.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Metode Verifikasi Identitas *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                { id: 'official_id', label: 'KTP / Identitas', desc: 'Foto ID Resmi Pemilik' },
+                { id: 'phone_call', label: 'Panggilan Resmi', desc: 'No. Terdaftar di Registrasi' },
+                { id: 'legal_doc', label: 'Legalitas Usaha', desc: 'NIB / SIUP / NPWP' },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setVerificationMethod(m.id as any)}
+                  className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                    verificationMethod === m.id
+                      ? 'border-[#0f2b5c] bg-blue-50/70 text-[#0f2b5c]'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <p className="font-bold text-xs">{m.label}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{m.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Catatan Bukti Verifikasi Identitas * (Wajib)
+            </label>
+            <textarea
+              required
+              rows={2}
+              value={verificationEvidence}
+              onChange={(e) => setVerificationEvidence(e.target.value)}
+              placeholder="Contoh: KTP NIK 3171xxxxxxxx terverifikasi sesuai data owner, telepon konfirmasi ke 081234567890 selesai pukul 14:30."
+              className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#0f2b5c]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Tindakan Pemulihan Darurat Yang Dijalankan *
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                <input
+                  type="radio"
+                  name="action_type"
+                  value="reset_password"
+                  checked={emergencyActionType === 'reset_password'}
+                  onChange={() => setEmergencyActionType('reset_password')}
+                  className="size-4 text-[#0f2b5c]"
+                />
+                <div>
+                  <span>Reset Password Darurat (Generate Temporary Password)</span>
+                  <p className="text-[10px] text-slate-500 font-normal">
+                    Membuat password acak 10-karakter untuk disampaikan kepada pemilik akun.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                <input
+                  type="radio"
+                  name="action_type"
+                  value="emergency_token"
+                  checked={emergencyActionType === 'emergency_token'}
+                  onChange={() => setEmergencyActionType('emergency_token')}
+                  className="size-4 text-[#0f2b5c]"
+                />
+                <div>
+                  <span>Terbitkan Token Delegasi Bantuan Darurat (1 Jam)</span>
+                  <p className="text-[10px] text-slate-500 font-normal">
+                    Memberikan akses pendampingan teknis read-only ke dasbor tenant selama 1 jam.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                <input
+                  type="radio"
+                  name="action_type"
+                  value="unlock_account"
+                  checked={emergencyActionType === 'unlock_account'}
+                  onChange={() => setEmergencyActionType('unlock_account')}
+                  className="size-4 text-[#0f2b5c]"
+                />
+                <div>
+                  <span>Buka Blokir / Tangguhan Akun Tenant</span>
+                  <p className="text-[10px] text-slate-500 font-normal">
+                    Mengaktifkan kembali tenant jika sebelumnya tersuspend.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEmergencyModalOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isEmergencyPending || !emergencyTenantId || !emergencyUserId || !verificationEvidence.trim()}
+              className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold cursor-pointer transition shadow-xs flex items-center gap-1.5"
+            >
+              <ShieldAlert className="size-3.5" />
+              <span>{isEmergencyPending ? 'Memproses...' : 'Eksekusi Pemulihan Darurat'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL HASIL PASSWORD DARURAT */}
+      {emergencyResult && emergencyResult.type === 'password' && (
+        <Modal
+          isOpen={true}
+          onClose={() => router.reload({ only: ['emergencyResult'] })}
+          title="Password Darurat Berhasil Dibuat"
+          description="Sampaikan informasi ini HANYA kepada pemilik akun yang telah lolos verifikasi identitas."
+          maxWidth="md"
+        >
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Nama Akun:</span>
+                <span className="font-bold text-slate-900">{emergencyResult.user_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email:</span>
+                <span className="font-mono text-slate-900">{emergencyResult.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Tenant:</span>
+                <span className="font-bold text-slate-900">{emergencyResult.tenant_name}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Password Sementara Darurat:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={emergencyResult.temp_password}
+                  className="flex-1 h-11 px-3 rounded-xl bg-emerald-50 border border-emerald-300 font-mono text-sm font-bold text-emerald-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(emergencyResult.temp_password);
+                    setCopiedPass(true);
+                    setTimeout(() => setCopiedPass(false), 2000);
+                  }}
+                  className="h-11 px-4 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  {copiedPass ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                  <span>{copiedPass ? 'Tersalin' : 'Salin'}</span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 leading-relaxed italic">
+              *Tindakan ini telah dicatat secara permanen di Audit Log Platform dengan lampiran bukti verifikasi identitas.
+            </p>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => router.reload({ only: ['emergencyResult'] })}
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
+              >
+                Selesai &amp; Tutup
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* MODAL KLAIM TOKEN AKSES */}
       <Modal

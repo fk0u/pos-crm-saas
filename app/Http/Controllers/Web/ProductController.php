@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,30 +21,7 @@ use Inertia\Response;
 
 class ProductController extends Controller
 {
-    /**
-     * Resolve tenant ID for the current user session (including Superadmin fallback).
-     */
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        $tenantId = $user->tenant_id ?? TenantContext::current();
-
-        if (! $tenantId && $user->isSuperAdmin()) {
-            if ($request->query('tenant_id')) {
-                $tenantId = (string) $request->query('tenant_id');
-                session(['delegated_tenant_id' => $tenantId]);
-            } elseif (session()->has('delegated_tenant_id')) {
-                $tenantId = (string) session('delegated_tenant_id');
-            } else {
-                $first = Tenant::first();
-                $tenantId = $first?->id;
-                if ($tenantId) {
-                    session(['delegated_tenant_id' => $tenantId]);
-                }
-            }
-        }
-
-        return $tenantId;
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the product catalog management page.
@@ -100,7 +78,7 @@ class ProductController extends Controller
             ->pluck('category')
             ->values();
 
-        $allTenants = $user->isSuperAdmin() ? Tenant::select(['id', 'name', 'subdomain'])->get() : [];
+        $allTenants = [];
         $currentTenant = $tenantId ? Tenant::find($tenantId) : null;
 
         return Inertia::render('Products/Index', [

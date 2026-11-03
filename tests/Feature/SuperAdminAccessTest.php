@@ -116,5 +116,104 @@ class SuperAdminAccessTest extends TestCase
         $response->assertSessionHas('test_webhook_status', 200);
         $this->assertEquals(0, $webhook->fresh()->failure_count);
     }
+
+    public function test_superadmin_without_delegation_cannot_access_tenant_dashboard(): void
+    {
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->get('/dashboard');
+        $response->assertRedirect('/superadmin');
+    }
+
+    public function test_superadmin_can_access_superadmin_command_center(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant 1', 'subdomain' => 'tenant-1', 'is_active' => true]);
+
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->get('/superadmin');
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Dashboard')
+            ->has('tenants')
+            ->has('activeTokens')
+            ->has('tickets')
+            ->has('tenantUsers')
+        );
+    }
+
+    public function test_superadmin_cannot_checkout_pos(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant POS', 'subdomain' => 'pos-tenant', 'is_active' => true]);
+
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->postJson('/api/v1/pos/checkout', [
+            'payment_method' => 'cash',
+            'amount_paid' => 50000,
+            'items' => [],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_superadmin_emergency_recover_generates_temporary_password_and_audit_log(): void
+    {
+        $tenant = Tenant::create(['name' => 'Warung Kopi', 'subdomain' => 'warkop', 'is_active' => true]);
+
+        $owner = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Pak Budi',
+            'email' => 'budi@warkop.id',
+            'password' => bcrypt('oldpassword'),
+            'role' => 'owner',
+        ]);
+
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->post('/superadmin/emergency/recover', [
+            'tenant_id' => $tenant->id,
+            'user_id' => $owner->id,
+            'verification_method' => 'phone_call',
+            'verification_evidence' => 'Konfirmasi panggilan telepon WhatsApp ke nomor terdaftar 081234567890 dan verifikasi data NIB.',
+            'action_type' => 'reset_password',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('emergency_result');
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'emergency.password_reset',
+            'tenant_id' => $tenant->id,
+            'user_id' => $superadmin->id,
+        ]);
+
+        // Verify owner's password has changed
+        $this->assertFalse(\Illuminate\Support\Facades\Hash::check('oldpassword', $owner->fresh()->password));
+    }
 }
 

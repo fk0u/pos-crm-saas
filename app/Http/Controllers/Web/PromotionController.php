@@ -10,6 +10,7 @@ use App\Models\Promotion;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantContext;
+use App\Traits\ResolvesTenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,14 +21,7 @@ use Inertia\Response;
 
 class PromotionController extends Controller
 {
-    private function resolveTenantId(User $user, Request $request): ?string
-    {
-        if ($user->isSuperAdmin()) {
-            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? Tenant::first()?->id;
-        }
-
-        return $user->tenant_id ?? TenantContext::current();
-    }
+    use ResolvesTenantContext;
 
     /**
      * Display the promotions and coupons management center.
@@ -37,13 +31,7 @@ class PromotionController extends Controller
         $user = Auth::user();
         $tenantId = $this->resolveTenantId($user, $request);
 
-        if ($tenantId) {
-            TenantContext::set($tenantId);
-        }
-
-        $allTenants = $user->isSuperAdmin()
-            ? Tenant::select(['id', 'name', 'subdomain'])->get()
-            : [];
+        $allTenants = [];
 
         $promotions = Promotion::where('tenant_id', $tenantId)
             ->latest()

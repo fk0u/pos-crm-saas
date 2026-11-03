@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Services\SalesMetricsService;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,21 +33,25 @@ class DashboardController extends Controller
         $selectedTenantId = $request->query('tenant_id');
 
         if ($isSuperAdmin) {
-            $delegatedTenantId = session('delegated_tenant_id') ?? $selectedTenantId;
-            if ($delegatedTenantId) {
-                $tenant = \App\Models\Tenant::find($delegatedTenantId);
-                $tenantId = $tenant?->id;
-            } else {
-                $tenant = \App\Models\Tenant::first();
-                $tenantId = $tenant?->id;
+            $delegatedTenantId = session('delegated_tenant_id') ?? $user->tenant_id;
+            if (! $delegatedTenantId) {
+                return redirect()->route('superadmin.dashboard')->with('error', 'Akses ditolak: Superadmin wajib memiliki Token Delegasi resmi yang aktif dari pemilik usaha untuk mengakses dasbor tenant.');
             }
 
-            if (! $tenantId) {
-                return redirect()->route('superadmin.dashboard');
+            $tenant = \App\Models\Tenant::find($delegatedTenantId);
+            if (! $tenant) {
+                session()->forget(['delegated_tenant_id', 'delegated_token_id']);
+                return redirect()->route('superadmin.dashboard')->with('error', 'Tenant delegasi tidak ditemukan.');
             }
+
+            $tenantId = $tenant->id;
+            TenantContext::set($tenantId);
         } else {
             $tenant = $user->tenant;
             $tenantId = $user->tenant_id;
+            if ($tenantId) {
+                TenantContext::set($tenantId);
+            }
         }
 
         $searchQuery = $request->query('q');
@@ -56,7 +61,7 @@ class DashboardController extends Controller
         $recentOrders = $this->metrics->recentOrders($tenantId, 10);
         $topProducts = $this->metrics->topProducts($tenantId, 5);
         $auditLogs = $this->metrics->recentAuditLogs($tenantId, 8);
-        $allTenants = $isSuperAdmin ? \App\Models\Tenant::select(['id', 'name', 'subdomain'])->get() : [];
+        $allTenants = [];
 
         $monthlyData = $this->metrics->monthlyRevenueTrend($tenantId, (int) $request->query('year', 2026));
         $statusDistribution = $this->metrics->orderStatusDistribution($tenantId);

@@ -20,24 +20,22 @@ class PosTerminalController extends Controller
     /**
      * Render the POS terminal (cashier) page via Inertia.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|\Illuminate\Http\RedirectResponse
     {
         /** @var User $user */
         $user = auth()->user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
 
-        if (! $tenantId && $user->isSuperAdmin()) {
-            if ($request->query('tenant_id')) {
-                $tenantId = (string) $request->query('tenant_id');
-                session(['delegated_tenant_id' => $tenantId]);
-            } elseif (session()->has('delegated_tenant_id')) {
-                $tenantId = (string) session('delegated_tenant_id');
-            } else {
-                $first = Tenant::first();
-                $tenantId = $first?->id;
-                if ($tenantId) {
-                    session(['delegated_tenant_id' => $tenantId]);
-                }
+        if ($user->isSuperAdmin()) {
+            $delegatedTenantId = session('delegated_tenant_id');
+            if (! $delegatedTenantId) {
+                return redirect()->route('superadmin.dashboard')->with('error', 'Akses ditolak: Superadmin wajib memiliki Token Delegasi resmi yang aktif dari pemilik usaha untuk membuka terminal kasir.');
+            }
+            $tenantId = (string) $delegatedTenantId;
+            TenantContext::set($tenantId);
+        } else {
+            $tenantId = $user->tenant_id ?? TenantContext::current();
+            if ($tenantId) {
+                TenantContext::set($tenantId);
             }
         }
 
@@ -73,7 +71,7 @@ class PosTerminalController extends Controller
             : ($outlet ? collect([$outlet]) : collect());
 
         $currentTenant = $tenantId ? Tenant::find($tenantId) : null;
-        $allTenants = $user->isSuperAdmin() ? Tenant::select(['id', 'name', 'subdomain'])->get() : [];
+        $allTenants = [];
 
         // Incoming online & table orders for restaurant integration
         $pendingOnlineOrders = \App\Models\Order::where('tenant_id', $tenantId)

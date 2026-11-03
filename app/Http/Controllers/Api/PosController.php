@@ -76,6 +76,13 @@ class PosController extends Controller
      */
     public function checkout(Request $request): JsonResponse
     {
+        if ($request->user()?->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Superadmin dilarang keras melakukan transaksi penjualan atau checkout kasir atas nama tenant.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'outlet_id' => 'nullable|uuid',
             'shift_id' => 'nullable|uuid',

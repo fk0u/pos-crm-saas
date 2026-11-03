@@ -58,6 +58,9 @@ class TenantScope implements Scope
                 \App\Models\OrderItem::class,
                 \App\Models\Shift::class,
                 \App\Models\ShiftMovement::class,
+                \App\Models\Customer::class,
+                \App\Models\Promotion::class,
+                \App\Models\StockAdjustment::class,
             ])) {
                 $builder->whereRaw('1 = 0');
 

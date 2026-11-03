@@ -152,6 +152,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
         Route::post('/superadmin/claim-token', [SuperadminController::class, 'claimToken'])->name('superadmin.claim_token');
         Route::post('/superadmin/exit-delegation', [SuperadminController::class, 'exitDelegation'])->name('superadmin.exit_delegation');
+        Route::post('/superadmin/emergency/recover', [SuperadminController::class, 'emergencyRecover'])->name('superadmin.emergency.recover');
         Route::post('/superadmin/tenants/{id}/toggle-status', [SuperadminController::class, 'toggleTenantStatus'])->name('superadmin.tenants.toggle_status');
         Route::post('/superadmin/tickets/{id}/reply', [SuperadminController::class, 'replySupportTicket'])->name('superadmin.tickets.reply');
         Route::post('/superadmin/tickets/{id}/resolve', [SuperadminController::class, 'resolveSupportTicket'])->name('superadmin.tickets.resolve');
