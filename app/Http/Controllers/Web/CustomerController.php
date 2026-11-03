@@ -183,3 +183,4 @@ class CustomerController extends Controller
         return redirect()->back()->with('success', "Poin {$customer->name} berhasil disesuaikan menjadi {$newPoints} poin");
     }
 }
+

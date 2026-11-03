@@ -105,6 +105,7 @@ class ProductController extends Controller
             'category' => ['required', 'string', 'max:100'],
             'sku' => ['nullable', 'string', 'max:50'],
             'barcode' => ['nullable', 'string', 'max:50'],
+            'image_url' => ['nullable', 'string', 'max:1000'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
@@ -118,6 +119,7 @@ class ProductController extends Controller
             'category' => $validated['category'],
             'sku' => $validated['sku'] ?: 'SKU-' . strtoupper(Str::random(6)),
             'barcode' => $validated['barcode'] ?: null,
+            'image_url' => $validated['image_url'] ?? null,
             'cost_price' => $validated['cost_price'],
             'selling_price' => $validated['selling_price'],
             'stock' => $validated['stock'],
@@ -151,6 +153,7 @@ class ProductController extends Controller
             'category' => ['required', 'string', 'max:100'],
             'sku' => ['nullable', 'string', 'max:50'],
             'barcode' => ['nullable', 'string', 'max:50'],
+            'image_url' => ['nullable', 'string', 'max:1000'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
@@ -158,6 +161,16 @@ class ProductController extends Controller
         ]);
 
         $product->update([
+            'name' => $validated['name'],
+            'category' => $validated['category'],
+            'sku' => $validated['sku'] ?: $product->sku,
+            'barcode' => $validated['barcode'] ?: null,
+            'image_url' => $validated['image_url'] ?? null,
+            'cost_price' => $validated['cost_price'],
+            'selling_price' => $validated['selling_price'],
+            'stock' => $validated['stock'],
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
             'name' => $validated['name'],
             'category' => $validated['category'],
             'sku' => $validated['sku'] ?: $product->sku,
@@ -233,3 +246,4 @@ class ProductController extends Controller
         return redirect()->back()->with('success', "Stok {$product->name} disesuaikan menjadi {$newStock}");
     }
 }
+

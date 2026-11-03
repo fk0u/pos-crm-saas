@@ -68,13 +68,68 @@ class DatabaseSeeder extends Seeder
             'role' => 'cashier',
         ]);
 
-        // 4. Seed Products
+        // 4. Seed Products with curated high quality cafe images
         $products = [
-            ['name' => 'Es Kopi Susu Gula Aren', 'category' => 'Coffee', 'cost_price' => 8000, 'selling_price' => 18000, 'stock' => 150, 'sku' => 'KOP-001', 'barcode' => '8991001001'],
-            ['name' => 'Americano Iced', 'category' => 'Coffee', 'cost_price' => 5000, 'selling_price' => 15000, 'stock' => 200, 'sku' => 'KOP-002', 'barcode' => '8991001002'],
-            ['name' => 'Matcha Latte', 'category' => 'Non-Coffee', 'cost_price' => 10000, 'selling_price' => 22000, 'stock' => 80, 'sku' => 'NC-001', 'barcode' => '8991001003'],
-            ['name' => 'Croissant Butter', 'category' => 'Pastry', 'cost_price' => 12000, 'selling_price' => 24000, 'stock' => 45, 'sku' => 'PAS-001', 'barcode' => '8991001004'],
-            ['name' => 'Pain Au Chocolat', 'category' => 'Pastry', 'cost_price' => 14000, 'selling_price' => 26000, 'stock' => 30, 'sku' => 'PAS-002', 'barcode' => '8991001005'],
+            [
+                'name' => 'Es Kopi Susu Gula Aren',
+                'category' => 'Coffee',
+                'cost_price' => 8000,
+                'selling_price' => 18000,
+                'stock' => 150,
+                'sku' => 'KOP-001',
+                'barcode' => '8991001001',
+                'image_url' => 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80',
+            ],
+            [
+                'name' => 'Americano Iced',
+                'category' => 'Coffee',
+                'cost_price' => 5000,
+                'selling_price' => 15000,
+                'stock' => 200,
+                'sku' => 'KOP-002',
+                'barcode' => '8991001002',
+                'image_url' => 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&w=600&q=80',
+            ],
+            [
+                'name' => 'Matcha Latte Premium',
+                'category' => 'Non-Coffee',
+                'cost_price' => 10000,
+                'selling_price' => 22000,
+                'stock' => 80,
+                'sku' => 'NC-001',
+                'barcode' => '8991001003',
+                'image_url' => 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=600&q=80',
+            ],
+            [
+                'name' => 'Croissant Butter Artisan',
+                'category' => 'Pastry',
+                'cost_price' => 12000,
+                'selling_price' => 24000,
+                'stock' => 45,
+                'sku' => 'PAS-001',
+                'barcode' => '8991001004',
+                'image_url' => 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80',
+            ],
+            [
+                'name' => 'Pain Au Chocolat',
+                'category' => 'Pastry',
+                'cost_price' => 14000,
+                'selling_price' => 26000,
+                'stock' => 30,
+                'sku' => 'PAS-002',
+                'barcode' => '8991001005',
+                'image_url' => 'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=600&q=80',
+            ],
+            [
+                'name' => 'Caramel Cold Brew Bottle',
+                'category' => 'Coffee',
+                'cost_price' => 16000,
+                'selling_price' => 32000,
+                'stock' => 70,
+                'sku' => 'KOP-005',
+                'barcode' => '8991001006',
+                'image_url' => 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80',
+            ],
         ];
 
         foreach ($products as $prod) {

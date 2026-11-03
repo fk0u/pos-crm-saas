@@ -57,6 +57,7 @@ export type POSProduct = {
   stock?: number;
   categoryId: string;
   color?: string;
+  image_url?: string | null;
 };
 
 export type POSCustomer = {
@@ -182,6 +183,7 @@ export default function PosTerminal({
         stock: p.stock !== undefined ? Number(p.stock) : 50,
         categoryId: (p.category || 'coffee').toLowerCase().replace(/\s+/g, '-'),
         color: ['amber', 'emerald', 'sky', 'rose', 'navy', 'violet'][idx % 6],
+        image_url: p.image_url || null,
       }));
     }
     return fallbackProducts;
@@ -802,14 +804,25 @@ export default function PosTerminal({
                         : 'border-slate-200 hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-md'
                     }`}
                   >
-                    {/* Top Tile with Initials */}
+                    {/* Top Tile with Gallery Image or Initials Fallback */}
                     <div
                       className={`relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-gradient-to-br ${tone.tile} shadow-inner`}
                     >
-                      <span className="text-2xl font-bold tracking-tight text-white/95 transition duration-300 group-hover:scale-110">
-                        {initials(product.name)}
-                      </span>
-                      <div className="absolute -right-6 -top-6 size-20 rounded-full bg-white/15" />
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          loading="lazy"
+                          className="size-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <>
+                          <span className="text-2xl font-bold tracking-tight text-white/95 transition duration-300 group-hover:scale-110">
+                            {initials(product.name)}
+                          </span>
+                          <div className="absolute -right-6 -top-6 size-20 rounded-full bg-white/15" />
+                        </>
+                      )}
 
                       {inCart ? (
                         <span

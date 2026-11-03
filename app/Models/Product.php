@@ -16,6 +16,7 @@ class Product extends Model
         'category',
         'sku',
         'barcode',
+        'image_url',
         'name',
         'cost_price',
         'selling_price',

@@ -202,3 +202,4 @@ class CashflowController extends Controller
         return redirect()->back()->with('success', "Shift kasir berhasil ditutup. Selisih laci: Rp " . number_format($diff, 0, ',', '.'));
     }
 }
+
