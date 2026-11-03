@@ -547,3 +547,4 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
     </div>
   );
 }
+

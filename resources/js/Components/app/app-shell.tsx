@@ -129,16 +129,13 @@ export function AppShell({
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-[#eff3f7] antialiased text-slate-900 font-sans p-2 sm:p-4 lg:p-6 flex flex-col justify-start">
+      <div className="min-h-screen w-full bg-[#f8fafc] antialiased text-slate-900 font-sans flex flex-col lg:flex-row">
         <CommandPalette />
 
-        {/* Floating App Workspace Container (Databrain Style) */}
-        <div className="w-full max-w-[1560px] mx-auto bg-white rounded-[28px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200/80 overflow-hidden flex flex-col lg:flex-row min-h-[920px]">
-          
-          {/* DESKTOP SIDEBAR (Databrain Inspired) */}
-          <aside className="w-60 xl:w-64 bg-white border-r border-slate-100 flex flex-col justify-between p-4 shrink-0 hidden lg:flex select-none">
-            <div>
-              {/* Brand Header */}
+        {/* DESKTOP SIDEBAR (Edge-to-edge, Full Height Sticky) */}
+        <aside className="w-60 xl:w-64 bg-white border-r border-slate-200/80 min-h-screen h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 hidden lg:flex select-none z-30">
+          <div className="flex flex-col flex-1 overflow-y-auto pr-0.5">
+            {/* Brand Header */}
               <div className="flex items-center justify-between pb-5 mb-4 border-b border-slate-100 px-1">
                 <Link href="/dashboard" className="flex items-center gap-2.5">
                   <div className="size-8 rounded-xl bg-gradient-to-br from-[#0f2b5c] to-[#1e4488] flex items-center justify-center text-white shadow-xs">
@@ -243,13 +240,13 @@ export function AppShell({
                 </Link>
               </div>
             </div>
-          </aside>
+        </aside>
 
-          {/* MAIN CONTENT AREA */}
-          <div className="flex-1 flex flex-col min-w-0 bg-white">
-            
-            {/* TOP HEADER (Databrain Style) */}
-            <header className="h-16 border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between gap-3 bg-white shrink-0">
+        {/* MAIN VIEWPORT AREA (Edge-to-edge Full Width) */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#f8fafc]">
+          
+          {/* TOP HEADER (Databrain Style) */}
+          <header className="h-16 border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 bg-white sticky top-0 z-20 shrink-0">
               
               {/* Left: Mobile Menu Trigger & Search Pill */}
               <div className="flex items-center gap-3 flex-1 max-w-xl">
@@ -346,11 +343,12 @@ export function AppShell({
               </div>
             </header>
 
-            {/* MAIN DASHBOARD VIEW CONTENT */}
-            <main className="p-4 sm:p-6 lg:p-7 flex-1 overflow-y-auto bg-white">
+          {/* MAIN DASHBOARD VIEW CONTENT */}
+          <main className="p-4 sm:p-6 lg:p-8 flex-1 bg-[#f8fafc]">
+            <div className="w-full max-w-[1680px] mx-auto">
               {children}
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
 
         {/* MOBILE SIDEBAR DRAWER */}
