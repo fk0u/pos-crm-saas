@@ -109,3 +109,4 @@ class StaffController extends Controller
         return redirect()->back()->with('success', "Akun staf {$name} berhasil dihapus.");
     }
 }
+

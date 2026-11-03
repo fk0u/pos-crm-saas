@@ -57,6 +57,9 @@ interface ProductsPageProps {
   role: string;
   outletName: string;
   tenantName: string;
+  tenantId?: string;
+  isSuperAdmin?: boolean;
+  allTenants?: { id: string; name: string; subdomain: string }[];
 }
 
 export default function ProductsIndex({
@@ -68,6 +71,9 @@ export default function ProductsIndex({
   role,
   outletName,
   tenantName,
+  tenantId,
+  isSuperAdmin = false,
+  allTenants = [],
 }: ProductsPageProps) {
   const [search, setSearch] = useState(filters.search || '');
   const [selectedCategory, setSelectedCategory] = useState(filters.category || 'all');
@@ -194,10 +200,62 @@ export default function ProductsIndex({
   };
 
   return (
-    <AppShell userName={userName} role={role} outletName={outletName} tenantName={tenantName}>
+    <AppShell
+      userName={userName}
+      role={role}
+      outletName={outletName}
+      tenantName={tenantName}
+      isSuperAdmin={isSuperAdmin}
+      allTenants={allTenants}
+      selectedTenantId={tenantId}
+    >
       <Head title="Katalog Produk - QLon POS & CRM" />
 
       <div className="space-y-6">
+        {/* Master Administrator Switcher Pill Banner */}
+        {isSuperAdmin && (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#061325] via-[#0b1f3b] to-[#040e1d] text-white border border-blue-400/20 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-xl bg-[#0f2b5c] text-sky-300 border border-blue-400/30 flex items-center justify-center shrink-0">
+                <Package className="size-4.5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-sky-300">
+                    Katalog Mode Superadmin
+                  </span>
+                  <span className="text-[9px] bg-blue-500/20 text-sky-200 border border-blue-400/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                    Sinkronisasi Multi-Tenant
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Kelola katalog dan stok produk pada basis data tenant yang dipilih.
+                </p>
+              </div>
+            </div>
+
+            {allTenants.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium shrink-0">Pilih Tenant:</span>
+                <select
+                  value={tenantId || ''}
+                  onChange={(e) => {
+                    playTap();
+                    router.get('/products', { tenant_id: e.target.value }, { preserveState: false });
+                  }}
+                  className="bg-[#0f2b5c] text-white text-xs font-semibold rounded-xl border border-blue-400/40 px-3 py-1.5 focus:ring-2 focus:ring-sky-400 focus:outline-none cursor-pointer"
+                >
+                  {allTenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.subdomain})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* HEADER SECTION */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
           <div>

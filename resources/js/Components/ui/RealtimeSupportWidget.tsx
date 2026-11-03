@@ -7,6 +7,9 @@ import {
   Headphones,
   CheckCircle2,
   Sparkles,
+  ChevronDown,
+  Building2,
+  ShieldCheck,
 } from 'lucide-react';
 import { playTap, playSuccessChime } from '@/lib/sound';
 
@@ -15,16 +18,26 @@ export function RealtimeSupportWidget() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [activeTicket, setActiveTicket] = useState<any | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminTickets, setAdminTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchConversation = async () => {
+  const fetchConversation = async (specificTicketId?: string) => {
     try {
-      const res = await fetch('/api/support/conversation', {
+      const targetId = specificTicketId ?? ticketId;
+      const url = targetId ? `/api/support/conversation?ticket_id=${targetId}` : '/api/support/conversation';
+      const res = await fetch(url, {
         headers: { Accept: 'application/json' },
       });
       if (res.ok) {
         const data = await res.json();
+        setIsAdmin(Boolean(data.is_admin));
+        if (data.admin_tickets) {
+          setAdminTickets(data.admin_tickets);
+        }
+        setActiveTicket(data.ticket);
         setTicketId(data.ticket?.id || null);
         setMessages(data.messages || []);
       }
@@ -36,7 +49,7 @@ export function RealtimeSupportWidget() {
   useEffect(() => {
     if (isOpen) {
       fetchConversation();
-      const interval = setInterval(fetchConversation, 5000);
+      const interval = setInterval(() => fetchConversation(), 5000);
       return () => clearInterval(interval);
     }
   }, [isOpen]);
@@ -90,7 +103,7 @@ export function RealtimeSupportWidget() {
 
   return (
     <>
-      {/* Floating Action Pill Button */}
+      {/* Floating Action Pill Button (Cleanly positioned on Bottom-Right, no overlapping) */}
       <div className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-40">
         <button
           type="button"
@@ -105,59 +118,95 @@ export function RealtimeSupportWidget() {
             <Headphones className="size-4.5" />
             <span className="size-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 ring-2 ring-[#0f2b5c]" />
           </div>
-          <span className="hidden sm:inline">Bantuan CS Real-time</span>
+          <span className="hidden sm:inline">
+            {isAdmin ? 'CS Dispatcher' : 'Bantuan CS Real-time'}
+          </span>
         </button>
       </div>
 
       {/* Floating Chat Box Dialog */}
       {isOpen && (
-        <div className="fixed bottom-36 lg:bottom-20 right-4 sm:right-6 z-50 w-full max-w-sm bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden flex flex-col h-[480px] animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-36 lg:bottom-20 right-4 sm:right-6 z-50 w-full max-w-sm bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden flex flex-col h-[500px] animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
-          <div className="p-4 bg-[#0f2b5c] text-white flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                <Headphones className="size-4.5" />
+          <div className="p-4 bg-[#0f2b5c] text-white flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="size-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                  {isAdmin ? <ShieldCheck className="size-4.5" /> : <Headphones className="size-4.5" />}
+                </div>
+                <div>
+                  <p className="font-bold text-xs leading-tight">
+                    {isAdmin ? 'Superadmin CS Dispatcher' : 'Customer Support QLon'}
+                  </p>
+                  <p className="text-[10px] text-blue-200 flex items-center gap-1 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-emerald-400" />
+                    {isAdmin ? 'Siap Membalas Tiket Tenant' : 'Online Siap Membantu'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-xs leading-tight">Customer Support QLon</p>
-                <p className="text-[10px] text-blue-200 flex items-center gap-1 mt-0.5">
-                  <span className="size-1.5 rounded-full bg-emerald-400" /> Online Siap Membantu
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  setIsOpen(false);
+                }}
+                className="size-8 rounded-lg hover:bg-white/10 text-white flex items-center justify-center transition"
+              >
+                <X className="size-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                playTap();
-                setIsOpen(false);
-              }}
-              className="size-8 rounded-lg hover:bg-white/10 text-white flex items-center justify-center transition"
-            >
-              <X className="size-4" />
-            </button>
+
+            {/* Admin Ticket Switcher */}
+            {isAdmin && adminTickets.length > 0 && (
+              <div className="pt-1 border-t border-white/10">
+                <label className="text-[10px] font-semibold text-blue-200 block mb-1">
+                  Pilih Tiket Tenant ({adminTickets.length}):
+                </label>
+                <select
+                  value={ticketId || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setTicketId(id);
+                    fetchConversation(id);
+                  }}
+                  className="w-full bg-[#163a75] text-white text-xs font-semibold rounded-lg px-2.5 py-1.5 border border-white/20 focus:outline-none cursor-pointer"
+                >
+                  {adminTickets.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.tenant?.name || 'Tenant'} - {t.user?.name || 'User'} ({t.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Messages Feed */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#f8fafc] text-xs">
             <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200/70 text-[#0f2b5c] text-[11px] leading-relaxed">
-              Halo! Ada kendala kasir POS, scanner, atau cetak nota? Tim support QLon terhubung langsung di sini.
+              {isAdmin
+                ? 'Panel CS Realtime Master: Pesan yang Anda kirim akan diterima langsung oleh tenant.'
+                : 'Halo! Ada kendala kasir POS, scanner, atau cetak nota? Tim support QLon terhubung langsung di sini.'}
             </div>
 
             {messages.map((m, i) => {
               const isSupport = m.is_from_support;
+              const isMe = isAdmin ? isSupport : !isSupport;
               return (
                 <div
                   key={m.id || i}
-                  className={`flex flex-col ${isSupport ? 'items-start' : 'items-end'}`}
+                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                 >
                   <span className="text-[10px] text-slate-400 mb-0.5 px-1 font-medium">
-                    {isSupport ? 'Tim Dukungan QLon' : 'Anda'}
+                    {isSupport
+                      ? 'Tim Dukungan (Superadmin)'
+                      : (m.user?.name || 'Pelanggan Tenant')}
                   </span>
                   <div
                     className={`max-w-[85%] p-3 rounded-2xl ${
-                      isSupport
-                        ? 'bg-white border border-slate-200 text-slate-800'
-                        : 'bg-[#0f2b5c] text-white shadow-xs'
+                      isMe
+                        ? 'bg-[#0f2b5c] text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-800'
                     }`}
                   >
                     <p className="leading-relaxed">{m.message}</p>
@@ -174,12 +223,13 @@ export function RealtimeSupportWidget() {
               type="text"
               value={inputMsg}
               onChange={(e) => setInputMsg(e.target.value)}
-              placeholder="Ketik pesan kendala..."
-              className="flex-1 h-10 px-3.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#0f2b5c]"
+              placeholder={ticketId ? 'Ketik pesan balasan...' : 'Menunggu tiket...'}
+              disabled={!ticketId}
+              className="flex-1 h-10 px-3.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#0f2b5c] disabled:bg-slate-100"
             />
             <button
               type="submit"
-              disabled={loading || !inputMsg.trim()}
+              disabled={loading || !inputMsg.trim() || !ticketId}
               className="size-10 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] disabled:opacity-50 text-white flex items-center justify-center transition cursor-pointer"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
@@ -190,4 +240,3 @@ export function RealtimeSupportWidget() {
     </>
   );
 }
-

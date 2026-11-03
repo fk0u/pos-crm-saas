@@ -29,6 +29,8 @@ import {
   Delete,
   MessageCircle,
   ExternalLink,
+  RefreshCw,
+  ShieldCheck,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Button } from '@/Components/ui/button';
@@ -116,25 +118,35 @@ const fallbackCustomers: POSCustomer[] = [
   { id: 'c4', name: 'Dewi Lestari', phone: '082199887766', points: 20, segment: 'new' },
 ];
 
+interface PosTerminalProps {
+  cashierName?: string;
+  userRole?: string;
+  outletId?: string;
+  outletName?: string;
+  tenantName?: string;
+  tenantId?: string;
+  isSuperAdmin?: boolean;
+  allTenants?: { id: string; name: string; subdomain: string }[];
+  initialProducts?: any[];
+  initialCategories?: string[];
+  initialCustomers?: any[];
+  activeShift?: any;
+}
+
 export default function PosTerminal({
   cashierName = 'Samantha W',
   userRole = 'cashier',
   outletId = '',
   outletName = 'Central Outlet',
   tenantName = 'QLon Store',
+  tenantId,
+  isSuperAdmin = false,
+  allTenants = [],
   initialProducts = [],
+  initialCategories = [],
   initialCustomers = [],
   activeShift = null,
-}: {
-  cashierName?: string;
-  userRole?: string;
-  outletId?: string;
-  outletName?: string;
-  tenantName?: string;
-  initialProducts?: any[];
-  initialCustomers?: any[];
-  activeShift?: any;
-}) {
+}: PosTerminalProps) {
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -150,6 +162,7 @@ export default function PosTerminal({
   const [checkoutKey, setCheckoutKey] = useState('');
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState<any | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Advanced features: Discount & Offline status
   const [discountPercent, setDiscountPercent] = useState<number>(0);
@@ -172,7 +185,7 @@ export default function PosTerminal({
     };
   }, []);
 
-  // Products normalisation
+  // Products normalisation directly from Database
   const products: POSProduct[] = useMemo(() => {
     if (initialProducts && initialProducts.length > 0) {
       return initialProducts.map((p, idx) => ({
@@ -180,16 +193,50 @@ export default function PosTerminal({
         name: p.name,
         sku: p.sku || `SKU-${idx + 1}`,
         price: Number(p.selling_price || p.price || 0),
-        stock: p.stock !== undefined ? Number(p.stock) : 50,
-        categoryId: (p.category || 'coffee').toLowerCase().replace(/\s+/g, '-'),
+        stock: p.stock !== undefined ? Number(p.stock) : 0,
+        rawCategory: p.category || 'Umum',
+        categoryId: (p.category || 'umum').toLowerCase().replace(/\s+/g, '-'),
         color: ['amber', 'emerald', 'sky', 'rose', 'navy', 'violet'][idx % 6],
         image_url: p.image_url || null,
       }));
     }
-    return fallbackProducts;
+    return [];
   }, [initialProducts]);
 
-  const categories = defaultCategories;
+  // Dynamic Categories from Backend & Actual Database Products
+  const categories = useMemo(() => {
+    const list: { id: string; name: string; color: string }[] = [];
+    const seen = new Set<string>();
+
+    if (initialCategories && initialCategories.length > 0) {
+      initialCategories.forEach((catName, idx) => {
+        const id = catName.toLowerCase().replace(/\s+/g, '-');
+        if (!seen.has(id)) {
+          seen.add(id);
+          list.push({
+            id,
+            name: catName,
+            color: ['amber', 'emerald', 'sky', 'rose', 'navy', 'violet'][idx % 6],
+          });
+        }
+      });
+    }
+
+    products.forEach((p) => {
+      const id = p.categoryId;
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        list.push({
+          id,
+          name: (p as any).rawCategory || p.categoryId,
+          color: ['amber', 'emerald', 'sky', 'rose', 'navy', 'violet'][list.length % 6],
+        });
+      }
+    });
+
+    return list;
+  }, [initialCategories, products]);
+
   const [customersList, setCustomersList] = useState<POSCustomer[]>(
     initialCustomers && initialCustomers.length > 0 ? initialCustomers : fallbackCustomers
   );
@@ -199,6 +246,19 @@ export default function PosTerminal({
       setCustomersList(initialCustomers);
     }
   }, [initialCustomers]);
+
+  const handleRefresh = () => {
+    playTap();
+    triggerHaptic('light');
+    setIsRefreshing(true);
+    router.reload({
+      only: ['initialProducts', 'initialCategories', 'initialCustomers'],
+      onFinish: () => {
+        setIsRefreshing(false);
+        triggerHaptic('success');
+      },
+    });
+  };
 
   const settings: POSSettings = {
     taxEnabled: true,
@@ -216,8 +276,11 @@ export default function PosTerminal({
   };
 
   const filtered = products.filter((product) => {
-    const matchesCategory = category === 'all' || product.categoryId === category;
-    const haystack = `${product.name} ${product.sku}`.toLocaleLowerCase('id-ID');
+    const matchesCategory =
+      category === 'all' ||
+      product.categoryId === category ||
+      (product as any).rawCategory?.toLowerCase() === category.toLowerCase();
+    const haystack = `${product.name} ${product.sku} ${(product as any).rawCategory || ''}`.toLocaleLowerCase('id-ID');
     return matchesCategory && haystack.includes(query.trim().toLocaleLowerCase('id-ID'));
   });
 
@@ -696,7 +759,54 @@ export default function PosTerminal({
   );
 
   return (
-    <AppShell userName={cashierName} role={userRole} outletName={outletName} tenantName={tenantName}>
+    <AppShell
+      userName={cashierName}
+      role={userRole}
+      outletName={outletName}
+      tenantName={tenantName}
+      isSuperAdmin={isSuperAdmin}
+      allTenants={allTenants}
+      selectedTenantId={tenantId}
+    >
+      {/* Superadmin Tenant Switcher */}
+      {isSuperAdmin && (
+        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-[#061325] via-[#0b1f3b] to-[#040e1d] text-white border border-blue-400/20 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-[#0f2b5c] text-sky-300 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <ShieldCheck className="size-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-sky-300">
+                Kasir Mode Superadmin (Simulasi Transaksi)
+              </span>
+              <p className="text-[11px] text-slate-300">
+                Pilih tenant untuk menguji kasir pada database bisnis yang bersangkutan.
+              </p>
+            </div>
+          </div>
+
+          {allTenants.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium">Tenant:</span>
+              <select
+                value={tenantId || ''}
+                onChange={(e) => {
+                  playTap();
+                  router.get('/kasir', { tenant_id: e.target.value }, { preserveState: false });
+                }}
+                className="bg-[#0f2b5c] text-white text-xs font-semibold rounded-xl border border-blue-400/40 px-3 py-1.5 focus:ring-2 focus:ring-sky-400 focus:outline-none cursor-pointer"
+              >
+                {allTenants.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.subdomain})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_25rem]">
         {/* Left Side: Product Catalog */}
         <section className="grid min-w-0 content-start gap-4">
@@ -733,6 +843,18 @@ export default function PosTerminal({
                 </span>
                 <span className="truncate max-w-32 sm:max-w-none">{shift.outletName}</span>
               </div>
+
+              {/* Refresh Catalog Button */}
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition active:scale-90 cursor-pointer"
+                title="Sinkronkan Produk dari Database"
+                aria-label="Refresh Produk"
+              >
+                <RefreshCw className={`size-4 text-slate-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
 
               {/* Audio toggle button */}
               <button
@@ -868,11 +990,24 @@ export default function PosTerminal({
           ) : (
             <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-2xs">
               <div>
-                <PackageX className="mx-auto size-8 text-slate-300" />
-                <p className="mt-3 font-semibold text-slate-800">Produk tidak ditemukan</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Coba kata kunci, SKU, atau kategori lain.
+                <PackageX className="mx-auto size-10 text-slate-300" />
+                <p className="mt-3 font-bold text-slate-800">
+                  {products.length === 0 ? 'Katalog Produk Masih Kosong' : 'Produk Tidak Ditemukan'}
                 </p>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+                  {products.length === 0
+                    ? 'Belum ada produk aktif yang terdaftar untuk tenant/outlet ini di basis data.'
+                    : 'Coba kata kunci, SKU, atau kategori lain.'}
+                </p>
+                {products.length === 0 && (
+                  <Link
+                    href="/products"
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold hover:bg-[#163a75] transition shadow-xs"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Tambah Produk di Katalog</span>
+                  </Link>
+                )}
               </div>
             </div>
           )}

@@ -31,10 +31,11 @@ class ProcessCheckoutAction
      */
     public function resolveOutlet(User $user, ?string $outletId): Outlet
     {
+        $tenantId = $user->tenant_id ?? session('delegated_tenant_id') ?? \App\Models\Tenant::first()?->id;
         $targetOutletId = $outletId ?: $user->outlet_id;
 
         if (! $targetOutletId) {
-            $defaultOutlet = Outlet::where('tenant_id', $user->tenant_id)->first();
+            $defaultOutlet = Outlet::where('tenant_id', $tenantId)->first();
             if ($defaultOutlet) {
                 return $defaultOutlet;
             }
@@ -47,13 +48,13 @@ class ProcessCheckoutAction
         /** @var Outlet|null $outlet */
         $outlet = Outlet::find($targetOutletId);
 
-        if (! $outlet || $outlet->tenant_id !== $user->tenant_id) {
+        if (! $outlet || (! $user->isSuperAdmin() && $outlet->tenant_id !== $tenantId)) {
             throw ValidationException::withMessages([
                 'outlet_id' => 'Outlet tidak valid atau bukan milik outlet Anda.',
             ]);
         }
 
-        if ($user->role === 'cashier' && $user->outlet_id !== $outlet->id) {
+        if ($user->role === 'cashier' && $user->outlet_id && $user->outlet_id !== $outlet->id) {
             throw ValidationException::withMessages([
                 'outlet_id' => 'Kasir hanya dapat melakukan transaksi di outlet sendiri.',
             ]);
@@ -70,8 +71,8 @@ class ProcessCheckoutAction
     public function execute(User $user, CheckoutData $data): array
     {
         return DB::transaction(function () use ($user, $data) {
-            $tenantId = $user->tenant_id;
             $outlet = $this->resolveOutlet($user, $data->outletId);
+            $tenantId = $user->tenant_id ?? session('delegated_tenant_id') ?? $outlet->tenant_id;
 
             // 1. Resolve active shift
             $shift = null;

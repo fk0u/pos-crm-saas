@@ -25,13 +25,40 @@ class SupportChatController extends Controller
             return response()->json(['ticket' => null, 'messages' => []], 401);
         }
 
+        if ($user->isSuperAdmin()) {
+            $requestedTicketId = $request->query('ticket_id');
+            if ($requestedTicketId) {
+                $ticket = SupportTicket::with(['tenant:id,name', 'user:id,name,role'])->find($requestedTicketId);
+                $messages = $ticket ? $ticket->messages()->with('user:id,name,role')->get() : [];
+            } else {
+                $ticket = SupportTicket::with(['tenant:id,name', 'user:id,name,role'])
+                    ->whereIn('status', ['open', 'in_progress'])
+                    ->latest()
+                    ->first();
+                $messages = $ticket ? $ticket->messages()->with('user:id,name,role')->get() : [];
+            }
+
+            $allOpenTickets = SupportTicket::with(['tenant:id,name', 'user:id,name,role'])
+                ->whereIn('status', ['open', 'in_progress'])
+                ->latest()
+                ->take(10)
+                ->get();
+
+            return response()->json([
+                'ticket' => $ticket,
+                'messages' => $messages,
+                'is_admin' => true,
+                'admin_tickets' => $allOpenTickets,
+            ]);
+        }
+
         $tenantId = $user->tenant_id ?? TenantContext::current();
 
         if (! $tenantId) {
             return response()->json([
                 'ticket' => null,
                 'messages' => [],
-                'is_admin' => $user->isSuperAdmin(),
+                'is_admin' => false,
             ]);
         }
 

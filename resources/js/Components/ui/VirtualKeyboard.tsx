@@ -92,14 +92,14 @@ export function VirtualKeyboard({
 
   return (
     <>
-      {/* Floating Keyboard Launcher Trigger Button */}
+      {/* Floating Keyboard Launcher Trigger Button (Positioned at bottom-left to prevent overlap with CS widget) */}
       <button
         type="button"
         onClick={() => {
           playTap();
           setIsOpen(!isOpen);
         }}
-        className={`fixed bottom-5 right-5 z-[8888] size-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer ${
+        className={`fixed bottom-20 lg:bottom-6 left-4 sm:left-6 z-[8888] size-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer ${
           isOpen
             ? 'bg-[#0f2b5c] text-white rotate-0 scale-105'
             : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 hover:scale-105'
@@ -118,7 +118,7 @@ export function VirtualKeyboard({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 120, scale: 0.98 }}
             transition={{ type: 'spring', damping: 24, stiffness: 320 }}
-            className="fixed bottom-20 right-4 sm:right-6 z-[8888] w-[calc(100vw-2rem)] sm:w-[480px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.5)] select-none text-white"
+            className="fixed bottom-36 lg:bottom-20 left-4 sm:left-6 z-[8888] w-[calc(100vw-2rem)] sm:w-[480px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.5)] select-none text-white"
           >
             {/* Header Control Bar */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">

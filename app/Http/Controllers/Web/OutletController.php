@@ -89,3 +89,4 @@ class OutletController extends Controller
         return redirect()->back()->with('success', "Cabang {$outletName} berhasil dihapus.");
     }
 }
+

@@ -7,10 +7,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Product;
+use App\Models\Tenant;
+use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,12 +21,38 @@ use Inertia\Response;
 class ProductController extends Controller
 {
     /**
+     * Resolve tenant ID for the current user session (including Superadmin fallback).
+     */
+    private function resolveTenantId(User $user, Request $request): ?string
+    {
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        if (! $tenantId && $user->isSuperAdmin()) {
+            if ($request->query('tenant_id')) {
+                $tenantId = (string) $request->query('tenant_id');
+                session(['delegated_tenant_id' => $tenantId]);
+            } elseif (session()->has('delegated_tenant_id')) {
+                $tenantId = (string) session('delegated_tenant_id');
+            } else {
+                $first = Tenant::first();
+                $tenantId = $first?->id;
+                if ($tenantId) {
+                    session(['delegated_tenant_id' => $tenantId]);
+                }
+            }
+        }
+
+        return $tenantId;
+    }
+
+    /**
      * Display the product catalog management page.
      */
     public function index(Request $request): Response
     {
+        /** @var User $user */
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
 
         $query = Product::where('tenant_id', $tenantId);
 
@@ -71,6 +100,9 @@ class ProductController extends Controller
             ->pluck('category')
             ->values();
 
+        $allTenants = $user->isSuperAdmin() ? Tenant::select(['id', 'name', 'subdomain'])->get() : [];
+        $currentTenant = $tenantId ? Tenant::find($tenantId) : null;
+
         return Inertia::render('Products/Index', [
             'products' => $products,
             'categories' => $categories,
@@ -88,7 +120,10 @@ class ProductController extends Controller
             'userName' => $user->name,
             'role' => $user->role,
             'outletName' => $user->outlet?->name ?? 'Outlet Utama',
-            'tenantName' => $user->tenant?->name ?? 'QLon Store',
+            'tenantName' => $currentTenant?->name ?? ($user->tenant?->name ?? 'QLon Store'),
+            'tenantId' => $tenantId,
+            'allTenants' => $allTenants,
+            'isSuperAdmin' => $user->isSuperAdmin(),
         ]);
     }
 
@@ -97,8 +132,9 @@ class ProductController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -135,6 +171,8 @@ class ProductController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        Cache::flush();
+
         return redirect()->back()->with('success', "Produk {$product->name} berhasil ditambahkan");
     }
 
@@ -143,8 +181,9 @@ class ProductController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
 
         $product = Product::where('tenant_id', $tenantId)->findOrFail($id);
 
@@ -172,6 +211,8 @@ class ProductController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
+        Cache::flush();
+
         return redirect()->back()->with('success', "Produk {$product->name} berhasil diperbarui");
     }
 
@@ -180,8 +221,9 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, string $id): RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
 
         $product = Product::where('tenant_id', $tenantId)->findOrFail($id);
         $name = $product->name;
@@ -196,6 +238,8 @@ class ProductController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        Cache::flush();
+
         return redirect()->back()->with('success', "Produk {$name} berhasil dihapus");
     }
 
@@ -204,8 +248,9 @@ class ProductController extends Controller
      */
     public function adjustStock(Request $request, string $id): RedirectResponse
     {
+        /** @var User $user */
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
 
         $product = Product::where('tenant_id', $tenantId)->findOrFail($id);
 
@@ -234,7 +279,8 @@ class ProductController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        Cache::flush();
+
         return redirect()->back()->with('success', "Stok {$product->name} disesuaikan menjadi {$newStock}");
     }
 }
-

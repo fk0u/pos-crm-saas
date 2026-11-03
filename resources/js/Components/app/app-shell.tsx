@@ -566,11 +566,11 @@ export function AppShell({
           </div>
         )}
 
-        {/* Global On-Screen Virtual Keyboard for Touchscreens/POS */}
-        <VirtualKeyboard />
+        {/* On-Screen Virtual Keyboard for Touchscreens (Only on Kasir / POS terminal) */}
+        {(fullPath.startsWith('/kasir') || fullPath.startsWith('/pos')) && <VirtualKeyboard />}
 
-        {/* Global Real-time CS Live Support Widget */}
-        {role !== 'superadmin' && <RealtimeSupportWidget />}
+        {/* Global Real-time CS Live Support Widget (Active for all roles including Superadmin) */}
+        <RealtimeSupportWidget />
       </div>
     </ToastProvider>
   );

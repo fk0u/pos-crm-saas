@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Outlet;
 use App\Models\Product;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +24,22 @@ class PosTerminalController extends Controller
     {
         /** @var User $user */
         $user = auth()->user();
-        $tenantId = $user->tenant_id;
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        if (! $tenantId && $user->isSuperAdmin()) {
+            if ($request->query('tenant_id')) {
+                $tenantId = (string) $request->query('tenant_id');
+                session(['delegated_tenant_id' => $tenantId]);
+            } elseif (session()->has('delegated_tenant_id')) {
+                $tenantId = (string) session('delegated_tenant_id');
+            } else {
+                $first = Tenant::first();
+                $tenantId = $first?->id;
+                if ($tenantId) {
+                    session(['delegated_tenant_id' => $tenantId]);
+                }
+            }
+        }
 
         /** @var Outlet|null $outlet */
         $outlet = $user->outlet ?? Outlet::where('tenant_id', $tenantId)->first();
@@ -31,7 +49,14 @@ class PosTerminalController extends Controller
             ->orderBy('name')
             ->get();
 
-        $customers = \App\Models\Customer::where('tenant_id', $tenantId)
+        $categories = Product::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->values();
+
+        $customers = Customer::where('tenant_id', $tenantId)
             ->orderBy('name')
             ->get()
             ->map(fn ($c) => [
@@ -47,14 +72,21 @@ class PosTerminalController extends Controller
             ? Outlet::where('tenant_id', $tenantId)->get(['id', 'name', 'address'])
             : ($outlet ? collect([$outlet]) : collect());
 
+        $currentTenant = $tenantId ? Tenant::find($tenantId) : null;
+        $allTenants = $user->isSuperAdmin() ? Tenant::select(['id', 'name', 'subdomain'])->get() : [];
+
         return Inertia::render('Pos/Terminal', [
             'cashierName' => $user->name,
             'userRole' => $user->role,
-            'tenantName' => $user->tenant?->name ?? 'QLon Store',
+            'tenantName' => $currentTenant?->name ?? ($user->tenant?->name ?? 'QLon Store'),
+            'tenantId' => $tenantId,
+            'allTenants' => $allTenants,
+            'isSuperAdmin' => $user->isSuperAdmin(),
             'outletId' => $outlet?->id,
             'outletName' => $outlet?->name ?? 'Central Outlet',
             'outlets' => $outlets,
             'initialProducts' => $products,
+            'initialCategories' => $categories,
             'initialCustomers' => $customers,
             'activeShift' => $activeShift ? [
                 'id' => $activeShift->id,
