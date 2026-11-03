@@ -127,3 +127,4 @@ class KitchenDisplayController extends Controller
         return redirect()->back()->with('success', "Status pesanan #{$order->order_number} diperbarui menjadi {$label}.");
     }
 }
+

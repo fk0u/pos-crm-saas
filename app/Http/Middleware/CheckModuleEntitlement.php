@@ -68,10 +68,11 @@ class CheckModuleEntitlement
                     'required_tier' => Tenant::TIER_FULL,
                 ], 403);
             }
-
+            
             return redirect()->route('dashboard')->with('error', $message);
         }
 
         return $next($request);
     }
 }
+

@@ -20,9 +20,11 @@ use Inertia\Response;
 
 class RegisterController extends Controller
 {
-    public function showRegistrationForm(): Response
+    public function showRegistrationForm(Request $request): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            'selectedTier' => $request->query('tier', 'essential'),
+        ]);
     }
 
     /**
@@ -36,6 +38,7 @@ class RegisterController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
+            'tier' => 'nullable|string|in:core,essential,full',
         ], [
             'business_name.required' => 'Nama bisnis / usaha wajib diisi.',
             'name.required' => 'Nama pemilik wajib diisi.',
@@ -45,7 +48,11 @@ class RegisterController extends Controller
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
-        $user = DB::transaction(function () use ($validated) {
+        $tier = $validated['tier'] ?? Tenant::TIER_ESSENTIAL;
+        $maxOutlets = $tier === Tenant::TIER_CORE ? 1 : ($tier === Tenant::TIER_ESSENTIAL ? 3 : null);
+        $maxStaff = $tier === Tenant::TIER_CORE ? 2 : ($tier === Tenant::TIER_ESSENTIAL ? 10 : null);
+
+        $user = DB::transaction(function () use ($validated, $tier, $maxOutlets, $maxStaff) {
             $baseSlug = Str::slug($validated['business_name']);
             if (empty($baseSlug)) {
                 $baseSlug = 'tenant';
@@ -58,6 +65,9 @@ class RegisterController extends Controller
                 'subdomain' => $subdomain,
                 'phone' => $validated['phone'] ?? null,
                 'is_active' => true,
+                'subscription_tier' => $tier,
+                'max_outlets' => $maxOutlets,
+                'max_staff' => $maxStaff,
             ]);
 
             // 2. Create Default Primary Outlet

@@ -20,9 +20,10 @@ import { QlonLogo } from '@/Components/ui/QlonLogo';
 
 interface AuthCardProps {
   initialMode?: 'signin' | 'signup';
+  selectedTier?: string;
 }
 
-export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
+export default function AuthCard({ initialMode = 'signin', selectedTier }: AuthCardProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -56,6 +57,7 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
     email: '',
     password: '',
     password_confirmation: '',
+    tier: selectedTier || 'essential',
   });
 
   // Auto clear OAuth notice

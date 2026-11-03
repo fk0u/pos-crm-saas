@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\FinanceController;
 use App\Http\Controllers\Web\HelpController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\InvoiceController;
+use App\Http\Controllers\Web\LandingController;
 use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\OnlineOrderController;
@@ -24,7 +25,10 @@ use App\Http\Controllers\Web\SupportChatController;
 use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('login'));
+// Public Landing Page & Pricing
+Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/pricing', [LandingController::class, 'pricing'])->name('pricing');
+Route::get('/harga', fn () => redirect()->route('pricing'))->name('harga');
 
 // Legal & Policies (Terms of Service & Privacy Policy)
 Route::get('/terms', [LegalController::class, 'terms'])->name('legal.terms');

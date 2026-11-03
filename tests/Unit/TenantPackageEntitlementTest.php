@@ -85,3 +85,4 @@ class TenantPackageEntitlementTest extends TestCase
         $this->assertFalse($tenant->hasModule(Tenant::MODULE_FINANCE));
     }
 }
+
