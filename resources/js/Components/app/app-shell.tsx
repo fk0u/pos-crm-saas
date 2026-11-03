@@ -21,6 +21,8 @@ import {
   Headphones,
   CircleDollarSign,
   ShieldCheck,
+  Shield,
+  Scale,
   Building2,
   Package,
 } from 'lucide-react';
@@ -29,6 +31,7 @@ import { ToastProvider } from '@/Components/ui/toast';
 import { LiveClock } from './live-clock';
 import { CommandPalette } from './command-palette';
 import { playTap } from '@/lib/sound';
+import { QlonLogo } from '@/Components/ui/QlonLogo';
 
 export function getGreeting(): string {
   const hour = new Date().getHours();
@@ -123,7 +126,8 @@ export function AppShell({
 
   const secondaryNavItems = [
     { label: 'Panduan (Tour)', icon: Sparkles, action: onOpenTour },
-    { href: '/dashboard#faq', label: 'FAQ', icon: FileQuestion },
+    { href: '/terms', label: 'Ketentuan Layanan', icon: Scale },
+    { href: '/privacy', label: 'Kebijakan Privasi', icon: Shield },
     { href: '/dashboard#help', label: 'Pusat Bantuan', icon: Headphones },
   ];
 
@@ -136,18 +140,15 @@ export function AppShell({
         <aside className="w-60 xl:w-64 bg-white border-r border-slate-200/80 min-h-screen h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 hidden lg:flex select-none z-30">
           <div className="flex flex-col flex-1 overflow-y-auto pr-0.5">
             {/* Brand Header */}
-              <div className="flex items-center justify-between pb-5 mb-4 border-b border-slate-100 px-1">
-                <Link href="/dashboard" className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-gradient-to-br from-[#0f2b5c] to-[#1e4488] flex items-center justify-center text-white shadow-xs">
-                    <span className="font-black text-sm tracking-tighter text-sky-200">Q</span>
-                  </div>
-                  <span className="font-extrabold text-lg tracking-tight text-slate-900">QLon</span>
-                </Link>
+            <div className="flex items-center justify-between pb-5 mb-4 border-b border-slate-100 px-1">
+              <Link href="/dashboard" onClick={() => playTap()}>
+                <QlonLogo variant="full" size="sm" subtitle="Event & Store POS" animated />
+              </Link>
 
-                <div className="size-6 rounded-lg bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-400">
-                  <ChevronLeft className="size-3.5" />
-                </div>
+              <div className="size-6 rounded-lg bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-400">
+                <ChevronLeft className="size-3.5" />
               </div>
+            </div>
 
               {/* Navigation Menu */}
               <nav className="space-y-1">
@@ -363,12 +364,9 @@ export function AppShell({
             <aside className="relative h-full w-72 bg-white shadow-2xl flex flex-col justify-between p-5 animate-in slide-in-from-left duration-200">
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-xl bg-gradient-to-br from-[#0f2b5c] to-[#1e4488] flex items-center justify-center text-white">
-                      <span className="font-black text-sm tracking-tighter text-sky-200">Q</span>
-                    </div>
-                    <span className="font-extrabold text-lg tracking-tight text-slate-900">QLon</span>
-                  </div>
+                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                    <QlonLogo variant="full" size="sm" subtitle="Event & Store POS" />
+                  </Link>
                   <button
                     type="button"
                     onClick={() => setMobileOpen(false)}

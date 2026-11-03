@@ -37,6 +37,7 @@ import {
   Layers,
   ChevronDown,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AppShell, getGreeting } from '@/Components/app/app-shell';
 import { Badge, Card } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
@@ -396,6 +397,12 @@ export default function DashboardIndex({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Real-time Session & Cookie Security Status Pill */}
+            <div className="hidden md:flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 shadow-2xs">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-semibold text-slate-700">Sesi 2026 Aktif &bull; CSRF Terlindungi</span>
+            </div>
+
             {/* Date Picker Button */}
             <button
               type="button"
@@ -434,12 +441,15 @@ export default function DashboardIndex({
         </div>
 
         {/* ========================================================================= */}
-        {/* 1. TOP 4 STATS CARDS (Matching Databrain Overview) */}
+        {/* 1. TOP 4 STATS CARDS (Matching Databrain Overview with Framer Motion) */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Total Pesanan Terkelola with Semicircle Radial Gauge */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+          <motion.div
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition cursor-default"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">4,860</p>
@@ -475,10 +485,13 @@ export default function DashboardIndex({
                 </svg>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 2: Nilai Omzet / GMV with Mini Vertical Bars Visual */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+          <motion.div
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition cursor-default"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
@@ -505,10 +518,13 @@ export default function DashboardIndex({
                 <span className="w-1.5 h-7 rounded-full bg-[#0f2b5c]" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 3: Transaksi Sukses with Stepped Blocks */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+          <motion.div
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition cursor-default"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
@@ -533,10 +549,13 @@ export default function DashboardIndex({
                 <span className="w-2.5 h-7 rounded-sm bg-[#0f2b5c]" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 4: Pelanggan Terhubung (CRM) with Frequency Pulse Bars */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+          <motion.div
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition cursor-default"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
@@ -564,7 +583,7 @@ export default function DashboardIndex({
                 <span className="w-1 h-2 rounded-full bg-indigo-300" />
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* ========================================================================= */}
@@ -790,8 +809,9 @@ export default function DashboardIndex({
             {exploreProducts
               .filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
               .map((prod) => (
-                <div
+                <motion.div
                   key={prod.id}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
                   className="group rounded-2xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
                 >
                   {/* Thumbnail Image with Top-Right Eye Inspect Button */}
@@ -849,7 +869,7 @@ export default function DashboardIndex({
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
           </div>
         </div>

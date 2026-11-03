@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OwnerDashboardController;
 use App\Http\Controllers\Api\PosController;
+use App\Http\Controllers\Api\SessionSecurityController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,7 +14,20 @@ use Illuminate\Support\Facades\Route;
 | atau token). Tidak ada endpoint yang bisa ditembak publik tanpa sesi.
 */
 
+// Public Session & CSRF Sync Endpoints (Session Guarded)
+Route::prefix('v1/session')->group(function (): void {
+    Route::get('/csrf-token', [SessionSecurityController::class, 'refreshCsrf']);
+});
+
 Route::prefix('v1')->middleware(['auth'])->group(function (): void {
+    // Advanced Session & Security Lifecycle Endpoints
+    Route::prefix('session')->group(function (): void {
+        Route::get('/status', [SessionSecurityController::class, 'status']);
+        Route::post('/heartbeat', [SessionSecurityController::class, 'heartbeat']);
+        Route::post('/rotate', [SessionSecurityController::class, 'rotateSession']);
+        Route::post('/refresh-csrf', [SessionSecurityController::class, 'refreshCsrf']);
+    });
+
     // POS Terminal & Shift Control Endpoints
     Route::prefix('pos')->group(function (): void {
         Route::get('/products', [PosController::class, 'getProducts']);

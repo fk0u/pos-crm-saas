@@ -1,5 +1,5 @@
 import React, { FormEvent, useState, useEffect } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useForm, Link } from '@inertiajs/react';
 import {
   ShieldCheck,
   Building2,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { playTap, playSuccessChime } from '@/lib/sound';
 import AuthShowcaseCarousel from '@/Components/AuthShowcaseCarousel';
+import { QlonLogo } from '@/Components/ui/QlonLogo';
 
 interface AuthCardProps {
   initialMode?: 'signin' | 'signup';
@@ -132,13 +133,10 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
         {/* Left Column: Form & Actions */}
         <div className="lg:col-span-6 xl:col-span-6 p-6 sm:p-10 lg:p-12 flex flex-col justify-between">
           
-          {/* Top Brand Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-xl bg-gradient-to-br from-[#0f2b5c] to-[#1e4488] flex items-center justify-center text-white shadow-sm transition-transform hover:scale-105 duration-200">
-              <span className="font-black text-sm tracking-tighter text-sky-200">Q</span>
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-slate-900">QLon</span>
-          </div>
+          {/* Top Brand Logo (Bespoke SVG Mark) */}
+          <Link href="/" className="inline-block transition-transform duration-200 hover:scale-105">
+            <QlonLogo variant="full" size="md" subtitle="POS & CRM Ecosystem" animated />
+          </Link>
 
           {/* Form Content Wrapper */}
           <div className="my-auto py-5 max-w-sm w-full mx-auto">
@@ -531,11 +529,15 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
 
           {/* Bottom Footer */}
           <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 select-none">
-            <span>Copyright &copy; QLon, All Right Reserved</span>
+            <span>Copyright &copy; 2026 QLon Technologies. All Rights Reserved.</span>
             <div className="flex items-center gap-3">
-              <span className="hover:text-slate-600 cursor-pointer transition">Term &amp; Condition</span>
+              <Link href="/terms" className="hover:text-[#0f2b5c] font-medium transition cursor-pointer">
+                Terms &amp; Conditions
+              </Link>
               <span>|</span>
-              <span className="hover:text-slate-600 cursor-pointer transition">Privacy &amp; Policy</span>
+              <Link href="/privacy" className="hover:text-[#0f2b5c] font-medium transition cursor-pointer">
+                Privacy &amp; Policy
+              </Link>
             </div>
           </div>
         </div>

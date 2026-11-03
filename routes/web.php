@@ -2,12 +2,17 @@
 
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InvoiceController;
+use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\PosTerminalController;
 use App\Http\Controllers\Web\RegisterController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
+
+// Legal & Policies (Terms of Service & Privacy Policy)
+Route::get('/terms', [LegalController::class, 'terms'])->name('legal.terms');
+Route::get('/privacy', [LegalController::class, 'privacy'])->name('legal.privacy');
 
 // Auth (session guard & onboarding)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
