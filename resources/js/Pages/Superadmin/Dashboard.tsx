@@ -86,6 +86,18 @@ export default function SuperadminDashboard({
   const [userTenantFilter, setUserTenantFilter] = useState('all');
   const [inspectUser, setInspectUser] = useState<any | null>(null);
 
+  const handlePackageChange = (tenantId: string, tier: string) => {
+    playTap();
+    router.post(
+      `/superadmin/tenants/${tenantId}/package`,
+      { subscription_tier: tier },
+      {
+        preserveScroll: true,
+        onSuccess: () => playSuccessChime(),
+      }
+    );
+  };
+
   const filteredPlatformUsers = allUsers.filter((u) => {
     const q = userSearchQuery.toLowerCase().trim();
     const matchesSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -327,11 +339,12 @@ export default function SuperadminDashboard({
                 <tr>
                   <th className="py-3 px-5">Nama Usaha / Tenant</th>
                   <th className="py-3 px-4">Subdomain</th>
-                  <th className="py-3 px-4 text-center">Cabang / Outlet</th>
-                  <th className="py-3 px-4 text-center">Varian Produk</th>
-                  <th className="py-3 px-4 text-center">Total Staff</th>
+                  <th className="py-3 px-4">Paket Layanan</th>
+                  <th className="py-3 px-4 text-center">Cabang</th>
+                  <th className="py-3 px-4 text-center">Produk</th>
+                  <th className="py-3 px-4 text-center">Staf</th>
                   <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Aksi Platform</th>
+                  <th className="py-3 px-4 text-center">Aksi</th>
                   <th className="py-3 px-5 text-right">Kedaulatan Data</th>
                 </tr>
               </thead>
@@ -340,6 +353,18 @@ export default function SuperadminDashboard({
                   <tr key={t.id} className="hover:bg-slate-50/80">
                     <td className="py-3.5 px-5 font-bold text-slate-900">{t.name}</td>
                     <td className="py-3.5 px-4 font-mono text-slate-500">{t.subdomain}.qlon.id</td>
+                    <td className="py-3.5 px-4">
+                      <select
+                        value={t.subscription_tier || 'essential'}
+                        onChange={(e) => handlePackageChange(t.id, e.target.value)}
+                        aria-label="Pilih Paket Layanan"
+                        className="h-8 px-2.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0f2b5c] cursor-pointer"
+                      >
+                        <option value="core">Dasar (1 Cabang, 2 Kasir)</option>
+                        <option value="essential">Menengah (3 Cabang, 10 Karyawan)</option>
+                        <option value="full">Solusi Lengkap (Tanpa Batas)</option>
+                      </select>
+                    </td>
                     <td className="py-3.5 px-4 text-center font-mono">{t.outlets_count ?? 1}</td>
                     <td className="py-3.5 px-4 text-center font-mono">{t.products_count ?? 0}</td>
                     <td className="py-3.5 px-4 text-center font-mono">{t.users_count ?? 1}</td>

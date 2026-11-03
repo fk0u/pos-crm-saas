@@ -93,7 +93,7 @@ class SuperAdminAccessTest extends TestCase
 
     public function test_developer_can_test_webhook_ping(): void
     {
-        $tenant = Tenant::create(['name' => 'Kedai Kopi C', 'subdomain' => 'kopi-c', 'is_active' => true]);
+        $tenant = Tenant::create(['name' => 'Kedai Kopi C', 'subdomain' => 'kopi-c', 'is_active' => true, 'subscription_tier' => Tenant::TIER_FULL]);
 
         $developer = User::create([
             'tenant_id' => $tenant->id,

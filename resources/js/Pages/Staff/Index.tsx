@@ -50,11 +50,11 @@ interface StaffIndexProps {
 }
 
 const ROLES = [
-  { value: 'cashier', label: 'Kasir POS (Front-of-House)' },
-  { value: 'kitchen', label: 'Kitchen & Barista (Kitchen Display)' },
-  { value: 'manager', label: 'Manager Cabang' },
-  { value: 'staff', label: 'Staff Operasional' },
-  { value: 'developer', label: 'Developer (API & Integrasi PaaS)' },
+  { value: 'cashier', label: 'Kasir (Operasional Kasir)' },
+  { value: 'kitchen', label: 'Koki / Barista (Layar Dapur)' },
+  { value: 'manager', label: 'Pengelola Toko (Manager)' },
+  { value: 'staff', label: 'Karyawan Operasional' },
+  { value: 'developer', label: 'Teknisi Sistem (API & Sambungan Luar)' },
 ];
 
 export default function StaffIndex({
@@ -162,15 +162,15 @@ export default function StaffIndex({
   const getRoleBadge = (r: string) => {
     switch (r) {
       case 'owner':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Owner</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Pemilik Usaha</span>;
       case 'manager':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">Manager</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">Pengelola Toko</span>;
       case 'kitchen':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">Kitchen/Barista</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">Koki / Barista</span>;
       case 'developer':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">Developer</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">Teknisi Sistem</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-[#0f2b5c]">Kasir POS</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-[#0f2b5c]">Kasir</span>;
     }
   };
 
@@ -182,7 +182,7 @@ export default function StaffIndex({
       tenantName={tenantName}
       activeTab="staff"
     >
-      <Head title="Manajemen Staf & Karyawan - QLon POS & CRM" />
+      <Head title="Manajemen Karyawan & Kasir - QLon POS" />
 
       <div className="space-y-6">
         {/* SUPERADMIN TENANT SWITCHER BANNER */}
@@ -191,15 +191,15 @@ export default function StaffIndex({
             <div className="flex items-center gap-2.5">
               <Building2 className="size-5 text-sky-400 shrink-0" />
               <div>
-                <p className="text-xs font-bold text-white">Platform Superadmin Multi-Tenant Scope</p>
+                <p className="text-xs font-bold text-white">Mode Pengelola Sistem (Bantuan Toko)</p>
                 <p className="text-[11px] text-sky-200">
-                  Melihat tim &amp; staf untuk tenant: <strong className="text-white underline">{tenantName}</strong>
+                  Melihat tim &amp; karyawan untuk usaha: <strong className="text-white underline">{tenantName}</strong>
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <label htmlFor="saasTenantSelect" className="text-[11px] text-sky-200 shrink-0 font-medium">Pilih Tenant:</label>
+              <label htmlFor="saasTenantSelect" className="text-[11px] text-sky-200 shrink-0 font-medium">Pilih Usaha:</label>
               <select
                 id="saasTenantSelect"
                 value={tenantId || ''}
@@ -221,10 +221,10 @@ export default function StaffIndex({
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <UserCheck className="size-6 text-[#0f2b5c]" />
-              <span>Manajemen Staf &amp; Karyawan</span>
+              <span>Manajemen Karyawan &amp; Kasir</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Atur hak akses login, penugasan cabang kasir, peran manajer, dan akun tim operasional restoran.
+              Atur hak akses login, penugasan cabang kasir, peran pengelola, dan akun tim toko.
             </p>
           </div>
 
@@ -234,7 +234,7 @@ export default function StaffIndex({
             className="h-10 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-950/20 transition active:scale-95 cursor-pointer shrink-0"
           >
             <Plus className="size-4" />
-            <span>Tambah Staf Baru</span>
+            <span>Tambah Karyawan Baru</span>
           </button>
         </div>
 

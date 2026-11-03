@@ -34,6 +34,11 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $activeShift = $user ? $user->activeShift() : null;
 
+        $tenant = $user?->tenant;
+        if (! $tenant && session()->has('delegated_tenant_id')) {
+            $tenant = \App\Models\Tenant::find(session('delegated_tenant_id'));
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -57,10 +62,15 @@ class HandleInertiaRequests extends Middleware
                         'expected_ending_cash' => (float) $activeShift->expected_ending_cash,
                     ] : null,
                 ] : null,
-                'tenant' => $user && $user->tenant ? [
-                    'id' => $user->tenant->id,
-                    'name' => $user->tenant->name,
-                    'subdomain' => $user->tenant->subdomain,
+                'tenant' => $tenant ? [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'subdomain' => $tenant->subdomain,
+                    'subscription_tier' => $tenant->subscription_tier ?? 'essential',
+                    'tier_label' => $tenant->getTierLabel(),
+                    'enabled_modules' => $tenant->getEnabledModules(),
+                    'max_outlets' => $tenant->max_outlets,
+                    'max_staff' => $tenant->max_staff,
                 ] : null,
             ],
             'flash' => [

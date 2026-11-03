@@ -31,6 +31,7 @@ import {
   Coins,
   UserCheck,
   UtensilsCrossed,
+  ChefHat,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { ToastProvider } from '@/Components/ui/toast';
@@ -118,16 +119,40 @@ export function AppShell({
     tenantName,
   };
 
+  const { auth } = usePage().props as any;
+  const tenantData = auth?.tenant;
+  const enabledModules: string[] = tenantData?.enabled_modules || [
+    'pos_cashier',
+    'products_catalog',
+    'reports_daily',
+    'inventory_stock',
+    'cashflow_shift',
+    'promotions_coupons',
+    'customer_crm',
+    'kitchen_display',
+    'online_order_store',
+    'finance_profit_loss',
+    'accounting_export',
+    'developer_api',
+  ];
+
+  const hasModule = (key: string) => {
+    if (role === 'superadmin') return true;
+    return enabledModules.includes(key);
+  };
+
   const roleLabel =
     user.role === 'superadmin'
-      ? 'Master Admin'
+      ? 'Pengelola Sistem'
       : user.role === 'developer'
-      ? 'Developer PaaS'
+      ? 'Teknisi Sistem'
       : user.role === 'owner'
-      ? 'Owner Tenant'
+      ? 'Pemilik Usaha'
       : user.role === 'manager'
-      ? 'Manager'
-      : 'Kasir POS';
+      ? 'Pengelola Toko'
+      : (user.role as string) === 'kitchen'
+      ? 'Koki / Barista'
+      : 'Kasir';
 
   const business = tenantName || outletName || 'QLon Workspace';
 
@@ -143,31 +168,32 @@ export function AppShell({
   // For Superadmin who has not claimed a delegation token, show only sovereign platform menus
   const navMenuItems = isSuperAdminUser && !isDelegatedSuperAdmin
     ? [
-        { href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck },
-        { href: '/developer', label: 'Developer Hub', icon: Building2 },
+        { href: '/superadmin', label: 'Pusat Pengaturan Sistem', icon: ShieldCheck },
+        { href: '/developer', label: 'Sambungan Luar & API', icon: Building2 },
       ]
     : [
         { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
-        { href: '/kasir', label: 'Kasir POS', icon: ShoppingCart },
-        { href: '/products', label: 'Katalog Produk', icon: Package },
-        { href: '/inventory', label: 'Inventori & Stok', icon: Boxes },
+        { href: '/kasir', label: 'Kasir', icon: ShoppingCart },
+        ...(hasModule('products_catalog') ? [{ href: '/products', label: 'Katalog Produk', icon: Package }] : []),
+        ...(hasModule('inventory_stock') ? [{ href: '/inventory', label: 'Inventori & Stok', icon: Boxes }] : []),
         { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
-        { href: '/promotions', label: 'Promosi & Kupon', icon: Tag },
-        { href: '/cashflow', label: 'Arus Kas Laci', icon: CircleDollarSign },
-        { href: '/customers', label: 'Pelanggan CRM', icon: Users },
-        { href: '/reports', label: 'Laporan', icon: BarChart3 },
+        ...(hasModule('promotions_coupons') ? [{ href: '/promotions', label: 'Promosi & Diskon', icon: Tag }] : []),
+        ...(hasModule('cashflow_shift') ? [{ href: '/cashflow', label: 'Arus Kas & Tutup Kasir', icon: CircleDollarSign }] : []),
+        ...(hasModule('customer_crm') ? [{ href: '/customers', label: 'Buku Kontak Pelanggan', icon: Users }] : []),
+        ...(hasModule('kitchen_display') ? [{ href: '/kitchen', label: 'Layar Dapur & Barista', icon: ChefHat }] : []),
+        ...(hasModule('reports_daily') ? [{ href: '/reports', label: 'Laporan Penjualan', icon: BarChart3 }] : []),
         ...(isManagementRole
           ? [
-              { href: '/finance', label: 'Keuangan & Laba Rugi', icon: Coins },
-              { href: '/outlets', label: 'Cabang Outlet', icon: Store },
-              { href: '/staff', label: 'Manajemen Staf', icon: UserCheck },
+              ...(hasModule('finance_profit_loss') ? [{ href: '/finance', label: 'Laporan Untung Rugi', icon: Coins }] : []),
+              { href: '/outlets', label: 'Cabang Toko', icon: Store },
+              { href: '/staff', label: 'Karyawan & Kasir', icon: UserCheck },
             ]
           : []),
-        ...(role === 'developer' || role === 'owner' || isSuperAdminUser
-          ? [{ href: '/developer', label: 'Developer Hub', icon: Building2 }]
+        ...((role === 'developer' || role === 'owner' || isSuperAdminUser) && hasModule('developer_api')
+          ? [{ href: '/developer', label: 'Sambungan Luar & API', icon: Building2 }]
           : []),
         ...(isSuperAdminUser
-          ? [{ href: '/superadmin', label: 'Sovereign Control', icon: ShieldCheck }]
+          ? [{ href: '/superadmin', label: 'Pusat Pengaturan Sistem', icon: ShieldCheck }]
           : []),
       ];
 
@@ -261,14 +287,16 @@ export function AppShell({
             </nav>
           </div>
 
-          {/* Bottom Sidebar Box: QLon Enterprise Hub */}
+          {/* Bottom Sidebar Box: Informasi Paket Usaha */}
           <div className="mt-6 rounded-2xl bg-[#f8fafc] border border-slate-200/90 p-4">
             <div className="flex items-center gap-2 mb-1 text-xs font-bold text-slate-900">
               <Sparkles className="size-4 text-[#0f2b5c]" />
-              <span>QLon Enterprise Hub</span>
+              <span>Paket: {tenantData?.tier_label || 'Standar'}</span>
             </div>
             <p className="text-xs text-slate-500 leading-relaxed mb-3.5">
-              Siap operasional kasir cepat, scan barcode &amp; struk thermal multi-outlet.
+              {tenantData?.max_outlets
+                ? `Maks ${tenantData.max_outlets} Cabang • ${tenantData.max_staff} Karyawan`
+                : 'Cabang & Karyawan Tanpa Batas'}
             </p>
             <div className="flex gap-2">
               {onOpenTour && (
@@ -648,3 +676,5 @@ export function AppShell({
     </ToastProvider>
   );
 }
+
+export default AppShell;

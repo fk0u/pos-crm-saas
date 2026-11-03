@@ -20,6 +20,7 @@ import {
   Clock,
   User,
   ShieldAlert,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Modal } from '@/Components/ui/modal';
@@ -185,14 +186,29 @@ export default function TransactionsIndex({
             </p>
           </div>
 
-          <a
-            href="/transactions/export"
-            onClick={() => playTap()}
-            className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition"
-          >
-            <Download className="size-4 text-slate-500" />
-            <span>Export CSV</span>
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/transactions/export-excel"
+              onClick={() => playTap()}
+              className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition"
+              title="Unduh Buku Transaksi untuk Excel"
+            >
+              <FileSpreadsheet className="size-4 text-emerald-600" />
+              <span>Unduh Excel</span>
+            </a>
+
+            <a
+              href="/transactions/export-pdf"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => playTap()}
+              className="h-10 px-3.5 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/20 active:scale-95 transition"
+              title="Cetak Buku Besar Transaksi Resmi"
+            >
+              <Printer className="size-4" />
+              <span>Cetak / PDF Resmi</span>
+            </a>
+          </div>
         </div>
 
         {/* 4 STATS CARDS */}

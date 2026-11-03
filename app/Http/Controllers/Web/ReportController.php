@@ -186,5 +186,94 @@ class ReportController extends Controller
             fclose($handle);
         }, 200, $headers);
     }
+
+    /**
+     * Export sales report to Excel CSV with UTF-8 BOM.
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->where('payment_status', 'paid')
+            ->with(['items.product', 'customer', 'cashier'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="laporan_penjualan_excel_' . date('Ymd_His') . '.csv"',
+        ];
+
+        return response()->stream(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            // Write UTF-8 BOM so Excel opens Indonesian accents and symbols properly
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, ['No Invoice', 'Waktu Transaksi', 'Kasir', 'Pelanggan', 'Metode Bayar', 'Subtotal (Rp)', 'Diskon (Rp)', 'Pajak PB1 (Rp)', 'Total Bersih (Rp)', 'Daftar Produk']);
+
+            foreach ($orders as $order) {
+                $itemsStr = $order->items->map(fn ($it) => ($it->product?->name ?? 'Item') . ' (' . $it->quantity . 'x)')->implode('; ');
+                fputcsv($handle, [
+                    $order->invoice_number,
+                    $order->created_at->format('Y-m-d H:i:s'),
+                    $order->cashier?->name ?? 'Kasir',
+                    $order->customer?->name ?? 'Pelanggan Toko',
+                    strtoupper($order->payment_method),
+                    $order->subtotal,
+                    $order->discount_amount,
+                    $order->tax_amount,
+                    $order->grand_total,
+                    $itemsStr,
+                ]);
+            }
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    /**
+     * Export official tax and sales report as printable PDF view.
+     */
+    public function exportPdf(Request $request)
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenant = \App\Models\Tenant::find($tenantId) ?? new \App\Models\Tenant(['name' => 'QLon Store']);
+
+        $period = $request->query('period', 'this_month');
+        $query = Order::where('tenant_id', $tenantId)->where('payment_status', 'paid');
+
+        if ($period === 'today') {
+            $query->whereDate('created_at', today());
+            $periodLabel = 'Hari Ini (' . today()->format('d M Y') . ')';
+        } elseif ($period === 'yesterday') {
+            $query->whereDate('created_at', today()->subDay());
+            $periodLabel = 'Kemarin (' . today()->subDay()->format('d M Y') . ')';
+        } elseif ($period === '7days') {
+            $query->where('created_at', '>=', now()->subDays(7));
+            $periodLabel = '7 Hari Terakhir';
+        } else {
+            $query->where('created_at', '>=', now()->startOfMonth());
+            $periodLabel = 'Bulan Ini (' . now()->format('F Y') . ')';
+        }
+
+        $orders = $query->with(['customer', 'cashier'])->orderByDesc('created_at')->get();
+
+        $summary = [
+            'gross_sales' => (float) $orders->sum('grand_total'),
+            'total_subtotal' => (float) $orders->sum('subtotal'),
+            'total_discounts' => (float) $orders->sum('discount_amount'),
+            'total_tax' => (float) $orders->sum('tax_amount'),
+            'total_orders' => $orders->count(),
+        ];
+
+        return view('reports.sales_pdf', [
+            'tenant' => $tenant,
+            'orders' => $orders,
+            'summary' => $summary,
+            'periodLabel' => $periodLabel,
+            'userName' => $user->name,
+        ]);
+    }
 }
 

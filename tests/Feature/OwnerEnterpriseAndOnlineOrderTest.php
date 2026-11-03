@@ -31,6 +31,7 @@ class OwnerEnterpriseAndOnlineOrderTest extends TestCase
             'subdomain' => 'kopikawan',
             'phone' => '081234567890',
             'is_active' => true,
+            'subscription_tier' => Tenant::TIER_FULL,
         ]);
 
         $this->outlet = Outlet::create([

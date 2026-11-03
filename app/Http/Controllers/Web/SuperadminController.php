@@ -30,7 +30,22 @@ class SuperadminController extends Controller
     {
         $tenants = Tenant::withCount(['users', 'outlets', 'products'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'subdomain' => $t->subdomain,
+                'is_active' => (bool) $t->is_active,
+                'subscription_tier' => $t->subscription_tier ?? Tenant::TIER_ESSENTIAL,
+                'tier_label' => $t->getTierLabel(),
+                'max_outlets' => $t->max_outlets,
+                'max_staff' => $t->max_staff,
+                'enabled_modules' => $t->getEnabledModules(),
+                'users_count' => (int) $t->users_count,
+                'outlets_count' => (int) $t->outlets_count,
+                'products_count' => (int) $t->products_count,
+                'created_at' => $t->created_at?->format('d M Y'),
+            ]);
 
         $activeTokens = SupportDelegationToken::with(['creator', 'tenant'])
             ->where('expires_at', '>', now())
@@ -121,6 +136,50 @@ class SuperadminController extends Controller
         $statusLabel = $tenant->is_active ? 'diaktifkan kembali' : 'ditangguhkan (suspend)';
 
         return redirect()->back()->with('success', "Status tenant {$tenant->name} berhasil {$statusLabel}.");
+    }
+
+    /**
+     * Update Tenant subscription package tier and limits.
+     */
+    public function updatePackage(Request $request, string $id): RedirectResponse
+    {
+        $tenant = Tenant::findOrFail($id);
+
+        $validated = $request->validate([
+            'subscription_tier' => ['required', 'string', 'in:core,essential,full'],
+        ]);
+
+        $tier = $validated['subscription_tier'];
+        $tenant->subscription_tier = $tier;
+
+        if ($tier === Tenant::TIER_CORE) {
+            $tenant->max_outlets = 1;
+            $tenant->max_staff = 2;
+        } elseif ($tier === Tenant::TIER_ESSENTIAL) {
+            $tenant->max_outlets = 3;
+            $tenant->max_staff = 10;
+        } else {
+            $tenant->max_outlets = null;
+            $tenant->max_staff = null;
+        }
+
+        $tenant->save();
+
+        AuditLog::create([
+            'id' => (string) Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'user_id' => Auth::id(),
+            'action' => 'superadmin.package_updated',
+            'details' => json_encode([
+                'tier' => $tier,
+                'tier_label' => $tenant->getTierLabel(),
+                'max_outlets' => $tenant->max_outlets,
+                'max_staff' => $tenant->max_staff,
+            ]),
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->back()->with('success', "Paket layanan untuk usaha {$tenant->name} berhasil diubah menjadi {$tenant->getTierLabel()}.");
     }
 
     /**

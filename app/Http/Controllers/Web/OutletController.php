@@ -76,6 +76,11 @@ class OutletController extends Controller
 
         TenantContext::set($tenantId);
 
+        $tenant = Tenant::find($tenantId);
+        if ($tenant && ! $tenant->canAddOutlet()) {
+            return redirect()->back()->with('error', "Jumlah cabang sudah mencapai batas maksimal untuk paket ini ({$tenant->max_outlets} cabang). Silakan hubungi pengelola sistem untuk meningkatkan paket layanan Anda.");
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],

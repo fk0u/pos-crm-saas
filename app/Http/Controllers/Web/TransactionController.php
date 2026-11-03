@@ -206,5 +206,70 @@ class TransactionController extends Controller
             fclose($handle);
         }, 200, $headers);
     }
+
+    /**
+     * Export transactions to Excel CSV.
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->with(['customer', 'cashier', 'outlet'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="transaksi_excel_' . date('Ymd_His') . '.csv"',
+        ];
+
+        return response()->stream(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, ['No Invoice', 'Tanggal & Waktu', 'Cabang', 'Pelanggan', 'No HP', 'Subtotal', 'Diskon', 'Pajak', 'Grand Total', 'Metode Bayar', 'Status Bayar', 'Kasir']);
+
+            foreach ($orders as $order) {
+                fputcsv($handle, [
+                    $order->invoice_number,
+                    $order->created_at->format('Y-m-d H:i:s'),
+                    $order->outlet?->name ?? 'Cabang Utama',
+                    $order->customer?->name ?? 'Pelanggan Toko',
+                    $order->customer?->phone ?? '-',
+                    $order->subtotal,
+                    $order->discount_amount,
+                    $order->tax_amount,
+                    $order->grand_total,
+                    strtoupper($order->payment_method),
+                    strtoupper($order->payment_status),
+                    $order->cashier?->name ?? 'Kasir',
+                ]);
+            }
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    /**
+     * Export transactions as printable PDF ledger.
+     */
+    public function exportPdf(Request $request)
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenant = Tenant::find($tenantId) ?? new Tenant(['name' => 'QLon Store']);
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->with(['customer', 'cashier', 'outlet'])
+            ->orderByDesc('created_at')
+            ->take(200)
+            ->get();
+
+        return view('reports.transactions_pdf', [
+            'tenant' => $tenant,
+            'orders' => $orders,
+            'userName' => $user->name,
+        ]);
+    }
 }
 

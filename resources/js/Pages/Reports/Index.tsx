@@ -18,6 +18,8 @@ import {
   Layers,
   ArrowUpRight,
   ReceiptText,
+  FileSpreadsheet,
+  Printer,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -142,14 +144,29 @@ export default function ReportsIndex({
               ))}
             </div>
 
-            <a
-              href="/reports/export"
-              onClick={() => playTap()}
-              className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 transition"
-            >
-              <Download className="size-4 text-slate-500" />
-              <span>Export CSV</span>
-            </a>
+            <div className="flex items-center gap-2">
+              <a
+                href="/reports/export-excel"
+                onClick={() => playTap()}
+                className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 transition"
+                title="Unduh Data untuk Excel & Akuntansi"
+              >
+                <FileSpreadsheet className="size-4 text-emerald-600" />
+                <span>Unduh Excel</span>
+              </a>
+
+              <a
+                href={`/reports/export-pdf?period=${currentPeriod}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => playTap()}
+                className="h-10 px-3.5 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-950/20 active:scale-95 transition"
+                title="Cetak Laporan Resmi Pajak PB1 & Penjualan"
+              >
+                <Printer className="size-4" />
+                <span>Cetak / PDF Resmi</span>
+              </a>
+            </div>
           </div>
         </div>
 

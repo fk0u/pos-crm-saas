@@ -85,10 +85,15 @@ class StaffController extends Controller
         $tenantId = $this->resolveTenantId($currentUser, $request);
 
         if (! $tenantId) {
-            return redirect()->back()->with('error', 'Tenant context tidak valid.');
+            return redirect()->back()->with('error', 'Konteks toko tidak valid.');
         }
 
         TenantContext::set($tenantId);
+
+        $tenant = Tenant::find($tenantId);
+        if ($tenant && ! $tenant->canAddStaff()) {
+            return redirect()->back()->with('error', "Jumlah karyawan sudah mencapai batas maksimal untuk paket ini ({$tenant->max_staff} orang). Silakan hubungi pengelola sistem untuk meningkatkan paket layanan Anda.");
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -117,7 +122,7 @@ class StaffController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return redirect()->back()->with('success', "Akun staf {$staff->name} ({$staff->role}) berhasil didaftarkan.");
+        return redirect()->back()->with('success', "Akun karyawan {$staff->name} berhasil ditambahkan.");
     }
 
     /**
@@ -137,7 +142,7 @@ class StaffController extends Controller
         $staff = User::where('tenant_id', $tenantId)->findOrFail($id);
 
         if ($staff->isSuperAdmin() || $staff->role === 'superadmin') {
-            abort(403, 'Tindakan dilarang: Akun Superadmin Platform Sovereign tidak dapat dikelola oleh tenant.');
+            abort(403, 'Tindakan ditolak: Akun pengelola sistem tidak dapat dikelola dari menu toko.');
         }
 
         $validated = $request->validate([
@@ -166,7 +171,7 @@ class StaffController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return redirect()->back()->with('success', "Data staf {$staff->name} berhasil diperbarui.");
+        return redirect()->back()->with('success', "Data karyawan {$staff->name} berhasil diperbarui.");
     }
 
     /**
@@ -177,13 +182,13 @@ class StaffController extends Controller
         $currentUser = Auth::user();
 
         if ($currentUser->isSuperAdmin()) {
-            return redirect()->back()->with('error', 'Superadmin dalam mode delegasi dilarang menghapus akun staf tenant.');
+            return redirect()->back()->with('error', 'Pengelola sistem dalam mode bantuan dilarang menghapus akun karyawan toko.');
         }
 
         $tenantId = $this->resolveTenantId($currentUser, $request);
 
         if (! $tenantId) {
-            return redirect()->back()->with('error', 'Tenant context tidak valid.');
+            return redirect()->back()->with('error', 'Konteks toko tidak valid.');
         }
 
         TenantContext::set($tenantId);
@@ -191,7 +196,7 @@ class StaffController extends Controller
         $staff = User::where('tenant_id', $tenantId)->findOrFail($id);
 
         if ($staff->isSuperAdmin() || $staff->role === 'superadmin') {
-            abort(403, 'Tindakan dilarang: Akun Superadmin Platform Sovereign tidak dapat dikelola oleh tenant.');
+            abort(403, 'Tindakan ditolak: Akun pengelola sistem tidak dapat dikelola dari menu toko.');
         }
 
         if ($staff->id === $currentUser->id) {
@@ -214,6 +219,6 @@ class StaffController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return redirect()->back()->with('success', "Akun staf {$name} berhasil dihapus.");
+        return redirect()->back()->with('success', "Akun karyawan {$name} berhasil dihapus.");
     }
 }
