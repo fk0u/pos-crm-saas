@@ -95,11 +95,23 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'cashier') {
+        if (! $user || $user->role === 'cashier') {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
-        $orders = $this->metrics->recentOrders($user->tenant_id, 10);
+        $tenantId = $user->tenant_id;
+        if ($user->isSuperAdmin()) {
+            $tenantId = session('delegated_tenant_id') ?? \App\Models\Tenant::first()?->id;
+        }
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $orders = $this->metrics->recentOrders($tenantId, 10);
 
         return response()->json([
             'success' => true,

@@ -28,8 +28,32 @@ class SalesMetricsService
     /**
      * @return array<string, mixed>
      */
-    public function summary(string $tenantId): array
+    public function summary(?string $tenantId): array
     {
+        if (! $tenantId) {
+            return [
+                'gross_sales' => 0.0,
+                'discount_total' => 0.0,
+                'tax_total' => 0.0,
+                'revenue' => 0.0,
+                'today_revenue' => 0.0,
+                'total_revenue_all_time' => 0.0,
+                'total_orders_all_time' => 0,
+                'total_customers' => 0,
+                'cogs' => 0.0,
+                'gross_profit' => 0.0,
+                'profit_margin' => 0.0,
+                'transactions' => 0,
+                'today_orders_count' => 0,
+                'aov' => 0.0,
+                'avg_order_value' => 0.0,
+                'new_customers_count' => 0,
+                'growth_revenue' => 0.0,
+                'active_outlets' => 0,
+                'open_shifts' => 0,
+            ];
+        }
+
         return Cache::remember("sales_metrics_summary_{$tenantId}", 5, function () use ($tenantId) {
             $todayStart = Carbon::today();
 
@@ -95,8 +119,12 @@ class SalesMetricsService
     /**
      * @return Collection<int, array{outlet_id: string, name: string, transactions: int, revenue: float, aov: float}>
      */
-    public function outletBreakdown(string $tenantId): Collection
+    public function outletBreakdown(?string $tenantId): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         $todayStart = Carbon::today();
 
         return Outlet::where('tenant_id', $tenantId)
@@ -121,8 +149,12 @@ class SalesMetricsService
     /**
      * @return Collection<int, Order>
      */
-    public function recentOrders(string $tenantId, int $limit = 8): Collection
+    public function recentOrders(?string $tenantId, int $limit = 8): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         return Order::where('tenant_id', $tenantId)
             ->with(['outlet:id,name', 'customer:id,name,phone', 'cashier:id,name', 'items'])
             ->latest()
@@ -135,8 +167,12 @@ class SalesMetricsService
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public function topProducts(string $tenantId, int $limit = 5): Collection
+    public function topProducts(?string $tenantId, int $limit = 5): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         return OrderItem::whereHas('order', fn ($q) => $q->where('tenant_id', $tenantId))
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->select('products.name', 'products.category', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.subtotal) as total_revenue'))
@@ -159,8 +195,12 @@ class SalesMetricsService
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public function customers(string $tenantId, ?string $search = null, int $limit = 50): Collection
+    public function customers(?string $tenantId, ?string $search = null, int $limit = 50): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         $query = Customer::where('tenant_id', $tenantId)->orderByDesc('total_spend');
 
         if ($search !== null && $search !== '') {
@@ -187,8 +227,12 @@ class SalesMetricsService
      *
      * @return Collection<int, AuditLog>
      */
-    public function recentAuditLogs(string $tenantId, int $limit = 10): Collection
+    public function recentAuditLogs(?string $tenantId, int $limit = 10): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         return AuditLog::where('tenant_id', $tenantId)
             ->with('user:id,name,role')
             ->latest()
@@ -201,10 +245,17 @@ class SalesMetricsService
      *
      * @return array<int, array{month: string, revenue: float, deals: int, raw_revenue: float}>
      */
-    public function monthlyRevenueTrend(string $tenantId, int $year = 2026): array
+    public function monthlyRevenueTrend(?string $tenantId, int $year = 2026): array
     {
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Des'];
         $result = [];
+
+        if (! $tenantId) {
+            foreach ($months as $m) {
+                $result[] = ['month' => $m, 'revenue' => 0.0, 'deals' => 0, 'raw_revenue' => 0.0];
+            }
+            return $result;
+        }
 
         $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
         $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
@@ -233,8 +284,20 @@ class SalesMetricsService
      *
      * @return array<string, mixed>
      */
-    public function orderStatusDistribution(string $tenantId): array
+    public function orderStatusDistribution(?string $tenantId): array
     {
+        if (! $tenantId) {
+            return [
+                'total' => 0,
+                'paid' => 0,
+                'pending' => 0,
+                'refunded' => 0,
+                'paid_pct' => 0.0,
+                'pending_pct' => 0.0,
+                'refunded_pct' => 0.0,
+            ];
+        }
+
         $orders = Order::where('tenant_id', $tenantId)->get(['payment_status']);
         $total = $orders->count();
 
@@ -258,8 +321,12 @@ class SalesMetricsService
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public function exploreProducts(string $tenantId, int $limit = 4): Collection
+    public function exploreProducts(?string $tenantId, int $limit = 4): Collection
     {
+        if (! $tenantId) {
+            return collect();
+        }
+
         return \App\Models\Product::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->latest()

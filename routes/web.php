@@ -64,8 +64,11 @@ Route::middleware(['auth'])->group(function (): void {
     // 5. Arus Kas
     Route::get('/cashflow', [CashflowController::class, 'index'])->name('cashflow.index');
     Route::get('/arus-kas', fn () => redirect()->route('cashflow.index'))->name('arus_kas');
+    Route::post('/cashflow/open-shift', [CashflowController::class, 'openShift'])->name('cashflow.open_shift');
     Route::post('/cashflow/movement', [CashflowController::class, 'movement'])->name('cashflow.movement');
     Route::post('/cashflow/close-shift', [CashflowController::class, 'closeShift'])->name('cashflow.close_shift');
+    Route::get('/cashflow/export', [CashflowController::class, 'export'])->name('cashflow.export');
+    Route::get('/cashflow/shifts/{id}/report', [CashflowController::class, 'shiftReport'])->name('cashflow.shift_report');
 
     // 6. Pelanggan CRM
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
