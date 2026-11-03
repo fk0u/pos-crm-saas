@@ -31,6 +31,12 @@ class Order extends Model
         'payment_method',
         'payment_details',
         'payment_status',
+        'order_type',
+        'table_number',
+        'customer_name',
+        'customer_phone',
+        'order_status',
+        'coupon_code',
         'notes',
     ];
 
@@ -58,7 +64,9 @@ class Order extends Model
 
     public function cashier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'cashier_id');
+        return $this->belongsTo(User::class, 'cashier_id')->withDefault([
+            'name' => 'Online Customer',
+        ]);
     }
 
     public function customer(): BelongsTo

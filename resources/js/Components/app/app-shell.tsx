@@ -26,6 +26,11 @@ import {
   Building2,
   Package,
   MoreHorizontal,
+  Tag,
+  Store,
+  Coins,
+  UserCheck,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { ToastProvider } from '@/Components/ui/toast';
@@ -119,14 +124,25 @@ export function AppShell({
     router.post('/logout');
   };
 
+  const isManagementRole = role === 'owner' || role === 'manager' || role === 'superadmin' || role === 'developer';
+
   const navMenuItems = [
     { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
-    { href: '/kasir', label: 'Kasir', icon: ShoppingCart },
+    { href: '/kasir', label: 'Kasir POS', icon: ShoppingCart },
     { href: '/products', label: 'Katalog Produk', icon: Package },
+    { href: '/inventory', label: 'Inventori & Stok', icon: Boxes },
     { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
-    { href: '/cashflow', label: 'Arus Kas', icon: CircleDollarSign },
-    { href: '/customers', label: 'Pelanggan', icon: Users },
+    { href: '/promotions', label: 'Promosi & Kupon', icon: Tag },
+    { href: '/cashflow', label: 'Arus Kas Laci', icon: CircleDollarSign },
+    { href: '/customers', label: 'Pelanggan CRM', icon: Users },
     { href: '/reports', label: 'Laporan', icon: BarChart3 },
+    ...(isManagementRole
+      ? [
+          { href: '/finance', label: 'Keuangan & Laba Rugi', icon: Coins },
+          { href: '/outlets', label: 'Cabang Outlet', icon: Store },
+          { href: '/staff', label: 'Manajemen Staf', icon: UserCheck },
+        ]
+      : []),
     ...(role === 'developer' || role === 'owner' || role === 'superadmin'
       ? [{ href: '/developer', label: 'Developer Hub', icon: Building2 }]
       : []),

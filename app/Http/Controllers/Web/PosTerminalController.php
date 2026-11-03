@@ -75,11 +75,44 @@ class PosTerminalController extends Controller
         $currentTenant = $tenantId ? Tenant::find($tenantId) : null;
         $allTenants = $user->isSuperAdmin() ? Tenant::select(['id', 'name', 'subdomain'])->get() : [];
 
+        // Incoming online & table orders for restaurant integration
+        $pendingOnlineOrders = \App\Models\Order::where('tenant_id', $tenantId)
+            ->whereIn('order_type', ['dine_in', 'takeaway', 'delivery'])
+            ->whereIn('order_status', ['pending', 'accepted', 'preparing', 'ready'])
+            ->with(['items.product', 'customer'])
+            ->latest()
+            ->take(30)
+            ->get()
+            ->map(fn ($o) => [
+                'id' => $o->id,
+                'invoice_number' => $o->invoice_number,
+                'order_type' => $o->order_type,
+                'table_number' => $o->table_number,
+                'customer_name' => $o->customer_name,
+                'customer_phone' => $o->customer_phone,
+                'order_status' => $o->order_status,
+                'payment_method' => $o->payment_method,
+                'payment_status' => $o->payment_status,
+                'grand_total' => (float) $o->grand_total,
+                'notes' => $o->notes,
+                'created_at' => $o->created_at?->format('H:i'),
+                'items' => $o->items->map(fn ($it) => [
+                    'id' => $it->id,
+                    'name' => $it->product?->name ?? 'Produk',
+                    'quantity' => (int) $it->quantity,
+                    'price' => (float) $it->unit_selling_price,
+                ]),
+            ]);
+
+        $publicMenuUrl = $currentTenant ? url("/{$currentTenant->subdomain}") : null;
+
         return Inertia::render('Pos/Terminal', [
             'cashierName' => $user->name,
             'userRole' => $user->role,
             'tenantName' => $currentTenant?->name ?? ($user->tenant?->name ?? 'QLon Store'),
             'tenantId' => $tenantId,
+            'tenantSubdomain' => $currentTenant?->subdomain,
+            'publicMenuUrl' => $publicMenuUrl,
             'allTenants' => $allTenants,
             'isSuperAdmin' => $user->isSuperAdmin(),
             'outletId' => $outlet?->id,
@@ -88,6 +121,7 @@ class PosTerminalController extends Controller
             'initialProducts' => $products,
             'initialCategories' => $categories,
             'initialCustomers' => $customers,
+            'pendingOnlineOrders' => $pendingOnlineOrders,
             'activeShift' => $activeShift ? [
                 'id' => $activeShift->id,
                 'opened_at' => $activeShift->opened_at->toIso8601String(),

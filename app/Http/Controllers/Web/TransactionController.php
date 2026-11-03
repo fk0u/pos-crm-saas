@@ -20,13 +20,30 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
 {
+    private function resolveTenantId(\App\Models\User $user, Request $request): ?string
+    {
+        if ($user->isSuperAdmin()) {
+            return $request->query('tenant_id') ?? session('delegated_tenant_id') ?? \App\Models\Tenant::first()?->id;
+        }
+
+        return $user->tenant_id ?? TenantContext::current();
+    }
+
     /**
      * Display the transactions list page.
      */
     public function index(Request $request): Response
     {
         $user = Auth::user();
-        $tenantId = $user->tenant_id ?? TenantContext::current();
+        $tenantId = $this->resolveTenantId($user, $request);
+
+        if ($tenantId) {
+            TenantContext::set($tenantId);
+        }
+
+        $allTenants = $user->isSuperAdmin()
+            ? \App\Models\Tenant::select(['id', 'name', 'subdomain'])->get()
+            : [];
 
         $query = Order::where('tenant_id', $tenantId)
             ->with(['items.product', 'customer', 'cashier', 'outlet']);
@@ -78,6 +95,8 @@ class TransactionController extends Controller
         $totalRefundedAmount = (clone $allOrders)->where('payment_status', 'refunded')->sum('grand_total');
         $paidCount = (clone $allOrders)->where('payment_status', 'paid')->count();
 
+        $currentTenant = $tenantId ? \App\Models\Tenant::find($tenantId) : null;
+
         return Inertia::render('Transactions/Index', [
             'orders' => $orders,
             'filters' => [
@@ -94,8 +113,11 @@ class TransactionController extends Controller
             ],
             'userName' => $user->name,
             'role' => $user->role,
+            'isSuperAdmin' => $user->isSuperAdmin(),
+            'tenantId' => $tenantId,
+            'allTenants' => $allTenants,
             'outletName' => $user->outlet?->name ?? 'Outlet Utama',
-            'tenantName' => $user->tenant?->name ?? 'QLon Store',
+            'tenantName' => $currentTenant?->name ?? 'QLon Store',
         ]);
     }
 

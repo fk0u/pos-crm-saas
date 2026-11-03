@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
   Banknote,
   CircleCheck,
@@ -31,11 +31,16 @@ import {
   ExternalLink,
   RefreshCw,
   ShieldCheck,
+  UtensilsCrossed,
+  ChefHat,
+  Globe,
+  BellRing,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/card';
 import { Drawer } from '@/Components/ui/drawer';
+import { Modal } from '@/Components/ui/modal';
 import { Select, Input } from '@/Components/ui/input';
 import { SearchInput } from '@/Components/ui/search-input';
 import { useToast } from '@/Components/ui/toast';
@@ -125,6 +130,9 @@ interface PosTerminalProps {
   outletName?: string;
   tenantName?: string;
   tenantId?: string;
+  tenantSubdomain?: string;
+  publicMenuUrl?: string | null;
+  pendingOnlineOrders?: any[];
   isSuperAdmin?: boolean;
   allTenants?: { id: string; name: string; subdomain: string }[];
   initialProducts?: any[];
@@ -140,6 +148,9 @@ export default function PosTerminal({
   outletName = 'Central Outlet',
   tenantName = 'QLon Store',
   tenantId,
+  tenantSubdomain,
+  publicMenuUrl,
+  pendingOnlineOrders = [],
   isSuperAdmin = false,
   allTenants = [],
   initialProducts = [],
@@ -172,6 +183,23 @@ export default function PosTerminal({
   // New customer quick-add state
   const [newCustName, setNewCustName] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
+
+  // Online & Table Orders Queue state
+  const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
+
+  const handleUpdateOrderStatus = (orderId: string, status: string) => {
+    playTap();
+    router.post(
+      `/orders/${orderId}/status`,
+      { order_status: status },
+      {
+        onSuccess: () => {
+          playSuccessChime();
+          router.reload({ only: ['pendingOnlineOrders'] });
+        },
+      }
+    );
+  };
 
   // Online / offline detector
   useEffect(() => {
@@ -844,6 +872,40 @@ export default function PosTerminal({
                 <span className="truncate max-w-32 sm:max-w-none">{shift.outletName}</span>
               </div>
 
+              {/* Order Masuk Online & Meja Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  setIsOnlineOrdersOpen(true);
+                }}
+                className="relative flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 py-2.5 text-xs font-bold text-[#0f2b5c] hover:bg-blue-100 transition shadow-2xs cursor-pointer"
+                title="Antrean Order Masuk dari Pelanggan Online & Meja"
+              >
+                <BellRing className="size-4 text-[#0f2b5c]" />
+                <span className="hidden md:inline">Order Online</span>
+                {pendingOnlineOrders.length > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-2xs animate-pulse">
+                    {pendingOnlineOrders.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Toko Online / Menu Publik */}
+              {publicMenuUrl && (
+                <a
+                  href={publicMenuUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden lg:flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+                  title="Buka Website Menu Publik Restoran"
+                >
+                  <Globe className="size-3.5 text-slate-500" />
+                  <span>Menu Publik</span>
+                  <ExternalLink className="size-3 text-slate-400" />
+                </a>
+              )}
+
               {/* Refresh Catalog Button */}
               <button
                 type="button"
@@ -1405,6 +1467,180 @@ export default function PosTerminal({
           </div>
         ) : null}
       </Drawer>
+
+      {/* Modal Antrean Order Masuk Online & Meja */}
+      <Modal
+        isOpen={isOnlineOrdersOpen}
+        onClose={() => setIsOnlineOrdersOpen(false)}
+        title="Antrean Pesanan Masuk (Online & Meja)"
+        description="Pesanan langsung dari pelanggan via QR Meja atau website resto publik."
+        maxWidth="3xl"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          {pendingOnlineOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
+              <div className="grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
+                <UtensilsCrossed className="size-6" />
+              </div>
+              <p className="font-semibold text-slate-700">Belum Ada Order Masuk</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Pesanan yang dibuat oleh pelanggan melalui QR meja atau website online resto akan muncul di sini secara real-time.
+              </p>
+              {publicMenuUrl && (
+                <a
+                  href={publicMenuUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#0f2b5c] hover:bg-slate-50 shadow-2xs"
+                >
+                  <Globe className="size-3.5" />
+                  <span>Buka Website Menu Pelanggan</span>
+                  <ExternalLink className="size-3 text-slate-400" />
+                </a>
+              )}
+            </div>
+          ) : (
+            pendingOnlineOrders.map((order: any) => (
+              <div
+                key={order.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-2xs space-y-3 transition hover:border-slate-300"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-slate-900">{order.invoice_number}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        order.order_type === 'dine_in'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}
+                    >
+                      {order.order_type === 'dine_in' ? `Dine-In (Meja ${order.table_number || '-'})` : 'Bawa Pulang (Takeaway)'}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        order.order_status === 'pending'
+                          ? 'bg-amber-100 text-amber-700'
+                          : order.order_status === 'accepted'
+                          ? 'bg-blue-100 text-blue-700'
+                          : order.order_status === 'preparing'
+                          ? 'bg-purple-100 text-purple-700'
+                          : order.order_status === 'ready'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {order.order_status === 'pending'
+                        ? 'Menunggu Konfirmasi'
+                        : order.order_status === 'accepted'
+                        ? 'Diterima Kasir'
+                        : order.order_status === 'preparing'
+                        ? 'Sedang Dimasak Dapur'
+                        : order.order_status === 'ready'
+                        ? 'Siap Saji'
+                        : order.order_status}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-slate-900">
+                      Rp {order.total_amount.toLocaleString('id-ID')}
+                    </span>
+                    <div className="text-[10px] text-slate-500">
+                      {order.payment_method?.toUpperCase()} · {order.payment_status === 'paid' ? 'Lunas' : 'Belum Bayar'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500 block mb-1">Data Pelanggan</span>
+                    <div className="font-semibold text-slate-800">{order.customer_name || 'Pelanggan'}</div>
+                    {order.customer_phone && <div className="text-slate-500">{order.customer_phone}</div>}
+                    {order.notes && (
+                      <div className="mt-1 rounded-lg bg-amber-50 p-2 text-[11px] text-amber-800 border border-amber-200/60">
+                        Catatan: {order.notes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500 block mb-1">Rincian Item</span>
+                    <div className="space-y-1">
+                      {order.items?.map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-700">
+                            {item.quantity}x {item.name}
+                            {item.notes ? <span className="text-slate-400 italic text-[10px] ml-1">({item.notes})</span> : null}
+                          </span>
+                          <span className="font-mono text-slate-500">Rp {item.subtotal.toLocaleString('id-ID')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200/80">
+                  {order.order_status === 'pending' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs gap-1.5"
+                    >
+                      <CircleCheck className="size-3.5" />
+                      Terima Order
+                    </Button>
+                  )}
+                  {order.order_status === 'accepted' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs gap-1.5"
+                    >
+                      <ChefHat className="size-3.5" />
+                      Kirim ke Dapur
+                    </Button>
+                  )}
+                  {order.order_status === 'preparing' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs gap-1.5"
+                    >
+                      <UtensilsCrossed className="size-3.5" />
+                      Siap Disajikan
+                    </Button>
+                  )}
+                  {order.order_status === 'ready' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
+                      className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs gap-1.5"
+                    >
+                      <CircleCheck className="size-3.5" />
+                      Selesaikan Pesanan
+                    </Button>
+                  )}
+                  {order.order_status !== 'completed' && order.order_status !== 'cancelled' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm('Yakin ingin membatalkan pesanan online ini?')) {
+                          handleUpdateOrderStatus(order.id, 'cancelled');
+                        }
+                      }}
+                      className="border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs"
+                    >
+                      Batalkan
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
     </AppShell>
   );
 }

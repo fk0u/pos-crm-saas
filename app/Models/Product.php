@@ -30,4 +30,9 @@ class Product extends Model
         'stock' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    public function stockAdjustments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockAdjustment::class);
+    }
 }
