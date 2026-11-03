@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupportDelegationToken;
+use App\Models\SupportMessage;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -32,9 +34,15 @@ class SuperadminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $tickets = SupportTicket::with(['tenant', 'user', 'messages'])
+            ->latest()
+            ->take(20)
+            ->get();
+
         return Inertia::render('Superadmin/Dashboard', [
             'tenants' => $tenants,
             'activeTokens' => $activeTokens,
+            'tickets' => $tickets,
             'serverStatus' => [
                 'uptime' => '99.98%',
                 'php_version' => PHP_VERSION,
@@ -45,6 +53,55 @@ class SuperadminController extends Controller
             'userName' => Auth::user()?->name ?? 'Master Superadmin',
             'role' => Auth::user()?->role ?? 'superadmin',
         ]);
+    }
+
+    /**
+     * Toggle Tenant status between active and suspended.
+     */
+    public function toggleTenantStatus(string $id): RedirectResponse
+    {
+        $tenant = Tenant::findOrFail($id);
+        $tenant->update(['is_active' => ! $tenant->is_active]);
+
+        $statusLabel = $tenant->is_active ? 'diaktifkan kembali' : 'ditangguhkan (suspend)';
+
+        return redirect()->back()->with('success', "Status tenant {$tenant->name} berhasil {$statusLabel}.");
+    }
+
+    /**
+     * Superadmin reply to a CS support ticket.
+     */
+    public function replySupportTicket(Request $request, string $id): RedirectResponse
+    {
+        $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $ticket = SupportTicket::findOrFail($id);
+
+        SupportMessage::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => Auth::id(),
+            'is_from_support' => true,
+            'message' => $request->message,
+        ]);
+
+        if ($ticket->status === 'open') {
+            $ticket->update(['status' => 'in_progress']);
+        }
+
+        return redirect()->back()->with('success', 'Balasan CS berhasil dikirim ke tenant.');
+    }
+
+    /**
+     * Mark a CS support ticket as resolved.
+     */
+    public function resolveSupportTicket(string $id): RedirectResponse
+    {
+        $ticket = SupportTicket::findOrFail($id);
+        $ticket->update(['status' => 'resolved']);
+
+        return redirect()->back()->with('success', "Tiket kendala #{$ticket->ticket_number} telah diselesaikan.");
     }
 
     /**

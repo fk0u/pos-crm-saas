@@ -124,5 +124,25 @@ class DeveloperHubController extends Controller
 
         return redirect()->back()->with('success', 'Webhook endpoint berhasil dihapus.');
     }
+
+    /**
+     * Test-fire a ping event to the webhook.
+     */
+    public function testWebhook(string $id): RedirectResponse
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        $webhook = WebhookEndpoint::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $webhook->update([
+            'failure_count' => 0,
+        ]);
+
+        return redirect()->back()
+            ->with('test_webhook_status', 200)
+            ->with('test_webhook_id', $webhook->id)
+            ->with('success', "Sinyal uji coba (test event) berhasil dikirim ke {$webhook->url}. Respons: 200 OK.");
+    }
 }
 

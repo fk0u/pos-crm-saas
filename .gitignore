@@ -19,3 +19,4 @@ yarn-error.log
 .claude/
 .zcode/
 .agents/*.pem
+.ruas/ruas.db*

@@ -15,6 +15,8 @@ import {
   ArrowRight,
   Database,
   Globe,
+  Send,
+  Radio,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Modal } from '@/Components/ui/modal';
@@ -240,11 +242,11 @@ export default function DeveloperIndex({
                       key={wh.id}
                       className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between"
                     >
-                      <div className="max-w-[80%]">
+                      <div className="max-w-[70%]">
                         <p className="font-mono text-xs font-bold text-slate-900 truncate">
                           {wh.url}
                         </p>
-                        <div className="flex gap-1.5 mt-1 flex-wrap">
+                        <div className="flex gap-1.5 mt-1 flex-wrap items-center">
                           {wh.events?.map((ev: string) => (
                             <span
                               key={ev}
@@ -253,19 +255,41 @@ export default function DeveloperIndex({
                               {ev}
                             </span>
                           ))}
+                          {(wh.last_delivery_status || (flash?.test_webhook_id === wh.id && flash?.test_webhook_status)) && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono font-bold flex items-center gap-1">
+                              <Radio className="size-2.5 animate-pulse text-emerald-600" />
+                              HTTP {wh.last_delivery_status || flash?.test_webhook_status} OK
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          playTap();
-                          router.delete(`/developer/webhooks/${wh.id}`);
-                        }}
-                        className="p-2 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition"
-                        title="Hapus Webhook"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playTap();
+                            router.post(`/developer/webhooks/${wh.id}/test`, {}, {
+                              onSuccess: () => playSuccessChime(),
+                            });
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                          title="Kirim Uji Coba Sinyal"
+                        >
+                          <Send className="size-3.5" />
+                          <span className="hidden sm:inline">Uji Coba Ping</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playTap();
+                            router.delete(`/developer/webhooks/${wh.id}`);
+                          }}
+                          className="p-2 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition cursor-pointer"
+                          title="Hapus Webhook"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

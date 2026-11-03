@@ -14,6 +14,10 @@ import {
   Clock,
   Layers,
   Terminal,
+  MessageSquare,
+  Send,
+  PowerOff,
+  Power,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Modal } from '@/Components/ui/modal';
@@ -22,6 +26,7 @@ import { playTap, playSuccessChime } from '@/lib/sound';
 interface SuperadminDashboardProps {
   tenants: any[];
   activeTokens: any[];
+  tickets?: any[];
   serverStatus: {
     uptime: string;
     php_version: string;
@@ -36,12 +41,15 @@ interface SuperadminDashboardProps {
 export default function SuperadminDashboard({
   tenants = [],
   activeTokens = [],
+  tickets = [],
   serverStatus,
   userName,
   role,
 }: SuperadminDashboardProps) {
   const [tokenInput, setTokenInput] = useState('');
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [replyText, setReplyText] = useState('');
 
   const handleClaimToken = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +61,23 @@ export default function SuperadminDashboard({
         onSuccess: () => {
           playSuccessChime();
           setIsClaimModalOpen(false);
+        },
+      }
+    );
+  };
+
+  const handleReplyTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !replyText.trim()) return;
+    playTap();
+    router.post(
+      `/superadmin/tickets/${selectedTicket.id}/reply`,
+      { message: replyText },
+      {
+        onSuccess: () => {
+          playSuccessChime();
+          setReplyText('');
+          setSelectedTicket(null);
         },
       }
     );
@@ -192,6 +217,7 @@ export default function SuperadminDashboard({
                   <th className="py-3 px-4 text-center">Varian Produk</th>
                   <th className="py-3 px-4 text-center">Total Staff</th>
                   <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-center">Aksi Platform</th>
                   <th className="py-3 px-5 text-right">Kedaulatan Data</th>
                 </tr>
               </thead>
@@ -204,9 +230,33 @@ export default function SuperadminDashboard({
                     <td className="py-3.5 px-4 text-center font-mono">{t.products_count ?? 0}</td>
                     <td className="py-3.5 px-4 text-center font-mono">{t.users_count ?? 1}</td>
                     <td className="py-3.5 px-4 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
-                        Aktif
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          t.is_active !== false
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        {t.is_active !== false ? 'Aktif' : 'Suspended'}
                       </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playTap();
+                          router.post(`/superadmin/tenants/${t.id}/toggle-status`, {}, {
+                            onSuccess: () => playSuccessChime(),
+                          });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer active:scale-95 ${
+                          t.is_active !== false
+                            ? 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        }`}
+                      >
+                        {t.is_active !== false ? 'Tangguhkan' : 'Aktifkan'}
+                      </button>
                     </td>
                     <td className="py-3.5 px-5 text-right">
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400">
@@ -217,6 +267,94 @@ export default function SuperadminDashboard({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* CUSTOMER SUPPORT TICKETS DESK */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <MessageSquare className="size-4 text-[#0f2b5c]" />
+                <span>Tiket Kendala &amp; Meja CS Realtime (Platform Support Desk)</span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Pesan bantuan masuk dari aplikasi kasir dan pemilik tenant
+              </p>
+            </div>
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+              {tickets.length} Tiket
+            </span>
+          </div>
+
+          <div className="p-4">
+            {tickets.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                Tidak ada tiket kendala aktif saat ini. Seluruh outlet tenant beroperasi lancar.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets.map((tc) => (
+                  <div
+                    key={tc.id}
+                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-slate-900">
+                          #{tc.ticket_number}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-[#0f2b5c]">
+                          {tc.tenant?.name || 'Tenant'}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            tc.status === 'resolved'
+                              ? 'bg-slate-200 text-slate-700'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {tc.status === 'resolved' ? 'Selesai' : 'Perlu Respon'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-800">{tc.subject}</p>
+                      {tc.messages && tc.messages.length > 0 && (
+                        <p className="text-[11px] text-slate-500 line-clamp-1 italic">
+                          Pesan terakhir: &quot;{tc.messages[tc.messages.length - 1].message}&quot;
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playTap();
+                          setSelectedTicket(tc);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold shadow-xs active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <MessageSquare className="size-3.5" />
+                        <span>Balas CS</span>
+                      </button>
+                      {tc.status !== 'resolved' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playTap();
+                            router.post(`/superadmin/tickets/${tc.id}/resolve`, {}, {
+                              onSuccess: () => playSuccessChime(),
+                            });
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100 active:scale-95 transition cursor-pointer"
+                        >
+                          Selesaikan
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -250,15 +388,78 @@ export default function SuperadminDashboard({
             <button
               type="button"
               onClick={() => setIsClaimModalOpen(false)}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold"
+              className="px-5 py-2 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold cursor-pointer"
             >
               Aktifkan Akses Bantuan
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL BALAS TIKET CS */}
+      <Modal
+        isOpen={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+        title={`Balas Tiket #${selectedTicket?.ticket_number}`}
+        description={`Kirim pesan balasan resmi Customer Support ke tenant ${selectedTicket?.tenant?.name}.`}
+        maxWidth="lg"
+      >
+        <form onSubmit={handleReplyTicket} className="space-y-4">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <p className="text-xs font-bold text-slate-900">{selectedTicket?.subject}</p>
+            <div className="max-h-40 overflow-y-auto space-y-2 text-xs">
+              {selectedTicket?.messages?.map((m: any) => (
+                <div
+                  key={m.id}
+                  className={`p-2 rounded-xl ${
+                    m.sender_role === 'superadmin'
+                      ? 'bg-blue-100/70 text-blue-950 ml-6'
+                      : 'bg-white text-slate-800 mr-6 border border-slate-200'
+                  }`}
+                >
+                  <p className="font-bold text-[10px] text-slate-500 uppercase tracking-wide">
+                    {m.sender_role === 'superadmin' ? 'Customer Support QLon' : 'Pelapor Tenant'}
+                  </p>
+                  <p className="mt-0.5">{m.message}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Pesan Balasan CS
+            </label>
+            <textarea
+              rows={3}
+              required
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Tulis instruksi solusi atau pembaruan teknis untuk tenant..."
+              className="w-full p-3 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#0f2b5c]"
+            />
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedTicket(null)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              Tutup
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Send className="size-3.5" />
+              <span>Kirim Jawaban CS</span>
             </button>
           </div>
         </form>

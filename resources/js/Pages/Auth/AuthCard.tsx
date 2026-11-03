@@ -43,8 +43,8 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
 
   // Login Form
   const loginForm = useForm({
-    email: 'owner@kopikawan.com',
-    password: 'password123',
+    email: '',
+    password: '',
     remember: true,
   });
 
@@ -76,28 +76,7 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
     }
   };
 
-  const selectPersona = (role: 'master' | 'owner' | 'cashier') => {
-    playTap();
-    if (role === 'master') {
-      loginForm.setData({
-        email: 'master@qlon.id',
-        password: 'password123',
-        remember: true,
-      });
-    } else if (role === 'owner') {
-      loginForm.setData({
-        email: 'owner@kopikawan.com',
-        password: 'password123',
-        remember: true,
-      });
-    } else {
-      loginForm.setData({
-        email: 'kasir@kopikawan.com',
-        password: 'password123',
-        remember: true,
-      });
-    }
-  };
+
 
   const handleOAuthFallback = (provider: string) => {
     playTap();
@@ -189,48 +168,6 @@ export default function AuthCard({ initialMode = 'signin' }: AuthCardProps) {
             {/* SIGN IN VIEW */}
             {mode === 'signin' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
-                {/* Role Quick Selector (Without any 'Akses Demo' text) */}
-                <div className="flex items-center justify-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/80">
-                  <button
-                    type="button"
-                    onClick={() => selectPersona('master')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer active:scale-95 ${
-                      loginForm.data.email === 'master@qlon.id'
-                        ? 'bg-[#0f2b5c] text-white shadow-xs scale-[1.02]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                    }`}
-                  >
-                    <ShieldCheck className="size-3.5" />
-                    <span>Master</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => selectPersona('owner')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer active:scale-95 ${
-                      loginForm.data.email === 'owner@kopikawan.com'
-                        ? 'bg-[#0f2b5c] text-white shadow-xs scale-[1.02]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                    }`}
-                  >
-                    <Building2 className="size-3.5" />
-                    <span>Owner</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => selectPersona('cashier')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer active:scale-95 ${
-                      loginForm.data.email === 'kasir@kopikawan.com'
-                        ? 'bg-[#0f2b5c] text-white shadow-xs scale-[1.02]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                    }`}
-                  >
-                    <Receipt className="size-3.5" />
-                    <span>Kasir</span>
-                  </button>
-                </div>
-
                 {/* Login Form */}
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div>

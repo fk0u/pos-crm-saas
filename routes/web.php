@@ -94,6 +94,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::post('/developer/api-keys', [DeveloperHubController::class, 'createKey'])->name('developer.keys.store');
         Route::delete('/developer/api-keys/{id}', [DeveloperHubController::class, 'destroyKey'])->name('developer.keys.destroy');
         Route::post('/developer/webhooks', [DeveloperHubController::class, 'createWebhook'])->name('developer.webhooks.store');
+        Route::post('/developer/webhooks/{id}/test', [DeveloperHubController::class, 'testWebhook'])->name('developer.webhooks.test');
         Route::delete('/developer/webhooks/{id}', [DeveloperHubController::class, 'destroyWebhook'])->name('developer.webhooks.destroy');
     });
 
@@ -102,6 +103,9 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
         Route::post('/superadmin/claim-token', [SuperadminController::class, 'claimToken'])->name('superadmin.claim_token');
         Route::post('/superadmin/exit-delegation', [SuperadminController::class, 'exitDelegation'])->name('superadmin.exit_delegation');
+        Route::post('/superadmin/tenants/{id}/toggle-status', [SuperadminController::class, 'toggleTenantStatus'])->name('superadmin.tenants.toggle_status');
+        Route::post('/superadmin/tickets/{id}/reply', [SuperadminController::class, 'replySupportTicket'])->name('superadmin.tickets.reply');
+        Route::post('/superadmin/tickets/{id}/resolve', [SuperadminController::class, 'resolveSupportTicket'])->name('superadmin.tickets.resolve');
     });
 });
 
