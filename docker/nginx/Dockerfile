@@ -1,4 +1,4 @@
-FROM omnipoint-pos-app:latest AS app
+FROM qlon-pos-app:latest AS app
 
 FROM nginx:alpine
 

@@ -358,13 +358,13 @@ Mengambil metrik ringkas terkini cabang untuk owner.
 
 | Modul / Aksi | SuperAdmin | Owner | Outlet Manager | Cashier |
 | :--- | :---: | :---: | :---: | :---: |
-| **Buka/Tutup Kasir (Shift)** | ✓ | ✓ | ✓ | ✓ |
-| **Transaksi Terminal Kasir** | — | ✓ | ✓ | ✓ |
-| **Beri Diskon Manual** | — | ✓ | ✓ | — (Butuh PIN) |
-| **Edit/Hapus Produk & Harga**| — | ✓ | ✓ | — |
-| **Live Sales Dashboard** | ✓ (All) | ✓ (Own) | ✓ (Own Outlet)| — |
-| **Laporan Finansial & HPP** | — | ✓ | — | — |
-| **Manajemen Lisensi SaaS** | ✓ | — | — | — |
+| **Buka/Tutup Kasir (Shift)** | Ya | Ya | Ya | Ya |
+| **Transaksi Terminal Kasir** | — | Ya | Ya | Ya |
+| **Beri Diskon Manual** | — | Ya | Ya | — (Butuh PIN) |
+| **Edit/Hapus Produk & Harga**| — | Ya | Ya | — |
+| **Live Sales Dashboard** | Ya (All) | Ya (Own) | Ya (Own Outlet)| — |
+| **Laporan Finansial & HPP** | — | Ya | — | — |
+| **Manajemen Lisensi SaaS** | Ya | — | — | — |
 
 ---
 

@@ -1,11 +1,11 @@
-# SaaS POS + CRM + Central Sales Monitoring (Omnipoint v2.5)
+# QLon - SaaS POS + CRM + Central Sales Monitoring
 
 > **Multi-Tenant Point of Sale & Real-time Business Monitoring Platform for Indonesian SMEs (UMKM)**  
 > Built with **Laravel 13**, **PHP 8.5+**, **Inertia.js (Vue 3)**, **Tailwind CSS v4**, and **Action-Domain Modular Clean Architecture**.
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 Platform SaaS terpadu generasi baru yang menggabungkan:
 1. **POS Kasir Cepat & Responsif**: Operasional kasir berbasis Inertia.js + Vue 3, multi-metode pembayaran (Tunai dengan kalkulator uang pas & kembalian, QRIS dinamis, Debit EDC, Split bill), barcode scan auto-reader, pencetakan struk thermal, dan pengiriman e-struk WhatsApp instan.
 2. **Shift & Cash Drawer Control (X/Z Reports)**: Kontrol laci kasir, modal awal kasir (cash float), pencatatan pergerakan kas masuk/keluar (*petty cash*), blind cash count closing, kalkulasi otomatis selisih kas (*over/short*), dan otorisasi supervisor.
@@ -15,7 +15,7 @@ Platform SaaS terpadu generasi baru yang menggabungkan:
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Backend Framework:** Laravel 13 (`laravel/framework: ^13.39`) on **PHP 8.5+**
 - **Architecture Pattern:** Action-Domain Pattern / Modular Clean Architecture (`app/Domain/Pos`, `app/Domain/Crm`, `app/Domain/Shift`, `app/Domain/Audit`)
 - **Frontend / UI:** Inertia.js Vue 3 SPA + Tailwind CSS v4 + Lucide Icons + Google Fonts (*Plus Jakarta Sans* & *JetBrains Mono*)
@@ -25,7 +25,7 @@ Platform SaaS terpadu generasi baru yang menggabungkan:
 
 ---
 
-## 🏗 Modular Clean Architecture (`app/Domain/`)
+## Modular Clean Architecture (`app/Domain/`)
 Sistem telah dipisahkan menjadi domain actions dan DTOs yang terstruktur rapi:
 ```
 app/
@@ -55,7 +55,7 @@ app/
 
 ---
 
-## ⚡ Quick Start (Setup & Jalankan)
+## Quick Start (Setup & Jalankan)
 
 1. **Install Dependency & Migrasi:**
 ```bash
@@ -74,7 +74,7 @@ Kunjungi: `http://localhost:8000`
 
 ---
 
-## 🔑 Akun Demo (Bawaan Seeder)
+## Akun Demo (Bawaan Seeder)
 * **Owner (Pemilik Toko)**: `owner@kopikawan.com` / `password123`  
   *(Akses penuh Owner HQ Live Dashboard, analitik finansial, laba kotor HPP, audit log)*
 * **Kasir (Outlet Samarinda)**: `kasir@kopikawan.com` / `password123`  
@@ -82,7 +82,7 @@ Kunjungi: `http://localhost:8000`
 
 ---
 
-## 📡 API Endpoints (v1)
+## API Endpoints (v1)
 Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | Deskripsi |
@@ -98,5 +98,5 @@ Base URL: `http://localhost:8000/api/v1`
 
 ---
 
-## 👥 Core Team & Co-Authors
+## Core Team & Co-Authors
 Lihat detail alur kerja dan distribusi peran di [`TEAM.md`](TEAM.md).

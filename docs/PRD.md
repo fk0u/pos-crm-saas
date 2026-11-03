@@ -4,7 +4,7 @@
 | Metadata | Details |
 | :--- | :--- |
 | **Doc ID** | `PRD-SAAS-POS-01` |
-| **Product Name** | Omnipoint POS & Central Ops (Working Title) |
+| **Product Name** | QLon POS & Central Ops |
 | **Target Audience** | UMKM Retail & F&B Indonesia (1 - 20 Cabang) |
 | **Document Status** | Approved for Sprint Kickoff |
 | **Target Release** | MVP Phase 1 |

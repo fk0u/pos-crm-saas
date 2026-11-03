@@ -7,7 +7,6 @@ import {
   Boxes,
   CircleDollarSign,
   CreditCard,
-  Crown,
   Landmark,
   QrCode,
   ReceiptText,
@@ -29,6 +28,14 @@ import {
   X,
   TrendingUp,
   TrendingDown,
+  Info,
+  Calendar,
+  Download,
+  Eye,
+  MapPin,
+  Sparkles,
+  Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { AppShell, getGreeting } from '@/Components/app/app-shell';
 import { Badge, Card } from '@/Components/ui/card';
@@ -39,13 +46,14 @@ import { SearchInput } from '@/Components/ui/search-input';
 import { Segmented } from '@/Components/ui/segmented';
 import { CountUp } from '@/Components/ui/count-up';
 import { RevenueChart } from '@/Components/dashboard/revenue-chart';
+import OnboardingTourModal from '@/Components/dashboard/OnboardingTourModal';
 import { categoryTone, initials, buildDailySeries, type DailyPoint } from '@/lib/analytics';
 import { formatMoney, formatNumber, formatDateTime, formatCompactMoney } from '@/lib/format';
 import { playTap, playSuccessChime, triggerHaptic } from '@/lib/sound';
 
 const methodMeta = {
   cash: { label: 'Tunai', icon: Banknote, bar: 'bg-emerald-500' },
-  qris: { label: 'QRIS', icon: QrCode, bar: 'bg-navy-600' },
+  qris: { label: 'QRIS', icon: QrCode, bar: 'bg-[#0f2b5c]' },
   card: { label: 'Kartu', icon: CreditCard, bar: 'bg-sky-500' },
   transfer: { label: 'Transfer', icon: Landmark, bar: 'bg-amber-500' },
 } as const;
@@ -105,6 +113,9 @@ interface DashboardProps {
     new_customers_count?: number;
     growth_revenue?: number;
     growth_orders?: number;
+    revenue?: number;
+    transactions?: number;
+    aov?: number;
   };
   outlets?: Outlet[];
   customers?: Customer[];
@@ -134,6 +145,23 @@ export default function DashboardIndex({
   const [isRefunding, setIsRefunding] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [revenueToggle, setRevenueToggle] = useState<'revenue' | 'deals'>('revenue');
+  const [statusFilter, setStatusFilter] = useState<'year' | 'month'>('month');
+  const [productSearch, setProductSearch] = useState('');
+
+  // Auto trigger Onboarding Tour on first visit
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasCompleted = localStorage.getItem('qlon_onboarded_completed');
+      if (!hasCompleted) {
+        const timer = setTimeout(() => {
+          setIsTourOpen(true);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   const handleRefresh = () => {
     playTap();
@@ -193,101 +221,67 @@ export default function DashboardIndex({
   const todayCount = Number(summary?.today_orders_count ?? summary?.transactions ?? ordersList.length);
   const avgOrder = Number(summary?.avg_order_value ?? summary?.aov ?? (todayCount ? Math.round(revenue / todayCount) : 0));
   const newCustomersCount = Number(summary?.new_customers_count ?? customers.length);
-  const growth = Number(summary?.growth_revenue ?? 12.5);
+  const growth = Number(summary?.growth_revenue ?? 18.4);
 
-  // Build daily series for RevenueChart
-  const series: DailyPoint[] = useMemo(() => {
-    const base = [
-      { key: 'd1', label: '14 hari lalu', revenue: 1450000, count: 18 },
-      { key: 'd2', label: '13 hari lalu', revenue: 1620000, count: 21 },
-      { key: 'd3', label: '12 hari lalu', revenue: 1380000, count: 16 },
-      { key: 'd4', label: '11 hari lalu', revenue: 1950000, count: 24 },
-      { key: 'd5', label: '10 hari lalu', revenue: 1800000, count: 22 },
-      { key: 'd6', label: '9 hari lalu', revenue: 2100000, count: 27 },
-      { key: 'd7', label: '8 hari lalu', revenue: 2250000, count: 29 },
-      { key: 'd8', label: '7 hari lalu', revenue: 1980000, count: 25 },
-      { key: 'd9', label: '6 hari lalu', revenue: 2400000, count: 31 },
-      { key: 'd10', label: '5 hari lalu', revenue: 2150000, count: 28 },
-      { key: 'd11', label: '4 hari lalu', revenue: 2600000, count: 34 },
-      { key: 'd12', label: '3 hari lalu', revenue: 2750000, count: 36 },
-      { key: 'd13', label: 'Kemarin', revenue: 1720000, count: 22 },
-      { key: 'd14', label: 'Hari ini', revenue: revenue, count: todayCount },
-    ];
-    return base;
-  }, [revenue, todayCount]);
-
-  // Payment methods breakdown
-  const methodAmounts: Record<string, number> = {
-    cash: Math.round(revenue * 0.42),
-    qris: Math.round(revenue * 0.38),
-    card: Math.round(revenue * 0.12),
-    transfer: Math.round(revenue * 0.08),
-  };
-  const methodTotal = Object.values(methodAmounts).reduce((a, b) => a + b, 0);
-
-  // Top products list
-  const displayTopProducts = topProducts.length > 0 ? topProducts.slice(0, 5) : [
-    { id: 1, name: 'Kopi Susu Aren', category: 'Kopi', sold_count: 54, total_revenue: 1080000 },
-    { id: 2, name: 'Iced Caffe Latte', category: 'Kopi', sold_count: 42, total_revenue: 1092000 },
-    { id: 3, name: 'Artisan Matcha Latte', category: 'Non-Kopi', sold_count: 36, total_revenue: 936000 },
-    { id: 4, name: 'Butter Croissant', category: 'Pastry', sold_count: 28, total_revenue: 672000 },
-    { id: 5, name: 'Cappuccino Hot', category: 'Kopi', sold_count: 22, total_revenue: 528000 },
+  // Databrain-inspired curated product showcase
+  const exploreProducts = [
+    {
+      id: 1,
+      name: 'Kopi Susu Aren Signature',
+      location: 'Booth Utama - Hall A',
+      price: 28000,
+      stock: '85 cup',
+      sold: '420',
+      rating: '4.9',
+      image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80',
+    },
+    {
+      id: 2,
+      name: 'Matcha Latte Premium',
+      location: 'Booth 02 - Festival Park',
+      price: 35000,
+      stock: '60 cup',
+      sold: '280',
+      rating: '4.8',
+      image: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=600&q=80',
+    },
+    {
+      id: 3,
+      name: 'Croissant Butter Artisan',
+      location: 'Outlet HQ Kopi Kawan',
+      price: 24000,
+      stock: '45 pcs',
+      sold: '195',
+      rating: '5.0',
+      image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80',
+    },
+    {
+      id: 4,
+      name: 'Caramel Cold Brew Bottle',
+      location: 'Express Bar Stand',
+      price: 32000,
+      stock: '70 btl',
+      sold: '310',
+      rating: '4.9',
+      image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=600&q=80',
+    },
   ];
 
-  // Low stock inventory sample
-  const lowStock = [
-    { id: 'ls1', name: 'Butter Croissant', outlet: outletName, quantity: 2 },
-    { id: 'ls2', name: 'Pain Au Chocolat', outlet: outletName, quantity: 3 },
-    { id: 'ls3', name: 'Biji Kopi Arabica Single Origin', outlet: outletName, quantity: 4 },
+  // 12-Month Bar Chart Data (Databrain Revenue Generation)
+  const monthlyData = [
+    { month: 'Jan', revenue: 28, deals: 210 },
+    { month: 'Feb', revenue: 34, deals: 250 },
+    { month: 'Mar', revenue: 22, deals: 170 },
+    { month: 'Apr', revenue: 41, deals: 310 },
+    { month: 'May', revenue: 30, deals: 230 },
+    { month: 'Jun', revenue: 38, deals: 290 },
+    { month: 'Jul', revenue: 26, deals: 190 },
+    { month: 'Aug', revenue: 45, deals: 360 },
+    { month: 'Sep', revenue: 52, deals: 420 },
+    { month: 'Oct', revenue: 39, deals: 300 },
+    { month: 'Nov', revenue: 48, deals: 380 },
+    { month: 'Des', revenue: 35, deals: 270 },
   ];
-
-  // Customer segments
-  const segmentCounts = [
-    { segment: 'new', count: 14 },
-    { segment: 'regular', count: 48 },
-    { segment: 'loyal', count: 26 },
-    { segment: 'vip', count: 8 },
-  ];
-
-  // Primary stats cards
-  const stats = [
-    {
-      label: 'Omzet hari ini',
-      value: revenue,
-      format: 'money',
-      icon: CircleDollarSign,
-      tone: 'bg-navy-50 text-navy-700',
-      note: `+${growth.toFixed(1).replace('.', ',')}% dari kemarin`,
-      positive: true,
-    },
-    {
-      label: 'Transaksi',
-      value: todayCount,
-      format: 'number',
-      icon: ReceiptText,
-      tone: 'bg-emerald-50 text-emerald-700',
-      note: 'Semua transaksi selesai',
-      positive: true,
-    },
-    {
-      label: 'Rata-rata order',
-      value: avgOrder,
-      format: 'money',
-      icon: ShoppingBag,
-      tone: 'bg-sky-50 text-sky-700',
-      note: 'Per transaksi hari ini',
-      positive: true,
-    },
-    {
-      label: 'Pelanggan baru',
-      value: newCustomersCount,
-      format: 'number',
-      icon: Users,
-      tone: 'bg-amber-50 text-amber-700',
-      note: `${(customers.length || 96)} pelanggan terdaftar`,
-      positive: true,
-    },
-  ] as const;
 
   const handleRefund = (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,24 +308,39 @@ export default function DashboardIndex({
       tenantName={tenantName}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      onOpenTour={() => setIsTourOpen(true)}
+      isSuperAdmin={isSuperAdmin}
+      allTenants={allTenants}
+      selectedTenantId={tenantId}
     >
-      <div className="space-y-6 max-w-7xl mx-auto">
-        {/* SuperAdmin Master Access Switcher */}
+      <div className="space-y-6">
+        
+        {/* Onboarding Tour Modal */}
+        <OnboardingTourModal
+          isOpen={isTourOpen}
+          onClose={() => setIsTourOpen(false)}
+          userName={userName}
+          role={role}
+        />
+
+        {/* Master Administrator Switcher Pill Banner */}
         {isSuperAdmin && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-slate-900 to-navy-950 text-white border border-purple-500/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#061325] via-[#0b1f3b] to-[#040e1d] text-white border border-blue-400/20 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/30 flex items-center justify-center shrink-0">
-                <ShieldCheck className="size-5" />
+              <div className="size-9 rounded-xl bg-[#0f2b5c] text-sky-300 border border-blue-400/30 flex items-center justify-center shrink-0">
+                <ShieldCheck className="size-4.5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-purple-400">Mode Master Administrator</span>
-                  <span className="text-[10px] bg-purple-500/20 text-purple-200 border border-purple-400/30 px-2 py-0.5 rounded-full font-mono font-bold">
-                    Superadmin Akses Penuh
+                  <span className="text-xs font-black uppercase tracking-wider text-sky-300">
+                    Mode Master Administrator
+                  </span>
+                  <span className="text-[9px] bg-blue-500/20 text-sky-200 border border-blue-400/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                    Superadmin Global
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Anda memiliki wewenang untuk memantau metrik seluruh tenant dan cabang bisnis secara realtime.
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Wewenang penuh untuk memantau metrik seluruh tenant dan outlet festival.
                 </p>
               </div>
             </div>
@@ -345,8 +354,9 @@ export default function DashboardIndex({
                     playTap();
                     router.get('/dashboard', { tenant_id: e.target.value }, { preserveState: true });
                   }}
-                  className="bg-slate-800 text-white text-xs font-semibold rounded-xl border border-slate-700 px-3 py-2 focus:ring-2 focus:ring-purple-400 focus:outline-none cursor-pointer"
+                  className="bg-[#0f2b5c] text-white text-xs font-semibold rounded-xl border border-blue-400/40 px-3 py-1.5 focus:ring-2 focus:ring-sky-400 focus:outline-none cursor-pointer"
                 >
+                  <option value="">Semua Tenant (Sovereign Master)</option>
                   {allTenants.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name} ({t.subdomain})
@@ -360,535 +370,600 @@ export default function DashboardIndex({
 
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between animate-fade-in shadow-2xs">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="size-4 text-[#0f2b5c] shrink-0" />
               <p className="text-xs font-semibold">{toastMessage}</p>
             </div>
-            <button onClick={() => setToastMessage(null)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold">
+            <button
+              onClick={() => setToastMessage(null)}
+              className="text-blue-700 hover:text-blue-950 text-xs font-semibold cursor-pointer"
+            >
               Tutup
             </button>
           </div>
         )}
 
-        {/* ===================== TAB: OVERVIEW (Improve App Appearance match) ===================== */}
-        {activeTab === 'overview' && (
-          <div className="grid gap-6">
-            {/* Top Navy Hero Banner */}
-            <section className="relative overflow-hidden rounded-2xl bg-navy-950 p-6 text-white sm:p-8 shadow-sm">
-              <div className="absolute -right-20 -top-24 size-72 rounded-full bg-navy-500/30 blur-3xl" />
-              <div className="absolute -bottom-28 left-1/3 size-72 rounded-full bg-sky-400/15 blur-3xl" />
-              <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-sm text-navy-200">{getGreeting()},</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl text-white">
-                    {userName.split(' ')[0]}
-                  </p>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-navy-200">
-                    Omzet hari ini{' '}
-                    <span className="money font-semibold text-white">{formatMoney(revenue)}</span> dari{' '}
-                    {todayCount} transaksi
-                    {lowStock.length ? `, dan ${lowStock.length} produk perlu restock.` : '. Stok aman.'}
-                  </p>
+        {/* DASHBOARD OVERVIEW SECTION TITLE ROW (Databrain Inspired) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Dashboard Overview
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Monitoring penjualan real-time, status transaksi, dan kesehatan outlet.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Date Picker Button */}
+            <button
+              type="button"
+              onClick={() => playTap()}
+              className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-2 shadow-2xs transition cursor-pointer"
+            >
+              <Calendar className="size-3.5 text-slate-400" />
+              <span>3 November 2026</span>
+              <ChevronDown className="size-3 text-slate-400" />
+            </button>
+
+            {/* Export Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setToastMessage('Laporan diexport ke format CSV...');
+                setTimeout(() => setToastMessage(null), 3000);
+              }}
+              className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+            >
+              <Download className="size-3.5 text-slate-400" />
+              <span>Export</span>
+            </button>
+
+            {/* Primary Action Button (Navy Blue) */}
+            <Link
+              href="/pos"
+              onClick={() => playTap()}
+              className="h-9 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] active:bg-[#0a1e42] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-950/20 transition cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              <span>Buka Kasir POS</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 1. TOP 4 STATS CARDS (Matching Databrain Overview) */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Card 1: Total Pesanan Terkelola with Semicircle Radial Gauge */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">4,860</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Total Pesanan Terkelola</p>
+              </div>
+              <div className="size-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#0f2b5c]">
+                <Boxes className="size-4" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between">
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <TrendingUp className="size-3" /> 98% Bulan lalu
+              </span>
+
+              {/* Semicircle Gauge SVG */}
+              <div className="relative size-12 shrink-0">
+                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#f1f5f9"
+                    strokeWidth="3.5"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#0f2b5c"
+                    strokeWidth="3.5"
+                    strokeDasharray="75, 100"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Nilai Omzet / GMV with Mini Vertical Bars Visual */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                  {revenue > 0 ? formatCompactMoney(revenue) : 'Rp 248.5jt'}
+                </p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Nilai GMV / Omzet</p>
+              </div>
+              <div className="size-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-sky-600">
+                <CircleDollarSign className="size-4" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between">
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <TrendingUp className="size-3" /> 72% Realtime
+              </span>
+
+              {/* 5-Bar Vertical Histogram */}
+              <div className="flex items-end gap-1 h-7">
+                <span className="w-1.5 h-3 rounded-full bg-slate-200" />
+                <span className="w-1.5 h-4 rounded-full bg-sky-200" />
+                <span className="w-1.5 h-5 rounded-full bg-sky-400" />
+                <span className="w-1.5 h-6 rounded-full bg-[#0f2b5c]" />
+                <span className="w-1.5 h-7 rounded-full bg-[#0f2b5c]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Transaksi Sukses with Stepped Blocks */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                  {todayCount > 0 ? formatNumber(todayCount) : '1,037'}
+                </p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Transaksi Sukses</p>
+              </div>
+              <div className="size-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-amber-600">
+                <ReceiptText className="size-4" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between">
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <TrendingUp className="size-3" /> 44.2% Sukses
+              </span>
+
+              {/* Stepping Block Bars */}
+              <div className="flex items-end gap-1 h-7">
+                <span className="w-2.5 h-4 rounded-sm bg-amber-200" />
+                <span className="w-2.5 h-6 rounded-sm bg-amber-400" />
+                <span className="w-2.5 h-7 rounded-sm bg-[#0f2b5c]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Pelanggan Terhubung (CRM) with Frequency Pulse Bars */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                  {newCustomersCount > 0 ? formatNumber(newCustomersCount) : '895'}
+                </p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Pelanggan Aktif CRM</p>
+              </div>
+              <div className="size-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-indigo-600">
+                <Users className="size-4" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between">
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <TrendingUp className="size-3" /> 70% Retensi
+              </span>
+
+              {/* Soundwave/Frequency Pulse Bars */}
+              <div className="flex items-center gap-1 h-7">
+                <span className="w-1 h-3 rounded-full bg-indigo-300" />
+                <span className="w-1 h-6 rounded-full bg-[#0f2b5c]" />
+                <span className="w-1 h-4 rounded-full bg-indigo-400" />
+                <span className="w-1 h-7 rounded-full bg-[#0f2b5c]" />
+                <span className="w-1 h-5 rounded-full bg-indigo-500" />
+                <span className="w-1 h-2 rounded-full bg-indigo-300" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 2. MIDDLE ROW: STATUS ANALYSIS & REVENUE GENERATION (Databrain Inspired) */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          
+          {/* Left: Status Analysis Donut Ring Card (5 cols) */}
+          <div className="lg:col-span-5 p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-slate-900">Status Analysis</h3>
+                  <Info className="size-3.5 text-slate-400" />
                 </div>
-                <div className="flex gap-2.5">
-                  <Link
-                    href="/pos"
-                    onClick={() => playTap()}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-navy-900 shadow-sm transition hover:bg-navy-50"
-                  >
-                    <ShoppingCart className="size-4" />
-                    Mulai jualan
-                  </Link>
-                  <a
-                    href="#reports"
-                    onClick={() => {
-                      playTap();
-                      triggerHaptic('light');
-                      setActiveTab('reports');
-                    }}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95"
-                  >
-                    Laporan
-                    <ArrowUpRight className="size-4" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 px-3.5 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95"
-                    aria-label="Segarkan data"
-                  >
-                    <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">Sinkron</span>
-                  </button>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
+                >
+                  <option value="month">Bulan Ini</option>
+                  <option value="year">Tahun Ini</option>
+                </select>
+              </div>
+
+              {/* Donut Chart with Center Layers Icon */}
+              <div className="flex items-center justify-center gap-6 py-4">
+                <div className="relative size-36 shrink-0 flex items-center justify-center">
+                  <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#f1f5f9" strokeWidth="4.5" />
+                    {/* Selesai: 72% */}
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#0f2b5c"
+                      strokeWidth="4.5"
+                      strokeDasharray="65 100"
+                      strokeLinecap="round"
+                    />
+                    {/* Diproses: 20% */}
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth="4.5"
+                      strokeDasharray="20 100"
+                      strokeDashoffset="-65"
+                      strokeLinecap="round"
+                    />
+                    {/* Pending: 15% */}
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="4.5"
+                      strokeDasharray="15 100"
+                      strokeDashoffset="-85"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  {/* Center Emblem */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="size-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-[#0f2b5c] shadow-xs">
+                      <Layers className="size-4.5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Legend List */}
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <span className="size-2.5 rounded-full bg-[#0f2b5c]" />
+                      <span>Selesai (Accepted)</span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 ml-4 font-mono">1,037</p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <span className="size-2.5 rounded-full bg-sky-400" />
+                      <span>Diproses (Process)</span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 ml-4 font-mono">486</p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <span className="size-2.5 rounded-full bg-amber-400" />
+                      <span>Pending (Payment)</span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 ml-4 font-mono">165</p>
+                  </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* 4 Stats Cards */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-              {stats.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <Card
-                    key={stat.label}
-                    className="group p-4 transition hover:-translate-y-0.5 hover:shadow-md animate-fade-up sm:p-5 bg-white border-slate-200"
-                  >
-                    <div style={{ animationDelay: `${index * 70}ms` }} className="animate-fade-up">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-                        <div
-                          className={`grid size-9 shrink-0 place-items-center rounded-xl transition group-hover:scale-110 ${stat.tone}`}
-                        >
-                          <Icon className="size-4.5" />
-                        </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Akurasi Pembayaran POS</span>
+              <span className="font-bold text-emerald-600">99.8% Berhasil</span>
+            </div>
+          </div>
+
+          {/* Right: Revenue Generation Double-Bar Chart Card (7 cols) */}
+          <div className="lg:col-span-7 p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-slate-900">Revenue Generation</h3>
+                  <Info className="size-3.5 text-slate-400" />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setRevenueToggle('deals')}
+                      className={`flex items-center gap-1.5 cursor-pointer ${
+                        revenueToggle === 'deals' ? 'text-[#0f2b5c]' : 'text-slate-400'
+                      }`}
+                    >
+                      <span className="size-2.5 rounded-full bg-sky-400" />
+                      <span>Deals / Order</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRevenueToggle('revenue')}
+                      className={`flex items-center gap-1.5 cursor-pointer ${
+                        revenueToggle === 'revenue' ? 'text-[#0f2b5c]' : 'text-slate-400'
+                      }`}
+                    >
+                      <span className="size-2.5 rounded-full bg-[#0f2b5c]" />
+                      <span>Omzet (Rp)</span>
+                    </button>
+                  </div>
+
+                  <select className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer">
+                    <option>Tahun 2026</option>
+                    <option>Tahun 2025</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Grouped Double Rounded Bar Chart Visual (Jan - Des) */}
+              <div className="h-52 flex items-end justify-between gap-1 sm:gap-2 pt-6 px-1">
+                {monthlyData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                    <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-36">
+                      {/* Deals Bar (Sky Blue) */}
+                      <div
+                        style={{ height: `${(d.deals / 450) * 100}%` }}
+                        className="w-1.5 sm:w-2.5 bg-sky-300 rounded-t-md group-hover:bg-sky-400 transition-all duration-300"
+                        title={`${d.month}: ${d.deals} Transaksi`}
+                      />
+                      {/* Revenue Bar (Navy Blue) */}
+                      <div
+                        style={{ height: `${(d.revenue / 60) * 100}%` }}
+                        className="w-2 sm:w-3.5 bg-[#0f2b5c] rounded-t-md group-hover:bg-[#163a75] transition-all duration-300"
+                        title={`${d.month}: Rp ${d.revenue}jt Omzet`}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-semibold group-hover:text-slate-900">
+                      {d.month}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center gap-2">
+                <span>Rata-rata pertumbuhan:</span>
+                <span className="font-bold text-[#0f2b5c] font-mono">+24.5% MoM</span>
+              </div>
+              <span className="font-mono text-slate-400">Total: Rp 450.000.000 YTD</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 3. BOTTOM ROW: EXPLORE YOUR PRODUCTS & EVENT BOOTHS (Databrain Cards) */}
+        {/* ========================================================================= */}
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900">
+                Explore Your Products &amp; Event Booths
+              </h3>
+              <Info className="size-3.5 text-slate-400" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="size-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Search products..."
+                  className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0f2b5c]"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => playTap()}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <SlidersHorizontal className="size-3 text-slate-400" />
+                <span>Filter</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {exploreProducts
+              .filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+              .map((prod) => (
+                <div
+                  key={prod.id}
+                  className="group rounded-2xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+                >
+                  {/* Thumbnail Image with Top-Right Eye Inspect Button */}
+                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={prod.image}
+                      alt={prod.name}
+                      className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        setToastMessage(`Membuka rincian: ${prod.name}`);
+                        setTimeout(() => setToastMessage(null), 2500);
+                      }}
+                      className="absolute top-2.5 right-2.5 size-7 rounded-full bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center shadow-xs transition cursor-pointer"
+                      title="Inspect Product"
+                    >
+                      <Eye className="size-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Info Body */}
+                  <div className="p-3.5">
+                    <div className="flex items-start justify-between gap-1 mb-1">
+                      <h4 className="text-xs font-bold text-slate-900 truncate group-hover:text-[#0f2b5c] transition">
+                        {prod.name}
+                      </h4>
+                      <span className="text-xs font-extrabold text-[#0f2b5c] font-mono shrink-0">
+                        {formatMoney(prod.price)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 mb-3">
+                      <MapPin className="size-3 text-slate-400 shrink-0" />
+                      <span className="truncate">{prod.location}</span>
+                    </div>
+
+                    {/* Spec Pills Footer */}
+                    <div className="pt-2 border-t border-slate-100 grid grid-cols-3 gap-1 text-[10px] text-slate-500 text-center font-medium">
+                      <div className="bg-slate-50 py-1 rounded-md">
+                        <span className="text-slate-400 block text-[8px] uppercase">Stok</span>
+                        <span className="font-bold text-slate-800">{prod.stock}</span>
                       </div>
-                      <p className="money mt-2 truncate text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">
-                        <CountUp value={stat.value} format={stat.format} />
-                      </p>
-                      <p
-                        className={`mt-2 truncate text-[11px] font-medium ${
-                          stat.positive ? 'text-slate-500' : 'text-rose-600'
+                      <div className="bg-slate-50 py-1 rounded-md">
+                        <span className="text-slate-400 block text-[8px] uppercase">Terjual</span>
+                        <span className="font-bold text-slate-800">{prod.sold}</span>
+                      </div>
+                      <div className="bg-slate-50 py-1 rounded-md">
+                        <span className="text-slate-400 block text-[8px] uppercase">Rating</span>
+                        <span className="font-bold text-emerald-600">{prod.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 4. RECENT ORDERS TABLE & THERMAL / WA RECEIPT DISPATCH */}
+        {/* ========================================================================= */}
+        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Transaksi Terkini (Live Feed)</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pembaruan otomatis setiap 15 detik dari kasir &amp; event terminal.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <RefreshCw className={`size-3 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead>
+                <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="py-2.5 px-3">Invoice</th>
+                  <th className="py-2.5 px-3">Pelanggan</th>
+                  <th className="py-2.5 px-3">Metode</th>
+                  <th className="py-2.5 px-3 text-right">Total</th>
+                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {ordersList.slice(0, 6).map((order) => (
+                  <tr key={order.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3 px-3 font-mono font-bold text-slate-900">
+                      {order.invoice_number}
+                    </td>
+                    <td className="py-3 px-3 text-slate-600">
+                      {order.customer_name || 'Pelanggan Umum'}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="inline-flex items-center gap-1 capitalize text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                        {order.payment_method}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
+                      {formatMoney(order.grand_total)}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          order.status === 'refunded'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-emerald-100 text-emerald-800'
                         }`}
                       >
-                        {stat.note}
-                      </p>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Middle Row: Revenue Chart + Payment Methods Breakdown */}
-            <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
-              <RevenueChart series={series} />
-
-              <Card className="p-5 sm:p-6 bg-white border-slate-200">
-                <p className="text-sm font-semibold text-slate-950">Metode pembayaran</p>
-                <p className="mt-0.5 text-xs text-slate-500">30 hari terakhir</p>
-
-                {methodTotal ? (
-                  <>
-                    <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-slate-100">
-                      {(Object.keys(methodMeta) as (keyof typeof methodMeta)[]).map((m) => {
-                        const share = ((methodAmounts[m] ?? 0) / methodTotal) * 100;
-                        return share ? (
-                          <span
-                            key={m}
-                            className={`h-full origin-left animate-grow ${methodMeta[m].bar}`}
-                            style={{ width: `${share}%` }}
-                          />
-                        ) : null;
-                      })}
-                    </div>
-
-                    <ul className="mt-5 grid gap-3">
-                      {(Object.keys(methodMeta) as (keyof typeof methodMeta)[]).map((m) => {
-                        const amount = methodAmounts[m] ?? 0;
-                        const Icon = methodMeta[m].icon;
-                        return (
-                          <li key={m} className="flex items-center gap-3">
-                            <span className="grid size-9 place-items-center rounded-lg bg-slate-50 text-slate-600 border border-slate-100">
-                              <Icon className="size-4" />
-                            </span>
-                            <span className="flex-1 text-sm font-medium text-slate-700">
-                              {methodMeta[m].label}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {Math.round((amount / methodTotal) * 100)}%
-                            </span>
-                            <span className="money w-28 text-right text-sm font-semibold text-slate-900">
-                              {formatMoney(amount)}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </>
-                ) : (
-                  <p className="mt-8 text-center text-sm text-slate-500">
-                    Belum ada pembayaran tercatat.
-                  </p>
-                )}
-              </Card>
-            </div>
-
-            {/* Bottom Row: Top Products, Recent Orders, Segments & Restock */}
-            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-              {/* Top Products Card */}
-              <Card className="overflow-hidden bg-white border-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">Produk terlaris</p>
-                    <p className="text-xs text-slate-500">30 hari terakhir</p>
-                  </div>
-                  <a
-                    href="#inventory"
-                    onClick={() => {
-                      playTap();
-                      setActiveTab('inventory');
-                    }}
-                    className="text-xs font-semibold text-navy-700 hover:text-navy-900"
-                  >
-                    Semua
-                  </a>
-                </div>
-
-                {displayTopProducts.length ? (
-                  <ol className="divide-y divide-slate-100">
-                    {displayTopProducts.map((product, index) => (
-                      <li key={product.name} className="flex items-center gap-3 px-5 py-3.5">
-                        <span className="w-4 font-mono text-xs font-bold text-slate-400">
-                          {index + 1}
-                        </span>
-                        <span
-                          className={`grid size-9 place-items-center rounded-lg bg-gradient-to-br text-[11px] font-bold text-white shadow-2xs ${categoryTone(
-                            product.category === 'Pastry' ? 'sky' : product.category === 'Non-Kopi' ? 'emerald' : 'amber'
-                          ).tile}`}
+                        {order.status === 'refunded' ? 'Direfund' : 'Lunas'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href={`/invoices/${order.id}/receipt`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="size-7 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 transition"
+                          title="Cetak Struk Thermal"
                         >
-                          {initials(product.name)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-800">{product.name}</p>
-                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                            <span
-                              className="block h-full origin-left rounded-full bg-navy-500 animate-grow"
-                              style={{
-                                width: `${(product.sold_count / displayTopProducts[0].sold_count) * 100}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <span className="font-mono text-xs font-semibold text-slate-600">
-                          {product.sold_count}×
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="p-8 text-center text-sm text-slate-500">Belum ada penjualan.</p>
-                )}
-              </Card>
-
-              {/* Recent Orders Card */}
-              <Card className="overflow-hidden bg-white border-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">Transaksi terbaru</p>
-                    <p className="text-xs text-slate-500">Semua outlet</p>
-                  </div>
-                  <a
-                    href="#sales"
-                    onClick={() => {
-                      playTap();
-                      setActiveTab('sales');
-                    }}
-                    className="text-xs font-semibold text-navy-700 hover:text-navy-900"
-                  >
-                    Semua
-                  </a>
-                </div>
-
-                {ordersList.length ? (
-                  <ul className="divide-y divide-slate-100">
-                    {ordersList.slice(0, 5).map((sale) => (
-                      <li key={sale.id}>
+                          <Printer className="size-3.5" />
+                        </a>
+                        <a
+                          href={`/invoices/${order.id}/whatsapp`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="size-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center transition"
+                          title="Kirim Struk WhatsApp"
+                        >
+                          <Phone className="size-3.5" />
+                        </a>
                         <button
                           type="button"
                           onClick={() => {
                             playTap();
-                            setSelectedOrder(sale);
+                            setSelectedOrder(order);
                           }}
-                          className="w-full text-left group flex items-center gap-3 px-5 py-3.5 transition hover:bg-slate-50"
+                          className="size-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition cursor-pointer"
+                          title="Detail / Refund"
                         >
-                          <span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-500 transition group-hover:bg-navy-50 group-hover:text-navy-700">
-                            <ReceiptText className="size-4" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-mono text-xs font-semibold text-slate-800">
-                              {sale.invoice_number}
-                            </p>
-                            <p className="mt-0.5 truncate text-xs text-slate-500">
-                              {sale.customer_name || 'Pelanggan umum'} · {formatDateTime(sale.created_at)}
-                            </p>
-                          </div>
-                          <span className="money text-sm font-bold text-slate-950">
-                            {formatMoney(sale.grand_total)}
-                          </span>
+                          <ChevronRight className="size-3.5" />
                         </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="p-8 text-center text-sm text-slate-500">Belum ada transaksi.</p>
-                )}
-              </Card>
-
-              {/* Segments & Restock Column */}
-              <div className="grid gap-5 lg:col-span-2 lg:grid-cols-2 xl:col-span-1 xl:grid-cols-1">
-                {/* Segments Card */}
-                <Card className="p-5 bg-white border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-950">Segmen pelanggan</p>
-                    <Crown className="size-4 text-amber-500" />
-                  </div>
-                  <div className="mt-4 grid grid-cols-4 gap-2">
-                    {segmentCounts.map((item) => (
-                      <a
-                        key={item.segment}
-                        href="#crm"
-                        onClick={() => {
-                          playTap();
-                          setActiveTab('crm');
-                        }}
-                        className="rounded-xl bg-slate-50 p-3 text-center transition hover:bg-navy-50 border border-slate-100"
-                      >
-                        <p className="font-mono text-lg font-bold text-slate-950">
-                          {formatNumber(item.count)}
-                        </p>
-                        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                          {item.segment}
-                        </p>
-                      </a>
-                    ))}
-                  </div>
-                </Card>
-
-                {/* Restock Warning Card */}
-                <Card className="overflow-hidden bg-white border-slate-200">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                    <p className="text-sm font-semibold text-slate-950">Perlu restock</p>
-                    <Badge tone={lowStock.length ? 'warning' : 'success'}>{lowStock.length}</Badge>
-                  </div>
-                  {lowStock.length ? (
-                    <ul className="divide-y divide-slate-100">
-                      {lowStock.map((stock) => (
-                        <li key={stock.id} className="flex items-center gap-3 px-5 py-3">
-                          <Boxes className="size-4 text-amber-600" />
-                          <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
-                            {stock.name}{' '}
-                            <span className="text-xs text-slate-400">· {stock.outlet}</span>
-                          </p>
-                          <Badge tone={stock.quantity <= 2 ? 'danger' : 'warning'}>
-                            {stock.quantity} tersisa
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <a
-                      href="#inventory"
-                      onClick={() => {
-                        playTap();
-                        setActiveTab('inventory');
-                      }}
-                      className="flex items-center justify-between px-5 py-4 text-sm text-slate-500 hover:bg-slate-50"
-                    >
-                      Semua stok di atas batas minimum <ArrowRight className="size-4" />
-                    </a>
-                  )}
-                </Card>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ===================== TAB: SALES (Transaksi Explorer) ===================== */}
-        {activeTab === 'sales' && (
-          <div className="grid gap-5 animate-fade-in">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-2xl font-bold tracking-tight text-slate-950">Transaksi</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Telusuri penjualan, pembayaran, dan status refund.
-                </p>
-              </div>
-              <p className="text-sm text-slate-500">
-                {ordersList.length} transaksi ·{' '}
-                <span className="money font-bold text-slate-950">
-                  {formatMoney(ordersList.reduce((sum, o) => sum + o.grand_total, 0))}
-                </span>
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <SearchInput
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari nomor struk, pelanggan, kasir..."
-                className="lg:max-w-sm lg:flex-1"
-                aria-label="Cari transaksi"
-              />
-            </div>
-
-            <Card className="divide-y divide-slate-100 overflow-hidden bg-white border-slate-200">
-              {ordersList
-                .filter(
-                  (o) =>
-                    !searchQuery ||
-                    o.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (o.customer_name && o.customer_name.toLowerCase().includes(searchQuery.toLowerCase()))
-                )
-                .map((sale) => (
-                  <button
-                    key={sale.id}
-                    type="button"
-                    onClick={() => {
-                      playTap();
-                      setSelectedOrder(sale);
-                    }}
-                    className="w-full text-left flex items-center justify-between p-4 transition hover:bg-slate-50 group"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="grid size-10 place-items-center rounded-xl bg-slate-50 text-slate-600 border border-slate-100 group-hover:bg-navy-50 group-hover:text-navy-700">
-                        <ReceiptText className="size-5" />
                       </div>
-                      <div>
-                        <p className="font-mono text-xs font-bold text-slate-900">
-                          {sale.invoice_number}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {sale.customer_name || 'Pelanggan umum'} · {formatDateTime(sale.created_at)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="money text-sm font-bold text-slate-950">
-                          {formatMoney(sale.grand_total)}
-                        </p>
-                        <span
-                          className={`inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            sale.status === 'refunded'
-                              ? 'bg-rose-50 text-rose-700'
-                              : 'bg-emerald-50 text-emerald-700'
-                          }`}
-                        >
-                          {sale.status === 'refunded' ? 'Refund penuh' : 'Selesai'}
-                        </span>
-                      </div>
-                      <ChevronRight className="size-4 text-slate-400 group-hover:text-slate-700" />
-                    </div>
-                  </button>
-                ))}
-            </Card>
-          </div>
-        )}
-
-        {/* ===================== TAB: INVENTORY ===================== */}
-        {activeTab === 'inventory' && (
-          <div className="grid gap-5 animate-fade-in">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-2xl font-bold tracking-tight text-slate-950">Inventori &amp; Produk</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Pantau stok persediaan barang di setiap outlet.
-                </p>
-              </div>
-            </div>
-
-            <Card className="overflow-hidden bg-white border-slate-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
-                  <tr>
-                    <th className="px-5 py-3.5">Produk</th>
-                    <th className="px-5 py-3.5">Kategori</th>
-                    <th className="px-5 py-3.5">Harga</th>
-                    <th className="px-5 py-3.5 text-right">Stok Fisik</th>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {displayTopProducts.map((prod) => (
-                    <tr key={prod.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-4 font-semibold text-slate-900">{prod.name}</td>
-                      <td className="px-5 py-4 text-slate-500">{prod.category || 'Kopi'}</td>
-                      <td className="px-5 py-4 money font-semibold text-navy-800">
-                        {formatMoney(prod.total_revenue / prod.sold_count || 24000)}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <Badge tone={prod.sold_count > 30 ? 'success' : 'warning'}>
-                          {50 - Math.min(45, prod.sold_count)} unit
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
 
-        {/* ===================== TAB: CRM (Pelanggan) ===================== */}
-        {activeTab === 'crm' && (
-          <div className="grid gap-5 animate-fade-in">
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-slate-950">Direktori Pelanggan</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Kelola data pelanggan, saldo poin loyalti, dan riwayat belanja.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {segmentCounts.map((s) => (
-                <Card key={s.segment} className="p-4 bg-white border-slate-200">
-                  <p className="text-xs uppercase font-bold text-slate-400">{s.segment}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{s.count}</p>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="divide-y divide-slate-100 overflow-hidden bg-white border-slate-200">
-              {(customers.length > 0 ? customers : [
-                { id: 1, name: 'Ahmad Faisal', phone: '081234567890', tier: 'loyal', points_balance: 450, total_spent: 850000 },
-                { id: 2, name: 'Siti Rahma', phone: '085712345678', tier: 'vip', points_balance: 1200, total_spent: 2400000 },
-                { id: 3, name: 'Budi Santoso', phone: '081398765432', tier: 'regular', points_balance: 80, total_spent: 320000 },
-                { id: 4, name: 'Dewi Lestari', phone: '082199887766', tier: 'new', points_balance: 20, total_spent: 65000 },
-              ]).map((c) => (
-                <div key={c.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                  <div className="flex items-center gap-3">
-                    <div className="size-9 rounded-full bg-navy-50 text-navy-700 flex items-center justify-center font-bold text-xs">
-                      {initials(c.name)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{c.name}</p>
-                      <p className="text-xs text-slate-500">{c.phone}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge tone="primary">{c.tier?.toUpperCase() || 'NEW'}</Badge>
-                    <p className="mt-1 font-mono text-xs font-semibold text-emerald-700">
-                      {formatNumber(c.points_balance || 0)} poin
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          </div>
-        )}
-
-        {/* ===================== TAB: REPORTS & SETTINGS ===================== */}
-        {['reports', 'shifts', 'settings'].includes(activeTab) && (
-          <div className="grid gap-5 animate-fade-in">
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-slate-950 capitalize">{activeTab}</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Konfigurasi operasional dan laporan terperinci.
-              </p>
-            </div>
-            <Card className="p-8 text-center bg-white border-slate-200">
-              <ShieldCheck className="mx-auto size-10 text-navy-600 mb-3" />
-              <p className="font-semibold text-slate-900">Operasional Outlet Terverifikasi</p>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                Semua parameter pajak 11%, service charge, dan hak akses staf tersimpan secara aman di database.
-              </p>
-            </Card>
-          </div>
-        )}
       </div>
 
-      {/* Order Detail & Refund Drawer */}
+      {/* ========================================================================= */}
+      {/* 5. ORDER DETAIL & REFUND DRAWER */}
+      {/* ========================================================================= */}
       <Drawer
         open={Boolean(selectedOrder)}
         onClose={() => setSelectedOrder(null)}

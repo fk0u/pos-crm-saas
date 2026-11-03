@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: omnipoint-pos-app:latest
+    image: qlon-pos-app:latest
     restart: unless-stopped
     volumes:
       - ./.env:/var/www/.env:z
@@ -34,7 +34,7 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
-    image: omnipoint-pos-web:latest
+    image: qlon-pos-web:latest
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8085}:80"
