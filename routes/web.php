@@ -23,6 +23,8 @@ Route::get('/', fn () => redirect()->route('login'));
 // Legal & Policies (Terms of Service & Privacy Policy)
 Route::get('/terms', [LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/privacy', [LegalController::class, 'privacy'])->name('legal.privacy');
+Route::get('/help', [HelpController::class, 'index'])->name('help.index');
+Route::get('/bantuan', fn () => redirect()->route('help.index'))->name('bantuan');
 
 // Auth (session guard & onboarding)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -78,9 +80,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     });
 
-    // 8. Pusat Bantuan & Layanan CS Realtime
-    Route::get('/help', [HelpController::class, 'index'])->name('help.index');
-    Route::get('/bantuan', fn () => redirect()->route('help.index'))->name('bantuan');
+    // 8. Pusat Bantuan & Layanan CS Realtime (Delegation Tokens)
     Route::post('/help/delegation-tokens', [DelegationTokenController::class, 'store'])->name('help.delegation.store');
     Route::delete('/help/delegation-tokens/{id}', [DelegationTokenController::class, 'destroy'])->name('help.delegation.destroy');
 

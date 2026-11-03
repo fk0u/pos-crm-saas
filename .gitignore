@@ -18,3 +18,4 @@ yarn-error.log
 *.log
 .claude/
 .zcode/
+.agents/*.pem

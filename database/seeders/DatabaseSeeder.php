@@ -68,6 +68,15 @@ class DatabaseSeeder extends Seeder
             'role' => 'cashier',
         ]);
 
+        $developer = User::create([
+            'tenant_id' => $tenant->id,
+            'outlet_id' => $outlet1->id,
+            'name' => 'Budi Developer (PaaS)',
+            'email' => 'developer@kopikawan.com',
+            'password' => Hash::make('password123'),
+            'role' => 'developer',
+        ]);
+
         // 4. Seed Products with curated high quality cafe images
         $products = [
             [
