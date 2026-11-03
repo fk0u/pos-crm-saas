@@ -24,7 +24,9 @@ class InvoiceController extends Controller
      */
     public function receipt(Order $order): View
     {
-        $order->loadMissing(['items.product', 'customer', 'outlet', 'cashier', 'tenant']);
+        \App\Support\TenantContext::set($order->tenant_id);
+
+        $order->load(['items.product', 'customer', 'outlet', 'cashier', 'tenant']);
 
         $escposRaw = $this->escposService->generateEscpos($order, 32);
         $escposPlainText = $this->escposService->generatePlainText($order, 32);
@@ -42,7 +44,9 @@ class InvoiceController extends Controller
      */
     public function sendWhatsApp(Order $order, Request $request): RedirectResponse
     {
-        $order->loadMissing(['items.product', 'customer', 'outlet', 'cashier', 'tenant']);
+        \App\Support\TenantContext::set($order->tenant_id);
+
+        $order->load(['items.product', 'customer', 'outlet', 'cashier', 'tenant']);
 
         $phone = $request->query('phone') ?? $order->customer?->phone;
 
