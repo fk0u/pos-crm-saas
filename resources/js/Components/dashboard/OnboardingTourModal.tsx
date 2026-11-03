@@ -29,8 +29,35 @@ export default function OnboardingTourModal({
   role = 'owner',
 }: OnboardingTourModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('qlon_onboarded_completed') === 'true';
+    }
+    return false;
+  });
 
   if (!isOpen) return null;
+
+  const handleToggleDontShowAgain = (e: React.ChangeEvent<HTMLInputElement>) => {
+    playTap();
+    const checked = e.target.checked;
+    setDontShowAgain(checked);
+    if (typeof window !== 'undefined') {
+      if (checked) {
+        localStorage.setItem('qlon_onboarded_completed', 'true');
+      } else {
+        localStorage.removeItem('qlon_onboarded_completed');
+      }
+    }
+  };
+
+  const handleClose = () => {
+    playTap();
+    if (dontShowAgain && typeof window !== 'undefined') {
+      localStorage.setItem('qlon_onboarded_completed', 'true');
+    }
+    onClose();
+  };
 
   const steps = [
     {
@@ -120,6 +147,9 @@ export default function OnboardingTourModal({
   const handleNext = () => {
     playTap();
     if (isLast) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('qlon_onboarded_completed', 'true');
+      }
       playSuccessChime();
       onClose();
     } else {
@@ -135,18 +165,24 @@ export default function OnboardingTourModal({
   return createPortal(
     <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 my-auto">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={() => {
-            playTap();
-            onClose();
-          }}
-          className="absolute top-5 right-5 size-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition cursor-pointer"
-          aria-label="Tutup panduan"
-        >
-          <X className="size-4.5" />
-        </button>
+        {/* Top Right Controls: Lewati & Close Button */}
+        <div className="absolute top-5 right-5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="text-xs font-bold text-slate-400 hover:text-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+          >
+            Lewati
+          </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="size-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition cursor-pointer active:scale-95"
+            aria-label="Tutup panduan"
+          >
+            <X className="size-4.5" />
+          </button>
+        </div>
 
         {/* Step Badge */}
         <div className="flex items-center gap-2 mb-4">
@@ -163,7 +199,7 @@ export default function OnboardingTourModal({
           <div className="size-12 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0">
             <StepIcon className="size-6 text-[#0f2b5c]" />
           </div>
-          <div>
+          <div className="pr-16">
             <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
               {step.title}
             </h2>
@@ -187,8 +223,8 @@ export default function OnboardingTourModal({
           ))}
         </div>
 
-        {/* Step Progress Dots & Navigation Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+        {/* Step Progress Dots */}
+        <div className="flex items-center justify-between pb-4">
           <div className="flex items-center gap-1.5">
             {steps.map((_, idx) => (
               <button
@@ -205,13 +241,29 @@ export default function OnboardingTourModal({
               />
             ))}
           </div>
+          <span className="text-[11px] font-medium text-slate-400">
+            {currentStep + 1} / {steps.length}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-2">
+        {/* Footer: Jangan Tampilkan Lagi Checkbox & Action Buttons */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-500 hover:text-slate-800">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={handleToggleDontShowAgain}
+              className="size-4 rounded border-slate-300 text-[#0f2b5c] focus:ring-[#0f2b5c]/20 cursor-pointer"
+            />
+            <span>Jangan tampilkan lagi</span>
+          </label>
+
+          <div className="flex items-center justify-end gap-2">
             {currentStep > 0 && (
               <button
                 type="button"
                 onClick={handlePrev}
-                className="h-10 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1 transition"
+                className="h-10 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1 transition cursor-pointer active:scale-95"
               >
                 <ChevronLeft className="size-4" /> Kembali
               </button>
