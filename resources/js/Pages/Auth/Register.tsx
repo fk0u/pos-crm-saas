@@ -1,7 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import { useForm, Link } from '@inertiajs/react';
 import {
-  Store,
   User,
   Phone,
   Mail,
@@ -10,9 +9,9 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  ArrowUpRight,
 } from 'lucide-react';
 import { playTap, playSuccessChime } from '@/lib/sound';
+import AuthShowcaseCarousel from '@/Components/AuthShowcaseCarousel';
 
 export default function Register() {
   const { data, setData, post, processing, errors, reset } = useForm({
@@ -36,7 +35,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e8ecef] flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans">
+    <div className="min-h-screen bg-[#e9eef5] flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans">
       {/* Main Floating Card */}
       <div className="w-full max-w-[1140px] bg-white rounded-[32px] shadow-[0_20px_60px_rgba(15,23,42,0.08)] border border-slate-200/80 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[680px]">
         
@@ -44,8 +43,8 @@ export default function Register() {
         <div className="lg:col-span-6 xl:col-span-6 p-6 sm:p-10 lg:p-12 flex flex-col justify-between">
           {/* Top Brand Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-xl bg-gradient-to-br from-[#0c6b68] to-[#06423f] flex items-center justify-center text-white shadow-sm">
-              <span className="font-black text-sm tracking-tighter text-emerald-300">Q</span>
+            <div className="size-8 rounded-xl bg-gradient-to-br from-[#0f2b5c] to-[#1e4488] flex items-center justify-center text-white shadow-sm">
+              <span className="font-black text-sm tracking-tighter text-sky-200">Q</span>
             </div>
             <span className="font-extrabold text-xl tracking-tight text-slate-900">QLon</span>
           </div>
@@ -73,7 +72,7 @@ export default function Register() {
               </Link>
               <button
                 type="button"
-                className="flex-1 py-2 text-center text-xs font-bold rounded-lg bg-white text-slate-900 shadow-sm transition"
+                className="flex-1 py-2 text-center text-xs font-bold rounded-lg bg-white text-[#0f2b5c] shadow-xs transition"
               >
                 Sign Up
               </button>
@@ -94,7 +93,7 @@ export default function Register() {
                     placeholder="Contoh: Kopi Kawan Indonesia"
                     value={data.business_name}
                     onChange={(e) => setData('business_name', e.target.value)}
-                    className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                    className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                   />
                 </div>
                 {errors.business_name && (
@@ -116,7 +115,7 @@ export default function Register() {
                       placeholder="Contoh: Hendra S."
                       value={data.name}
                       onChange={(e) => setData('name', e.target.value)}
-                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                     />
                   </div>
                   {errors.name && (
@@ -137,7 +136,7 @@ export default function Register() {
                       placeholder="081234567890"
                       value={data.phone}
                       onChange={(e) => setData('phone', e.target.value)}
-                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                     />
                   </div>
                   {errors.phone && (
@@ -161,7 +160,7 @@ export default function Register() {
                     placeholder="Enter your email address"
                     value={data.email}
                     onChange={(e) => setData('email', e.target.value)}
-                    className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                    className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                   />
                 </div>
                 {errors.email && (
@@ -185,12 +184,15 @@ export default function Register() {
                       placeholder="Min. 8 karakter"
                       value={data.password}
                       onChange={(e) => setData('password', e.target.value)}
-                      className="w-full pl-10 pr-8 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                      className="w-full pl-10 pr-8 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      onClick={() => {
+                        playTap();
+                        setShowPassword(!showPassword);
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
@@ -216,7 +218,7 @@ export default function Register() {
                       placeholder="Ulangi password"
                       value={data.password_confirmation}
                       onChange={(e) => setData('password_confirmation', e.target.value)}
-                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0c6b68]/20 focus:border-[#0c6b68] transition"
+                      className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f2b5c]/20 focus:border-[#0f2b5c] transition"
                     />
                   </div>
                   {errors.password_confirmation && (
@@ -225,11 +227,11 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button (Navy Blue) */}
               <button
                 type="submit"
                 disabled={processing}
-                className="w-full mt-2 h-11 rounded-xl bg-[#0c6b68] hover:bg-[#095754] text-white font-bold text-xs tracking-wide shadow-sm active:scale-[0.99] transition flex items-center justify-center cursor-pointer"
+                className="w-full mt-2 h-11 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] active:bg-[#0a1e42] text-white font-bold text-xs tracking-wide shadow-md shadow-blue-950/20 active:scale-[0.99] transition flex items-center justify-center cursor-pointer"
               >
                 {processing ? 'Menyiapkan Workspace...' : 'Daftarkan Workspace Sekarang'}
               </button>
@@ -245,7 +247,7 @@ export default function Register() {
               </span>
             </div>
 
-            {/* Social / Quick Icons matching screenshot */}
+            {/* Social Icons */}
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
@@ -300,153 +302,8 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Right Column: Dark Teal Showcase with Floating Cards matching reference */}
-        <div className="hidden lg:flex lg:col-span-6 xl:col-span-6 m-2 sm:m-3 p-8 sm:p-10 rounded-[28px] bg-gradient-to-br from-[#083b38] via-[#06302e] to-[#042422] text-white flex-col justify-between relative overflow-hidden shadow-inner">
-          {/* Subtle Grid Background Pattern */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-40"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
-              backgroundSize: '44px 44px',
-            }}
-          />
-
-          {/* Floating Widget Cards Showcase */}
-          <div className="relative h-[320px] w-full z-10">
-            {/* Card 1: Top Left - Financial Plan Donut Chart */}
-            <div className="absolute top-2 left-4 w-[240px] bg-white text-slate-900 rounded-2xl p-4 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border border-white/80 transition-transform duration-300 hover:scale-105">
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold mb-2">
-                <span>Financial Plan</span>
-                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded">Bulan Ini ▾</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative size-14 shrink-0">
-                  <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="#f1f5f9" strokeWidth="4" />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="14"
-                      fill="none"
-                      stroke="#0c6b68"
-                      strokeWidth="4"
-                      strokeDasharray="65 100"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="14"
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth="4"
-                      strokeDasharray="20 100"
-                      strokeDashoffset="-65"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-900 font-mono">Rp 48.500.000</p>
-                  <p className="text-[9px] text-emerald-600 font-semibold flex items-center gap-0.5">
-                    <ArrowUpRight className="size-2.5" /> +18.4% Omzet
-                  </p>
-                  <div className="space-y-0.5 mt-1 text-[8px] text-slate-400">
-                    <div className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-[#0c6b68]" />
-                      <span>Kasir POS (72%)</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-amber-500" />
-                      <span>Retensi CRM (28%)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  className="w-full py-1 text-center text-[10px] font-bold rounded-lg bg-slate-900 text-white"
-                >
-                  Explore All Plan
-                </button>
-              </div>
-            </div>
-
-            {/* Card 2: Top Right - Future Funds & Target */}
-            <div className="absolute top-14 right-2 w-[220px] bg-white text-slate-900 rounded-2xl p-4 shadow-[0_25px_50px_rgba(0,0,0,0.35)] border border-white/80 z-20 transition-transform duration-300 hover:scale-105">
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold mb-1">
-                <span>Future Funds</span>
-                <span className="text-[9px] text-slate-400">Target Event</span>
-              </div>
-              <p className="text-[11px] font-bold text-slate-800">Target Omzet Bulanan</p>
-              <p className="text-[9px] text-slate-400 mb-2">Due date • 30 Nov 2026</p>
-              <div className="flex items-baseline justify-between text-xs font-mono font-black mb-1">
-                <span className="text-[#0c6b68]">Rp 38,5jt</span>
-                <span className="text-slate-400 text-[10px]">/ Rp 50jt</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#0c6b68] h-full rounded-full w-[77%]" />
-              </div>
-              <div className="flex justify-between text-[8px] text-slate-400 mt-1 font-medium">
-                <span>Progress</span>
-                <span className="text-emerald-700 font-bold">77% Tercapai</span>
-              </div>
-            </div>
-
-            {/* Card 3: Bottom Left - Capital Allocations */}
-            <div className="absolute bottom-2 left-8 w-[250px] bg-white text-slate-900 rounded-2xl p-3.5 shadow-[0_20px_45px_rgba(0,0,0,0.25)] border border-white/80 z-10 transition-transform duration-300 hover:scale-105">
-              <div className="flex items-center justify-between text-[10px] mb-1">
-                <span className="font-bold text-slate-800">Capital Allocations</span>
-                <span className="text-[8px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-semibold">
-                  +12% Realtime
-                </span>
-              </div>
-              <p className="text-xs font-black font-mono text-slate-900 mb-2">Rp 17.366.000</p>
-              <div className="space-y-1.5 text-[9px]">
-                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                  <span className="text-slate-600 truncate max-w-[120px]">Kopi Susu Aren (40 cup)</span>
-                  <span className="font-mono font-bold text-slate-900">Rp 720.000</span>
-                </div>
-                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                  <span className="text-slate-600 truncate max-w-[120px]">Matcha Latte (25 cup)</span>
-                  <span className="font-mono font-bold text-slate-900">Rp 550.000</span>
-                </div>
-              </div>
-              <div className="mt-2.5">
-                <button
-                  type="button"
-                  className="w-full py-1 text-center text-[9px] font-bold rounded-lg bg-slate-900 text-white"
-                >
-                  Review Investment
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Lower Text Section */}
-          <div className="relative z-10 text-center max-w-md mx-auto pt-4">
-            <div className="size-11 rounded-2xl bg-[#0e7470] border border-teal-300/30 flex items-center justify-center mx-auto text-emerald-200 font-black text-lg shadow-lg mb-4">
-              <span>⚡</span>
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-snug">
-              A Unified Hub for Smarter Financial Decision-Making
-            </h2>
-            <p className="text-xs text-slate-300/80 mt-2 leading-relaxed max-w-sm mx-auto">
-              QLon empowers you with a unified POS and CRM command center — delivering deep insights and a 360° view of your business growth.
-            </p>
-
-            {/* Slider Bars Pagination */}
-            <div className="flex items-center justify-center gap-1.5 mt-6">
-              <span className="w-12 h-1 rounded-full bg-white shadow-xs" />
-              <span className="w-12 h-1 rounded-full bg-white/20" />
-              <span className="w-12 h-1 rounded-full bg-white/20" />
-              <span className="w-12 h-1 rounded-full bg-white/20" />
-            </div>
-          </div>
-        </div>
+        {/* Right Column: Interactive Sliding Navy Blue Showcase */}
+        <AuthShowcaseCarousel />
 
       </div>
     </div>

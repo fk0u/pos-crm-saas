@@ -90,7 +90,7 @@ class WhatsAppService
         $lines[] = '*STRUK DIGITAL RESMI:*';
         $lines[] = "> {$receiptUrl}";
         $lines[] = '=================================';
-        $lines[] = "Terima kasih telah berbelanja di {$tenantName}! 🙏";
+        $lines[] = "Terima kasih telah berbelanja di {$tenantName}!";
 
         return implode("\n", $lines);
     }

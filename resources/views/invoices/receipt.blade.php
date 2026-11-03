@@ -436,7 +436,7 @@
         <div style="background:#fff; width:100%; max-width:540px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height:90vh; border:1px solid #cbd5e1;">
             <div style="background:#0f172a; color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-size:13px; font-weight:800;">Virtual Thermal Simulator (Plain Text Preview)</div>
-                <button type="button" onclick="closeSimulatorModal()" style="background:none; border:none; color:#cbd5e1; cursor:pointer;">✕</button>
+                <button type="button" onclick="closeSimulatorModal()" style="background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
             </div>
             <div style="padding:16px; overflow-y:auto; background:#f8fafc;">
                 <pre style="background:#000; color:#22c55e; padding:14px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:11px; white-space:pre-wrap;">{{ $escposPlainText }}</pre>

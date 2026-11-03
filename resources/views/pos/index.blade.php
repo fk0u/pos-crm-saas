@@ -27,16 +27,16 @@
 
     <div class="flex h-screen flex-col">
         {{-- Top bar --}}
-        <header class="flex items-center justify-between bg-slate-900 px-6 py-3 text-white print-hide">
+        <header class="flex items-center justify-between bg-[#0f2b5c] px-6 py-3 text-white print-hide">
             <div class="flex items-center gap-3">
-                <span class="text-lg font-black tracking-tight">☕ Kasir</span>
+                <span class="text-lg font-black tracking-tight">Kasir</span>
                 <span class="hidden md:inline text-sm text-slate-300">{{ $outletName }}</span>
             </div>
             <div class="flex items-center gap-4">
                 <span class="text-sm text-slate-300">{{ $cashierName }}</span>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="rounded-lg px-3 py-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-600">Logout</button>
+                    <button type="submit" class="rounded-lg px-3 py-1.5 text-sm font-medium bg-slate-800 hover:bg-slate-700">Logout</button>
                 </form>
             </div>
         </header>
@@ -46,9 +46,11 @@
             <section class="flex min-h-0 flex-1 flex-col p-4 gap-4">
                 <div class="flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        </span>
                         <input id="input-search" type="search" placeholder="Cari produk, SKU, atau barcode…"
-                               class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-base shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none">
+                               class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-base shadow-sm focus:border-[#0f2b5c] focus:ring-2 focus:ring-blue-100 focus:outline-none">
                     </div>
                 </div>
 
@@ -103,8 +105,8 @@
                         <span id="summary-total" class="text-2xl font-black text-blue-700">—</span>
                     </div>
                     <button id="btn-open-payment" type="button"
-                            class="w-full rounded-xl bg-blue-600 py-4 text-lg font-bold text-white shadow-lg hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400">
-                        💳 Bayar
+                            class="w-full rounded-xl bg-[#0f2b5c] py-4 text-lg font-bold text-white shadow-lg hover:bg-[#163a75] disabled:bg-slate-200 disabled:text-slate-400">
+                        Bayar
                     </button>
                 </div>
             </aside>
@@ -118,11 +120,11 @@
             <div class="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-6 shadow-2xl print-hide">
                 <h2 class="text-lg font-bold">Pembayaran</h2>
                 <p class="mt-1 text-sm text-slate-500">Total tagihan:</p>
-                <p id="pay-total" class="text-3xl font-black text-blue-700">—</p>
+                <p id="pay-total" class="text-3xl font-black text-[#0f2b5c]">—</p>
 
                 <div class="mt-4 flex gap-2">
-                    <button type="button" data-pay-method="cash" class="flex-1">💵 Tunai</button>
-                    <button type="button" data-pay-method="qris" class="flex-1">📱 QRIS</button>
+                    <button type="button" data-pay-method="cash" class="flex-1">Tunai</button>
+                    <button type="button" data-pay-method="qris" class="flex-1">QRIS</button>
                 </div>
 
                 {{-- Cash body --}}
@@ -130,7 +132,7 @@
                     <div id="cash-quick" class="mt-4 flex flex-wrap gap-2"></div>
                     <label for="input-cash" class="mt-4 block text-sm font-medium text-slate-600">Uang diterima</label>
                     <input id="input-cash" type="number" min="0" step="1000" placeholder="0"
-                           class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-xl text-right font-bold focus:border-blue-500 focus:outline-none">
+                           class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-xl text-right font-bold focus:border-[#0f2b5c] focus:outline-none">
                     <div class="mt-3 flex items-center justify-between rounded-xl bg-green-50 px-4 py-3">
                         <span class="text-sm font-semibold text-slate-600">Kembalian</span>
                         <span id="pay-change" class="text-xl font-black text-green-700">—</span>
@@ -149,7 +151,7 @@
 
                 <div class="mt-6 flex gap-3">
                     <button id="btn-cancel-pay" type="button" class="flex-1 rounded-xl bg-slate-100 py-3 font-semibold text-slate-600 hover:bg-slate-200">Batal</button>
-                    <button id="btn-confirm-pay" type="button" class="flex-1 rounded-xl bg-green-600 py-3 font-bold text-white hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400">✓ Proses</button>
+                    <button id="btn-confirm-pay" type="button" class="flex-1 rounded-xl bg-green-600 py-3 font-bold text-white hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400">Proses</button>
                 </div>
             </div>
         </div>
@@ -173,11 +175,11 @@
                     <div class="flex justify-between"><span>Kembalian</span><span id="receipt-change"></span></div>
                     <div class="flex justify-between"><span>Poin Didapat</span><span id="receipt-points" class="text-green-600 font-bold"></span></div>
                     <div class="my-2 border-t border-dashed border-slate-400"></div>
-                    <p class="text-center text-slate-500">Terima kasih atas kunjungan Anda 🙏</p>
+                    <p class="text-center text-slate-500">Terima kasih atas kunjungan Anda</p>
                 </div>
                 <div class="print-hide mt-4 flex gap-3">
                     <button id="btn-close-receipt" type="button" class="flex-1 rounded-xl bg-slate-100 py-3 font-semibold text-slate-600 hover:bg-slate-200">Tutup</button>
-                    <button id="btn-print-receipt" type="button" class="flex-1 rounded-xl bg-slate-900 py-3 font-bold text-white hover:bg-slate-800">🖨️ Cetak Struk</button>
+                    <button id="btn-print-receipt" type="button" class="flex-1 rounded-xl bg-[#0f2b5c] py-3 font-bold text-white hover:bg-[#163a75]">Cetak Struk</button>
                 </div>
             </div>
         </div>

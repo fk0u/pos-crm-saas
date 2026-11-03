@@ -9,7 +9,7 @@
 <body class="h-full bg-slate-100">
     <div class="flex h-full items-center justify-center p-4">
         <div class="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
-            <h1 class="text-2xl font-black text-slate-800">☕ Kasir Kopi Kawan</h1>
+            <h1 class="text-2xl font-black text-slate-800">Kasir QLon</h1>
             <p class="mt-1 text-sm text-slate-500">Login untuk mulai shift.</p>
 
             @if ($errors->any())
