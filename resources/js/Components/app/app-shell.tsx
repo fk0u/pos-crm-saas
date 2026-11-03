@@ -130,7 +130,7 @@ export function AppShell({
     { label: 'Panduan (Tour)', icon: Sparkles, action: onOpenTour },
     { href: '/terms', label: 'Ketentuan Layanan', icon: Scale },
     { href: '/privacy', label: 'Kebijakan Privasi', icon: Shield },
-    { href: '/dashboard#help', label: 'Pusat Bantuan', icon: Headphones },
+    { href: '/help', label: 'Pusat Bantuan', icon: Headphones },
   ];
 
   return (

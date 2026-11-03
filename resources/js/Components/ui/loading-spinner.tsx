@@ -46,3 +46,4 @@ export function FullPageLoader({ message = 'Memuat sistem QLon...' }: { message?
     </div>
   );
 }
+

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\CashflowController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\HelpController;
 use App\Http\Controllers\Web\InvoiceController;
 use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\LoginController;
@@ -32,17 +33,19 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/recent', [DashboardController::class, 'recentSales'])->name('dashboard.recent');
 
-    // 2. Kasir (alias /pos)
+    // 2. Kasir (alias /pos) - All roles can access
     Route::get('/kasir', [PosTerminalController::class, 'index'])->name('kasir');
     Route::get('/pos', [PosTerminalController::class, 'index'])->name('pos.terminal');
 
-    // 3. Katalog Produk
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::get('/katalog', fn () => redirect()->route('products.index'))->name('katalog');
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
-    Route::post('/products/{id}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust_stock');
+    // 3. Katalog Produk - Protected by RBAC (superadmin, developer, owner, manager)
+    Route::middleware(['role:superadmin,developer,owner,manager'])->group(function (): void {
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/katalog', fn () => redirect()->route('products.index'))->name('katalog');
+        Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+        Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::post('/products/{id}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust_stock');
+    });
 
     // 4. Transaksi
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
@@ -64,10 +67,16 @@ Route::middleware(['auth'])->group(function (): void {
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('/customers/{id}/adjust-points', [CustomerController::class, 'adjustPoints'])->name('customers.adjust_points');
 
-    // 7. Laporan
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/laporan', fn () => redirect()->route('reports.index'))->name('laporan');
-    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    // 7. Laporan - Protected by RBAC (superadmin, developer, owner, manager)
+    Route::middleware(['role:superadmin,developer,owner,manager'])->group(function (): void {
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/laporan', fn () => redirect()->route('reports.index'))->name('laporan');
+        Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    });
+
+    // 8. Pusat Bantuan & Layanan CS Realtime
+    Route::get('/help', [HelpController::class, 'index'])->name('help.index');
+    Route::get('/bantuan', fn () => redirect()->route('help.index'))->name('bantuan');
 });
 
 // Invoices & Thermal Receipts (Publicly viewable by customers receiving WhatsApp/Print link)
