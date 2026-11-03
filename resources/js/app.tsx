@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import '../css/app.css';
+import { NavigationPreloader } from '@/Components/ui/NavigationPreloader';
 
 createInertiaApp({
   title: (title) => (title ? `${title} - QLon Native POS` : 'QLon - Next-Gen POS & CRM Cloud'),
@@ -13,6 +14,11 @@ createInertiaApp({
     return page;
   },
   setup({ el, App, props }) {
-    createRoot(el).render(<App {...props} />);
+    createRoot(el).render(
+      <>
+        <App {...props} />
+        <NavigationPreloader />
+      </>
+    );
   },
 });
