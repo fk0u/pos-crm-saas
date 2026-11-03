@@ -36,7 +36,9 @@ class StaffController extends Controller
         $outlets = Outlet::where('tenant_id', $tenantId)->get(['id', 'name']);
 
         $staffQuery = User::where('tenant_id', $tenantId)
-            ->where('role', '!=', 'superadmin')
+            ->whereNotIn('role', ['superadmin', 'super_admin'])
+            ->whereNotNull('tenant_id')
+            ->where('email', 'not like', '%@qlon.id')
             ->with('outlet:id,name');
 
         if ($outletFilter = $request->query('outlet_id')) {

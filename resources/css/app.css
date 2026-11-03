@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', var(--font-jakarta, ui-sans-serif, system-ui, sans-serif);
+  --font-serif: 'Newsreader', Georgia, Cambria, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', var(--font-mono, ui-monospace, monospace);
   --color-navy-50: #eef3fb;
   --color-navy-100: #d9e3f5;

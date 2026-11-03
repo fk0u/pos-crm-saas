@@ -14,6 +14,8 @@ import {
   ChefHat,
   Receipt,
   FileSpreadsheet,
+  Check,
+  ChevronRight,
 } from 'lucide-react';
 import { Navbar } from '@/Components/Landing/Navbar';
 import { Footer } from '@/Components/Landing/Footer';
@@ -28,7 +30,7 @@ interface PricingProps {
 }
 
 export default function Pricing({ isAuthenticated = false, user }: PricingProps) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
   const [branchCount, setBranchCount] = useState(1);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
@@ -37,402 +39,362 @@ export default function Pricing({ isAuthenticated = false, user }: PricingProps)
     setActiveFaq(activeFaq === idx ? null : idx);
   };
 
-  // Recommended tier based on slider
-  const getRecommendedTier = (branches: number) => {
-    if (branches <= 1) return 'core';
-    if (branches <= 3) return 'essential';
-    return 'full';
-  };
-
-  const recommendedTier = getRecommendedTier(branchCount);
-
   const comparisonFeatures = [
-    { name: 'Maksimal Cabang Outlet', core: '1 Cabang', essential: 'Hingga 3 Cabang', full: 'Tanpa Batas' },
-    { name: 'Maksimal Karyawan & Kasir', core: '2 Akun', essential: '10 Akun', full: 'Tanpa Batas' },
-    { name: 'Kasir POS Cepat & Barcode Scan', core: true, essential: true, full: true },
-    { name: 'Struk Thermal (58mm & 80mm)', core: true, essential: true, full: true },
-    { name: 'Struk Digital WhatsApp', core: true, essential: true, full: true },
-    { name: 'Laporan Penjualan Harian', core: true, essential: true, full: true },
-    { name: 'Inventori Stok & Bahan Baku', core: false, essential: true, full: true },
-    { name: 'Arus Kas & Tutup Kasir Shift (X/Z Report)', core: false, essential: true, full: true },
-    { name: 'Kupon Diskon & Promosi Toko', core: false, essential: true, full: true },
-    { name: 'Buku Kontak WhatsApp Pelanggan', core: false, essential: true, full: true },
-    { name: 'Layar Dapur & Barista (KDS Touchscreen)', core: false, essential: false, full: true },
-    { name: 'Pesan Meja QR & Menu Online Mandiri', core: false, essential: false, full: true },
-    { name: 'Laporan Laba Rugi HPP Otomatis', core: false, essential: false, full: true },
-    { name: 'Ekspor Resmi Excel & PDF Pajak PB1', core: false, essential: false, full: true },
+    { name: 'Maksimal Toko / Cabang', core: '1 Cabang', essential: 'Hingga 2 Cabang', full: 'Tanpa Batas' },
+    { name: 'Jumlah Akun Kasir', core: '2 Kasir', essential: '5 Akun Staf', full: 'Tanpa Batas' },
+    { name: 'Kasir POS & Struk Thermal', core: true, essential: true, full: true },
+    { name: 'Struk Digital via WhatsApp', core: true, essential: true, full: true },
+    { name: 'Pesan Meja QR Mandiri', core: false, essential: true, full: true },
+    { name: 'Arus Kas Laci & Tutup Shift', core: false, essential: true, full: true },
+    { name: 'Layar Dapur & Barista (KDS)', core: false, essential: false, full: true },
+    { name: 'Ekspor Resmi Pajak PB1 Resto', core: false, essential: true, full: true },
+    { name: 'Perhitungan HPP Bahan Baku', core: false, essential: true, full: true },
     { name: 'Sambungan Luar & API Integrasi', core: false, essential: false, full: true },
-    { name: 'Dukungan Prioritas CS WhatsApp', core: false, essential: true, full: true },
+    { name: 'Dukungan Teknis', core: 'Standar Email', essential: 'WhatsApp Prioritas', full: 'Manajer Akun 24/7' },
+  ];
+
+  const faqs = [
+    {
+      q: 'Bisakah saya berganti paket di tengah masa langganan?',
+      a: 'Tentu. Anda dapat meningkatkan atau menurunkan paket kapan saja melalui menu Akun & Langganan di dasbor toko. Biaya akan disesuaikan secara prorata.',
+    },
+    {
+      q: 'Bagaimana metode pembayaran langganan yang didukung?',
+      a: 'Kami menerima pembayaran otomatis melalui QRIS (GoPay, OVO, Dana, ShopeePay), Transfer Virtual Account Bank (BCA, Mandiri, BRI, BNI), serta kartu debit.',
+    },
+    {
+      q: 'Apakah ada kontrak jangka panjang atau biaya pendaftaran awal?',
+      a: 'Tidak ada biaya tersembunyi atau pendaftaran awal. Anda membayar per bulan atau per tahun secara transparan dan bebas berhenti kapan pun tanpa penalti.',
+    },
+    {
+      q: 'Bagaimana jika toko saya memiliki lebih dari 10 cabang?',
+      a: 'Paket Solusi Lengkap (Full Solution) sudah mencakup cabang tanpa batas. Tim kami juga siap membantu proses migrasi data menu dan pelatihan staf kasir secara langsung.',
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans antialiased selection:bg-[#0f2b5c] selection:text-white">
+    <div className="min-h-screen bg-[#fafaf9] text-slate-900 font-sans antialiased selection:bg-slate-900 selection:text-white">
       <Head>
-        <title>Paket Harga &amp; Berlangganan - QLon POS &amp; Central Ops</title>
+        <title>Pilihan Paket &amp; Harga — QLon POS &amp; Central Ops</title>
         <meta
           name="description"
-          content="Pilihan paket langganan sistem kasir toko QLon: Paket Dasar (Rp 49rb/bln), Paket Menengah (Rp 149rb/bln), dan Paket Solusi Lengkap (Rp 299rb/bln). Transparan tanpa biaya tersembunyi."
+          content="Transparansi paket langganan aplikasi kasir QLon POS. Mulai dari paket inti untuk 1 cabang hingga solusi lengkap multi-cabang tanpa biaya tersembunyi."
         />
       </Head>
 
       <Navbar isAuthenticated={isAuthenticated} userName={user?.name} />
 
-      {/* HEADER HERO */}
-      <section className="pt-16 pb-12 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#0f2b5c] text-xs font-bold tracking-tight">
-          <Sparkles className="size-3.5 text-blue-600" />
-          <span>Harga Transparan &amp; Fleksibel</span>
-        </div>
+      {/* HEADER SECTION */}
+      <section className="pt-28 pb-16 lg:pt-36 lg:pb-20 bg-white border-b border-slate-200/80">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-4">
+            <Sparkles className="size-3 text-slate-900" />
+            <span>Transparansi Biaya Tanpa Potongan Tersembunyi</span>
+          </div>
 
-        <h1 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight">
-          Investasi Terjangkau untuk Pertumbuhan Toko Anda
-        </h1>
+          <h1 className="text-3xl sm:text-5xl font-normal text-slate-950 tracking-tight leading-tight">
+            <span className="font-serif italic font-normal">Investasi Tepat</span>{' '}
+            <span className="font-extrabold">untuk Operasional yang Rapi</span>
+          </h1>
 
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          Semua paket sudah termasuk pembaruan sistem berkala, pencadangan basis data cloud, dan dukungan pelanggan ramah.
-        </p>
+          <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-xl mx-auto">
+            Semua paket dilengkapi uji coba gratis 14 hari. Pilih skema yang paling sesuai dengan kebutuhan cabang dan tim kasir Anda.
+          </p>
 
-        {/* Billing Cycle Toggle */}
-        <div className="pt-6 flex items-center justify-center gap-3">
-          <span className={`text-xs font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}>
-            Bulanan
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              playTap();
-              setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly');
-            }}
-            className="w-14 h-8 rounded-full bg-[#0f2b5c] p-1 flex items-center transition cursor-pointer"
-            aria-label="Pilih Periode Tagihan"
-          >
-            <div
-              className={`size-6 rounded-full bg-white transition-transform ${
-                billingCycle === 'annual' ? 'translate-x-6' : 'translate-x-0'
+          {/* Billing Cycle Switcher */}
+          <div className="mt-8 inline-flex items-center p-1 rounded-full bg-slate-100 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setBillingCycle('monthly');
+              }}
+              className={`px-5 py-2 rounded-full text-xs font-bold transition ${
+                billingCycle === 'monthly'
+                  ? 'bg-white text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950'
               }`}
-            />
-          </button>
-          <div className="flex items-center gap-1.5">
-            <span className={`text-xs font-bold ${billingCycle === 'annual' ? 'text-slate-900' : 'text-slate-500'}`}>
-              Tahunan
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
-              Hemat 17% (2 Bulan Gratis)
-            </span>
+            >
+              Langganan Bulanan
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setBillingCycle('annually');
+              }}
+              className={`px-5 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+                billingCycle === 'annually'
+                  ? 'bg-slate-950 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              <span>Langganan Tahunan</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold">
+                Hemat 20%
+              </span>
+            </button>
           </div>
         </div>
       </section>
 
       {/* PRICING CARDS */}
-      <section className="pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          {/* 1. Core Tier */}
-          <div className={`p-8 rounded-3xl bg-white border transition-all flex flex-col justify-between space-y-8 ${
-            recommendedTier === 'core'
-              ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-md'
-              : 'border-slate-200/90 shadow-2xs'
-          }`}>
-            <div className="space-y-5">
+      <section className="py-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+          
+          {/* Card 1: Core */}
+          <div className="rounded-3xl bg-white border border-slate-200 p-8 shadow-xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                  Paket Dasar (Core)
+                <h3 className="font-bold text-lg text-slate-950">Paket Inti (Core)</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                  1 Cabang
                 </span>
               </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Kebutuhan kasir kilat dan pembukuan dasar toko retail / kedai kopi kecil.
+              </p>
 
-              <div>
+              <div className="mt-6 pb-6 border-b border-slate-100">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-950">
-                    {billingCycle === 'monthly' ? 'Rp 49.000' : 'Rp 490.000'}
+                  <span className="text-3xl font-black text-slate-950 font-mono">
+                    {billingCycle === 'annually' ? 'Rp 63.200' : 'Rp 79.000'}
                   </span>
-                  <span className="text-xs text-slate-500">
-                    {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
-                  </span>
+                  <span className="text-xs text-slate-500">/ bulan</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Cocok untuk kios tunggal, stand event, pop-up market, atau warkop sederhana.
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {billingCycle === 'annually' ? 'Ditagih Rp 758.400 / tahun' : 'Bebas berhenti kapan saja'}
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-700">
-                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Fitur Utama:</p>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Maksimal 1 Cabang Toko</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Maksimal 2 Akun Kasir</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Kasir POS Cepat &amp; Barcode</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Struk Thermal &amp; Struk WhatsApp</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Laporan Penjualan Harian</span>
-                </div>
-              </div>
+              <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>1 Cabang / Toko Fisik</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>2 Akun Karyawan Kasir</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Kasir POS &amp; Cetak Thermal Bluetooth</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Struk Digital Ramah Lingkungan via WhatsApp</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Laporan Omzet Kasir Harian</span>
+                </li>
+              </ul>
             </div>
 
-            <Link
-              href="/register?tier=core"
-              onClick={() => playTap()}
-              className="w-full py-3.5 rounded-xl border border-slate-300 hover:border-slate-400 font-bold text-xs text-slate-800 text-center transition"
-            >
-              Pilih Paket Dasar
-            </Link>
-          </div>
-
-          {/* 2. Essential Tier (POPULAR) */}
-          <div className="p-8 rounded-3xl bg-white border-2 border-[#0f2b5c] shadow-xl flex flex-col justify-between space-y-8 relative">
-            <div className="absolute -top-3.5 right-8 px-3.5 py-1 rounded-full bg-[#0f2b5c] text-white text-[10px] font-extrabold uppercase tracking-wide shadow-sm">
-              Pilihan Paling Populer
-            </div>
-
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-[#0f2b5c]">
-                  Paket Menengah (Essential)
-                </span>
-              </div>
-
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-950">
-                    {billingCycle === 'monthly' ? 'Rp 149.000' : 'Rp 1.490.000'}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Solusi ideal untuk kedai kopi modern, cafe, dan toko retail 1 s/d 3 cabang.
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-700">
-                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Semua Fitur Dasar, Ditambah:</p>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Hingga 3 Cabang Toko</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Hingga 10 Karyawan &amp; Kasir</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Inventori Stok &amp; Bahan Baku</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Arus Kas &amp; Tutup Kasir Shift (X/Z)</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Kupon Diskon &amp; Promo Toko</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Buku Kontak WhatsApp Pelanggan</span>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              href="/register?tier=essential"
-              onClick={() => playTap()}
-              className="w-full py-3.5 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] text-white font-bold text-xs text-center shadow-md active:scale-95 transition"
-            >
-              Mulai Paket Menengah
-            </Link>
-          </div>
-
-          {/* 3. Full Solution Tier */}
-          <div className={`p-8 rounded-3xl bg-white border transition-all flex flex-col justify-between space-y-8 ${
-            recommendedTier === 'full'
-              ? 'border-emerald-600 ring-2 ring-emerald-600/20 shadow-md'
-              : 'border-slate-200/90 shadow-2xs'
-          }`}>
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800">
-                  Paket Solusi Lengkap (Full)
-                </span>
-              </div>
-
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-950">
-                    {billingCycle === 'monthly' ? 'Rp 299.000' : 'Rp 2.990.000'}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Untuk restoran skala penuh, waralaba, dan bisnis bertumbuh tanpa batas cabang.
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 space-y-3 text-xs text-slate-700">
-                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Semua Fitur Menengah, Ditambah:</p>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span><strong>Cabang &amp; Karyawan Tanpa Batas</strong></span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Layar Dapur &amp; Barista (KDS Touch)</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Pesan Meja QR &amp; Menu Mandiri</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Laporan Laba Rugi HPP Otomatis</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Ekspor Excel &amp; Pajak PB1 Resmi</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                  <span>Sambungan Luar &amp; API Integrasi</span>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              href="/register?tier=full"
-              onClick={() => playTap()}
-              className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center shadow active:scale-95 transition"
-            >
-              Pilih Solusi Lengkap
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* INTERACTIVE SCALE CALCULATOR */}
-      <section className="py-16 bg-white border-y border-slate-200/80">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="text-center space-y-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Kalkulator Rekomendasi Paket Sesuai Skala Toko
-            </h2>
-            <p className="text-xs text-slate-500">
-              Geser penunjuk jumlah cabang untuk melihat paket yang paling pas untuk usaha Anda.
-            </p>
-          </div>
-
-          <div className="p-8 rounded-3xl bg-[#f8fafc] border border-slate-200/90 space-y-6">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">Jumlah Cabang Toko:</span>
-              <span className="text-2xl font-black text-[#0f2b5c] font-mono">
-                {branchCount} Cabang
-              </span>
-            </div>
-
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={branchCount}
-              onChange={(e) => setBranchCount(parseInt(e.target.value, 10))}
-              className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0f2b5c]"
-            />
-
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <p className="text-[11px] text-slate-400 font-bold uppercase">Paket yang Direkomendasikan:</p>
-                <p className="text-base font-extrabold text-[#0f2b5c]">
-                  {recommendedTier === 'core' && 'Paket Dasar (Core) — Rp 49.000 / bln'}
-                  {recommendedTier === 'essential' && 'Paket Menengah (Essential) — Rp 149.000 / bln'}
-                  {recommendedTier === 'full' && 'Paket Solusi Lengkap (Full) — Rp 299.000 / bln'}
-                </p>
-              </div>
-
+            <div className="mt-8 pt-4">
               <Link
-                href={`/register?tier=${recommendedTier}`}
+                href="/register?tier=core"
                 onClick={() => playTap()}
-                className="py-2.5 px-6 rounded-xl bg-[#0f2b5c] text-white text-xs font-bold shadow text-center shrink-0"
+                className="w-full h-11 rounded-full border border-slate-300 hover:border-slate-400 text-slate-800 font-bold text-xs flex items-center justify-center transition hover:bg-slate-50"
               >
-                Daftar Paket Ini
+                Pilih Paket Inti
               </Link>
             </div>
           </div>
+
+          {/* Card 2: Essential (Featured) */}
+          <div className="rounded-3xl bg-slate-950 text-white p-8 shadow-xl border-2 border-slate-800 flex flex-col justify-between relative transform lg:-translate-y-2">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
+              Pilihan Favorit Pengusaha
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg text-white">Paket Esensial</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 font-semibold">
+                  Hingga 2 Cabang
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Lengkap dengan pesanan meja QR mandiri, arus kas shift, dan pajak PB1.
+              </p>
+
+              <div className="mt-6 pb-6 border-b border-slate-800">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-white font-mono">
+                    {billingCycle === 'annually' ? 'Rp 151.200' : 'Rp 189.000'}
+                  </span>
+                  <span className="text-xs text-slate-400">/ bulan</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {billingCycle === 'annually' ? 'Ditagih Rp 1.814.400 / tahun' : 'Bebas batalkan kapan saja'}
+                </p>
+              </div>
+
+              <ul className="mt-6 space-y-3 text-xs text-slate-300">
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>Hingga 2 Toko / Cabang</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>Hingga 5 Akun Staf Toko</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>Pesan Meja QR Mandiri (Bebas Antre)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>Arus Kas Laci &amp; Serah Terima Bebas Selisih</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>Laporan Pajak Daerah PB1 (10%) &amp; HPP Otomatis</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="mt-8 pt-4">
+              <Link
+                href="/register?tier=essential"
+                onClick={() => playTap()}
+                className="w-full h-11 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs flex items-center justify-center shadow-md active:scale-95 transition"
+              >
+                Pilih Paket Esensial
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 3: Full Solution */}
+          <div className="rounded-3xl bg-white border border-slate-200 p-8 shadow-xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg text-slate-950">Solusi Lengkap</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold">
+                  Multi-Cabang
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Seluruh ekosistem tanpa batasan, termasuk layar dapur KDS dan API pengembang.
+              </p>
+
+              <div className="mt-6 pb-6 border-b border-slate-100">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-slate-950 font-mono">
+                    {billingCycle === 'annually' ? 'Rp 311.200' : 'Rp 389.000'}
+                  </span>
+                  <span className="text-xs text-slate-500">/ bulan</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {billingCycle === 'annually' ? 'Ditagih Rp 3.734.400 / tahun' : 'Bebas batalkan kapan saja'}
+                </p>
+              </div>
+
+              <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Cabang &amp; Outlet Tanpa Batas</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Akun Staf &amp; Kasir Tanpa Batas</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Layar Dapur &amp; Barista (KDS) Realtime</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Sambungan Luar &amp; Webhook Pengembang</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="size-4 text-emerald-600 shrink-0" />
+                  <span>Dukungan Teknis Prioritas 24/7 via WhatsApp</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="mt-8 pt-4">
+              <Link
+                href="/register?tier=full"
+                onClick={() => playTap()}
+                className="w-full h-11 rounded-full border border-slate-300 hover:border-slate-400 text-slate-800 font-bold text-xs flex items-center justify-center transition hover:bg-slate-50"
+              >
+                Pilih Solusi Lengkap
+              </Link>
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* DETAILED MATRIX COMPARISON TABLE */}
-      <section id="matrix" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Perbandingan Fitur Detail
-          </h2>
-          <p className="text-xs text-slate-500">
-            Tabel komparasi menyeluruh kemampuan di setiap tingkat paket.
-          </p>
-        </div>
+      {/* MATRIX PERBANDINGAN FITUR */}
+      <section id="matrix" className="py-16 bg-white border-t border-slate-200/80">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-950">
+              Perbandingan Rinci Fitur &amp; Kemampuan
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-500">
+              Lihat tabel spesifikasi teknis modul per paket langganan.
+            </p>
+          </div>
 
-        <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#f8fafc] text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="py-4 px-6 w-2/5">Fitur &amp; Kemampuan</th>
-                  <th className="py-4 px-4 text-center w-1/5">Paket Dasar</th>
-                  <th className="py-4 px-4 text-center w-1/5 bg-blue-50/50 text-[#0f2b5c]">Paket Menengah</th>
-                  <th className="py-4 px-4 text-center w-1/5">Solusi Lengkap</th>
+          <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="py-4 px-6 font-bold text-slate-900 w-2/5">Fitur &amp; Kapasitas</th>
+                  <th className="py-4 px-4 font-bold text-slate-900 text-center w-1/5">Paket Inti</th>
+                  <th className="py-4 px-4 font-bold text-slate-950 text-center w-1/5 bg-slate-100/60">
+                    Paket Esensial
+                  </th>
+                  <th className="py-4 px-4 font-bold text-slate-900 text-center w-1/5">Solusi Lengkap</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {comparisonFeatures.map((f, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80">
-                    <td className="py-3.5 px-6 font-semibold text-slate-900">{f.name}</td>
-
+                {comparisonFeatures.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/60 transition">
+                    <td className="py-3.5 px-6 font-medium text-slate-800">{row.name}</td>
+                    
                     {/* Core */}
-                    <td className="py-3.5 px-4 text-center">
-                      {typeof f.core === 'boolean' ? (
-                        f.core ? (
-                          <CheckCircle2 className="size-4.5 text-emerald-600 mx-auto" />
+                    <td className="py-3.5 px-4 text-center text-slate-600">
+                      {typeof row.core === 'boolean' ? (
+                        row.core ? (
+                          <Check className="size-4 text-emerald-600 mx-auto" />
                         ) : (
-                          <span className="text-slate-300 font-bold">—</span>
+                          <span className="text-slate-300 font-mono">—</span>
                         )
                       ) : (
-                        <span className="font-bold text-slate-700">{f.core}</span>
+                        <span>{row.core}</span>
                       )}
                     </td>
 
                     {/* Essential */}
-                    <td className="py-3.5 px-4 text-center bg-blue-50/30">
-                      {typeof f.essential === 'boolean' ? (
-                        f.essential ? (
-                          <CheckCircle2 className="size-4.5 text-emerald-600 mx-auto" />
+                    <td className="py-3.5 px-4 text-center text-slate-900 font-semibold bg-slate-50/50">
+                      {typeof row.essential === 'boolean' ? (
+                        row.essential ? (
+                          <Check className="size-4 text-emerald-600 mx-auto" />
                         ) : (
-                          <span className="text-slate-300 font-bold">—</span>
+                          <span className="text-slate-300 font-mono">—</span>
                         )
                       ) : (
-                        <span className="font-bold text-[#0f2b5c]">{f.essential}</span>
+                        <span>{row.essential}</span>
                       )}
                     </td>
 
                     {/* Full */}
-                    <td className="py-3.5 px-4 text-center">
-                      {typeof f.full === 'boolean' ? (
-                        f.full ? (
-                          <CheckCircle2 className="size-4.5 text-emerald-600 mx-auto" />
+                    <td className="py-3.5 px-4 text-center text-slate-600">
+                      {typeof row.full === 'boolean' ? (
+                        row.full ? (
+                          <Check className="size-4 text-emerald-600 mx-auto" />
                         ) : (
-                          <span className="text-slate-300 font-bold">—</span>
+                          <span className="text-slate-300 font-mono">—</span>
                         )
                       ) : (
-                        <span className="font-bold text-emerald-700">{f.full}</span>
+                        <span className="font-bold text-slate-950">{row.full}</span>
                       )}
                     </td>
                   </tr>
@@ -443,42 +405,37 @@ export default function Pricing({ isAuthenticated = false, user }: PricingProps)
         </div>
       </section>
 
-      {/* FAQ SECTION */}
-      <section className="py-16 bg-[#f8fafc] border-t border-slate-200/80">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-slate-900">Pertanyaan Seputar Berlangganan</h2>
-            <p className="text-xs text-slate-500">Hal-hal yang sering ditanyakan sebelum memulai.</p>
+      {/* FAQ */}
+      <section className="py-20 bg-[#fafaf9] border-t border-slate-200/80">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-950">
+              Pertanyaan Seputar Biaya &amp; Langganan
+            </h2>
           </div>
 
           <div className="space-y-3">
-            {[
-              {
-                q: 'Apakah bisa upgrade atau downgrade paket di tengah jalan?',
-                a: 'Bisa. Pengelola usaha dapat melakukan perubahan paket kapan saja melalui kontak CS atau panel akun. Kuota cabang dan staf akan langsung menyesuaikan.',
-              },
-              {
-                q: 'Apakah ada kontrak jangka panjang atau denda pembatalan?',
-                a: 'Tidak ada kontrak yang mengikat. Anda bebas berhenti berlangganan kapan pun tanpa biaya penalti atau denda pembatalan apa pun.',
-              },
-              {
-                q: 'Bagaimana keamanan data transaksi saya jika berganti paket?',
-                a: 'Seluruh riwayat transaksi, catatan kasir shift, data menu, dan nomor WhatsApp pelanggan tersimpan aman di cloud terenkripsi dan tidak akan pernah terhapus.',
-              },
-            ].map((faq, idx) => {
+            {faqs.map((faq, idx) => {
               const isOpen = activeFaq === idx;
               return (
-                <div key={idx} className="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+                <div
+                  key={idx}
+                  className="rounded-2xl bg-white border border-slate-200/90 overflow-hidden transition"
+                >
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full p-4.5 text-left font-bold text-xs sm:text-sm text-slate-900 flex items-center justify-between"
+                    className="w-full px-6 py-4.5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-slate-900 hover:bg-slate-50 transition"
                   >
                     <span>{faq.q}</span>
-                    <ChevronDown className={`size-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`size-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? 'rotate-180 text-slate-950' : ''
+                      }`}
+                    />
                   </button>
                   {isOpen && (
-                    <div className="px-4.5 pb-4.5 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                    <div className="px-6 pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100">
                       {faq.a}
                     </div>
                   )}
