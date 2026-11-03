@@ -51,8 +51,8 @@ class DatabaseSeeder extends Seeder
         $master = User::firstOrCreate(
             ['email' => 'master@qlon.id'],
             [
-                'tenant_id' => $tenant->id,
-                'outlet_id' => $outlet1->id,
+                'tenant_id' => null,
+                'outlet_id' => null,
                 'name' => 'Master Administrator (Superadmin)',
                 'password' => Hash::make('password123'),
                 'role' => 'superadmin',

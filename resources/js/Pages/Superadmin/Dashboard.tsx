@@ -23,6 +23,10 @@ import {
   ShieldAlert,
   UserCheck,
   UserX,
+  Users,
+  Search,
+  Eye,
+  Mail,
 } from 'lucide-react';
 import { AppShell } from '@/Components/app/app-shell';
 import { Modal } from '@/Components/ui/modal';
@@ -30,6 +34,7 @@ import { playTap, playSuccessChime, playError } from '@/lib/sound';
 
 interface SuperadminDashboardProps {
   tenants: any[];
+  allUsers?: any[];
   activeTokens: any[];
   tickets?: any[];
   tenantUsers?: any[];
@@ -49,6 +54,7 @@ interface SuperadminDashboardProps {
 
 export default function SuperadminDashboard({
   tenants = [],
+  allUsers = [],
   activeTokens = [],
   tickets = [],
   tenantUsers = [],
@@ -73,6 +79,23 @@ export default function SuperadminDashboard({
   const [emergencyActionType, setEmergencyActionType] = useState<'reset_password' | 'emergency_token' | 'unlock_account'>('reset_password');
   const [isEmergencyPending, setIsEmergencyPending] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
+
+  // Global Users Directory State
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userTenantFilter, setUserTenantFilter] = useState('all');
+  const [inspectUser, setInspectUser] = useState<any | null>(null);
+
+  const filteredPlatformUsers = allUsers.filter((u) => {
+    const q = userSearchQuery.toLowerCase().trim();
+    const matchesSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
+    const matchesTenant =
+      userTenantFilter === 'all' ||
+      (userTenantFilter === 'platform' && !u.tenant_id) ||
+      u.tenant_id === userTenantFilter;
+    return matchesSearch && matchesRole && matchesTenant;
+  });
 
   const filteredUsers = tenantUsers.filter((u) => !emergencyTenantId || u.tenant_id === emergencyTenantId);
 
@@ -356,6 +379,204 @@ export default function SuperadminDashboard({
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* GLOBAL USERS & BUSINESS DIRECTORY */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Users className="size-4.5 text-[#0f2b5c]" />
+                <span>Direktori Seluruh Pengguna &amp; Akun Bisnis Terdaftar (Global User Directory)</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Pemilik aplikasi memantau seluruh pengguna (Owner, Kasir, Manager, Developer, Superadmin) beserta bisnis/tenant terdaftar.
+              </p>
+            </div>
+            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-50 text-[#0f2b5c] shrink-0 self-start md:self-auto border border-blue-100">
+              {filteredPlatformUsers.length} / {allUsers.length} Pengguna Terdaftar
+            </span>
+          </div>
+
+          {/* Search & Filters Toolbar */}
+          <div className="p-4 bg-slate-50/70 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                placeholder="Cari nama atau email pengguna..."
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0f2b5c] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+              />
+            </div>
+
+            <div>
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 focus:outline-none focus:border-[#0f2b5c] shadow-2xs"
+              >
+                <option value="all">Semua Peran (All Roles)</option>
+                <option value="owner">Pemilik Usaha (Owner Tenant)</option>
+                <option value="cashier">Kasir POS (Cashier)</option>
+                <option value="manager">Manajer Cabang (Manager)</option>
+                <option value="developer">Developer (PaaS)</option>
+                <option value="superadmin">Pemilik Aplikasi (Superadmin Platform)</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={userTenantFilter}
+                onChange={(e) => setUserTenantFilter(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 focus:outline-none focus:border-[#0f2b5c] shadow-2xs"
+              >
+                <option value="all">Semua Bisnis Terdaftar (All Tenants)</option>
+                <option value="platform">Platform Core (Non-Tenant / Superadmin)</option>
+                {tenants.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.subdomain})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#f8fafc] text-slate-500 font-bold text-[10px] uppercase border-b border-slate-100">
+                <tr>
+                  <th className="py-3 px-5">Nama Lengkap &amp; Email Pengguna</th>
+                  <th className="py-3 px-4">Peran (Role)</th>
+                  <th className="py-3 px-4">Bisnis / Usaha (Tenant)</th>
+                  <th className="py-3 px-4">Penugasan Outlet</th>
+                  <th className="py-3 px-4">Terdaftar</th>
+                  <th className="py-3 px-5 text-right">Aksi Platform</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {filteredPlatformUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                      Tidak ada pengguna yang sesuai dengan kriteria pencarian.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPlatformUsers.map((u) => {
+                    const isSuper = u.is_superadmin || u.role === 'superadmin';
+                    const isOwner = u.role === 'owner';
+                    const isCashier = u.role === 'cashier';
+                    const isDev = u.role === 'developer';
+
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-5">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`size-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isSuper
+                                  ? 'bg-[#0f2b5c] text-white shadow-2xs'
+                                  : isOwner
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                  : isCashier
+                                  ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                                  : 'bg-purple-100 text-purple-900 border border-purple-200'
+                              }`}
+                            >
+                              {(u.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 truncate">{u.name}</p>
+                              <p className="text-[11px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                                <Mail className="size-3 text-slate-400" />
+                                <span>{u.email}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              isSuper
+                                ? 'bg-slate-900 text-white'
+                                : isOwner
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : isCashier
+                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                : isDev
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {isSuper
+                              ? 'Master Admin'
+                              : isOwner
+                              ? 'Pemilik Usaha (Owner)'
+                              : isCashier
+                              ? 'Kasir POS'
+                              : isDev
+                              ? 'Developer PaaS'
+                              : u.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {u.tenant_name ? (
+                            <div>
+                              <p className="font-bold text-slate-800">{u.tenant_name}</p>
+                              {u.tenant_subdomain && (
+                                <span className="text-[10px] font-mono text-slate-400">
+                                  {u.tenant_subdomain}.qlon.id
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic">Platform Sovereign</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">
+                          {u.outlet_name}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px] font-mono">
+                          {u.created_at}
+                        </td>
+                        <td className="py-3 px-5 text-right space-x-1.5 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playTap();
+                              setInspectUser(u);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-[11px] font-bold transition shadow-2xs active:scale-95 cursor-pointer"
+                          >
+                            <Eye className="size-3 text-slate-400" />
+                            <span>Detail</span>
+                          </button>
+
+                          {!isSuper && u.tenant_id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playTap();
+                                setEmergencyTenantId(u.tenant_id);
+                                setEmergencyUserId(u.id);
+                                setIsEmergencyModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 text-[11px] font-bold transition shadow-2xs active:scale-95 cursor-pointer"
+                            >
+                              <ShieldAlert className="size-3 text-amber-600" />
+                              <span>Pulihkan</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -863,6 +1084,81 @@ export default function SuperadminDashboard({
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL DETAIL PENGGUNA PLATFORM */}
+      <Modal
+        isOpen={Boolean(inspectUser)}
+        onClose={() => setInspectUser(null)}
+        title="Detail Akun Pengguna Platform"
+        description="Informasi profil dan penugasan tenant di ekosistem QLon POS & CRM"
+        maxWidth="md"
+      >
+        {inspectUser && (
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-200/60">
+                <div className="size-11 rounded-2xl bg-[#0f2b5c] text-white flex items-center justify-center font-bold text-base shadow-xs">
+                  {(inspectUser.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">{inspectUser.name}</h4>
+                  <p className="font-mono text-slate-500">{inspectUser.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Peran Sistem</span>
+                  <span className="font-semibold text-slate-800 capitalize">{inspectUser.role}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Bisnis / Tenant</span>
+                  <span className="font-semibold text-slate-800">{inspectUser.tenant_name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Penugasan Outlet</span>
+                  <span className="font-semibold text-slate-800">{inspectUser.outlet_name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Waktu Terdaftar</span>
+                  <span className="font-mono text-slate-600">{inspectUser.created_at}</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">User Identifier (UUID)</span>
+                <span className="font-mono text-[11px] text-slate-600 select-all break-all">{inspectUser.id}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              {!inspectUser.is_superadmin && inspectUser.tenant_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = inspectUser;
+                    setInspectUser(null);
+                    setEmergencyTenantId(u.tenant_id);
+                    setEmergencyUserId(u.id);
+                    setIsEmergencyModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ShieldAlert className="size-3.5" />
+                  <span>Buka Pemulihan Darurat</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setInspectUser(null)}
+                className="ml-auto px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </AppShell>
   );

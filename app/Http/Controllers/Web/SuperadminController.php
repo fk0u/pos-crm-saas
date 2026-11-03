@@ -42,11 +42,24 @@ class SuperadminController extends Controller
             ->take(20)
             ->get();
 
-        $tenantUsers = User::whereNotNull('tenant_id')
-            ->with('tenant:id,name,subdomain')
-            ->select(['id', 'name', 'email', 'role', 'tenant_id'])
-            ->orderBy('name')
-            ->get();
+        $allUsers = User::with(['tenant:id,name,subdomain', 'outlet:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'tenant_id' => $u->tenant_id,
+                'tenant_name' => $u->tenant?->name ?? 'Platform Core (Sovereign)',
+                'tenant_subdomain' => $u->tenant?->subdomain,
+                'outlet_id' => $u->outlet_id,
+                'outlet_name' => $u->outlet?->name ?? ($u->tenant_id ? 'Semua Outlet (HQ)' : '—'),
+                'created_at' => $u->created_at?->format('d M Y, H:i') ?? '—',
+                'is_superadmin' => $u->isSuperAdmin(),
+            ]);
+
+        $tenantUsers = $allUsers->whereNotNull('tenant_id')->values();
 
         $emergencyAuditLogs = AuditLog::withoutGlobalScope(TenantScope::class)
             ->where('action', 'like', 'emergency.%')
@@ -78,6 +91,7 @@ class SuperadminController extends Controller
 
         return Inertia::render('Superadmin/Dashboard', [
             'tenants' => $tenants,
+            'allUsers' => $allUsers,
             'activeTokens' => $activeTokens,
             'tickets' => $tickets,
             'tenantUsers' => $tenantUsers,

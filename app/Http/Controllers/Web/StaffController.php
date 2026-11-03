@@ -35,7 +35,9 @@ class StaffController extends Controller
 
         $outlets = Outlet::where('tenant_id', $tenantId)->get(['id', 'name']);
 
-        $staffQuery = User::where('tenant_id', $tenantId)->with('outlet:id,name');
+        $staffQuery = User::where('tenant_id', $tenantId)
+            ->where('role', '!=', 'superadmin')
+            ->with('outlet:id,name');
 
         if ($outletFilter = $request->query('outlet_id')) {
             if ($outletFilter !== 'all') {
@@ -134,6 +136,10 @@ class StaffController extends Controller
 
         $staff = User::where('tenant_id', $tenantId)->findOrFail($id);
 
+        if ($staff->isSuperAdmin() || $staff->role === 'superadmin') {
+            abort(403, 'Tindakan dilarang: Akun Superadmin Platform Sovereign tidak dapat dikelola oleh tenant.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'role' => ['required', 'string', 'in:manager,cashier,kitchen,staff,developer'],
@@ -183,6 +189,10 @@ class StaffController extends Controller
         TenantContext::set($tenantId);
 
         $staff = User::where('tenant_id', $tenantId)->findOrFail($id);
+
+        if ($staff->isSuperAdmin() || $staff->role === 'superadmin') {
+            abort(403, 'Tindakan dilarang: Akun Superadmin Platform Sovereign tidak dapat dikelola oleh tenant.');
+        }
 
         if ($staff->id === $currentUser->id) {
             return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
