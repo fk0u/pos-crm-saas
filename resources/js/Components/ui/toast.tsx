@@ -6,21 +6,66 @@ import { CircleAlert, CircleCheck } from 'lucide-react'
 type ToastInput = { title: string; description?: string; tone?: 'success' | 'error' }
 type ToastItem = ToastInput & { id: number }
 
-const ToastContext = createContext<(toast: ToastInput) => void>(() => {})
+type ToastFunction = {
+  (input: ToastInput | string, maybeToneOrDesc?: string): void
+  show: (input: string, descOrTone?: string) => void
+  success: (title: string, description?: string) => void
+  error: (title: string, description?: string) => void
+}
+
+const noopToast = Object.assign(
+  (() => {}) as (input: ToastInput | string, maybeToneOrDesc?: string) => void,
+  {
+    show: () => {},
+    success: () => {},
+    error: () => {},
+  }
+) as ToastFunction
+
+const ToastContext = createContext<ToastFunction>(noopToast)
 
 let toastSeed = 0
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
-  const push = useCallback((toast: ToastInput) => {
+
+  const push = useCallback((input: ToastInput | string, maybeToneOrDesc?: string) => {
     toastSeed += 1
     const id = toastSeed
-    setToasts((current) => [...current.slice(-2), { ...toast, id }])
-    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), 3800)
+    let item: ToastItem
+
+    if (typeof input === 'string') {
+      const isTone = input === 'success' || input === 'error'
+      if (isTone) {
+        item = {
+          id,
+          title: maybeToneOrDesc || '',
+          tone: input as 'success' | 'error',
+        }
+      } else {
+        item = {
+          id,
+          title: input,
+          tone: maybeToneOrDesc === 'error' || maybeToneOrDesc === 'success' ? maybeToneOrDesc : undefined,
+          description: maybeToneOrDesc !== 'error' && maybeToneOrDesc !== 'success' ? maybeToneOrDesc : undefined,
+        }
+      }
+    } else {
+      item = { ...input, id }
+    }
+
+    setToasts((current) => [...current.slice(-2), item])
+    window.setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), 3800)
   }, [])
 
+  const toastValue = Object.assign(push, {
+    show: (input: string, descOrTone?: string) => push(input, descOrTone),
+    success: (title: string, description?: string) => push({ title, description, tone: 'success' }),
+    error: (title: string, description?: string) => push({ title, description, tone: 'error' }),
+  }) as ToastFunction
+
   return (
-    <ToastContext.Provider value={push}>
+    <ToastContext.Provider value={toastValue}>
       {children}
       <div
         aria-live="polite"

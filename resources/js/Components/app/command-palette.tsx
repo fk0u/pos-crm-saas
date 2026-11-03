@@ -33,13 +33,13 @@ interface CommandItem {
 }
 
 interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onOpenShortcuts?: () => void;
   outletName?: string;
 }
 
-export function CommandPalette({ isOpen, onClose, onOpenShortcuts, outletName = 'Outlet' }: CommandPaletteProps) {
+export function CommandPalette({ isOpen = false, onClose = () => {}, onOpenShortcuts, outletName = 'Outlet' }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 

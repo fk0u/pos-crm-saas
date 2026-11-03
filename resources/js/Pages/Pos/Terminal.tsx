@@ -187,6 +187,7 @@ export default function PosTerminal({
 
   // Online & Table Orders Queue state
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
+  const ordersList = useMemo(() => Array.isArray(pendingOnlineOrders) ? pendingOnlineOrders : [], [pendingOnlineOrders]);
 
   const handleUpdateOrderStatus = (orderId: string, status: string) => {
     playTap();
@@ -396,7 +397,7 @@ export default function PosTerminal({
             toast({
               title: 'Barcode Berhasil Discan',
               description: `${found.name} telah masuk ke pesanan.`,
-              tone: 'primary',
+              tone: 'success',
             });
           }
         }
@@ -478,7 +479,7 @@ export default function PosTerminal({
     if (isSuperAdmin || userRole === 'superadmin') {
       playError();
       triggerHaptic('error');
-      toast.show('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir demi integritas data tenant.', 'error');
+      toast.error('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir demi integritas data tenant.');
       return;
     }
 
@@ -562,7 +563,7 @@ export default function PosTerminal({
       date: new Date().toLocaleString('id-ID'),
     });
 
-    toast.show('success', `Pesanan ${receiptNum} sukses diproses!`);
+    toast.success(`Pesanan ${receiptNum} sukses diproses!`);
 
     setCart([]);
     setDiscountPercent(0);
@@ -789,7 +790,7 @@ export default function PosTerminal({
             onClick={() => {
               if (isSuperAdmin || userRole === 'superadmin') {
                 playError();
-                toast.show('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir.', 'error');
+                toast.error('Akses Dibatasi: Superadmin dilarang memproses transaksi kasir.');
                 return;
               }
               openPayment();
@@ -892,9 +893,9 @@ export default function PosTerminal({
               >
                 <BellRing className="size-4 text-[#0f2b5c]" />
                 <span className="hidden md:inline">Order Online</span>
-                {pendingOnlineOrders.length > 0 && (
+                {ordersList.length > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-2xs animate-pulse">
-                    {pendingOnlineOrders.length}
+                    {ordersList.length}
                   </span>
                 )}
               </button>
@@ -1485,7 +1486,7 @@ export default function PosTerminal({
         maxWidth="3xl"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          {pendingOnlineOrders.length === 0 ? (
+          {ordersList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
               <div className="grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
                 <UtensilsCrossed className="size-6" />
@@ -1508,7 +1509,7 @@ export default function PosTerminal({
               )}
             </div>
           ) : (
-            pendingOnlineOrders.map((order: any) => (
+            ordersList.map((order: any) => (
               <div
                 key={order.id}
                 className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-2xs space-y-3 transition hover:border-slate-300"
@@ -1552,7 +1553,7 @@ export default function PosTerminal({
 
                   <div className="text-right">
                     <span className="text-xs font-mono font-bold text-slate-900">
-                      Rp {order.total_amount.toLocaleString('id-ID')}
+                      {formatMoney(Number(order.total_amount ?? order.grand_total ?? 0))}
                     </span>
                     <div className="text-[10px] text-slate-500">
                       {order.payment_method?.toUpperCase()} · {order.payment_status === 'paid' ? 'Lunas' : 'Belum Bayar'}
@@ -1581,7 +1582,9 @@ export default function PosTerminal({
                             {item.quantity}x {item.name}
                             {item.notes ? <span className="text-slate-400 italic text-[10px] ml-1">({item.notes})</span> : null}
                           </span>
-                          <span className="font-mono text-slate-500">Rp {item.subtotal.toLocaleString('id-ID')}</span>
+                          <span className="font-mono text-slate-500">
+                            {formatMoney(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1632,7 +1635,7 @@ export default function PosTerminal({
                   {order.order_status !== 'completed' && order.order_status !== 'cancelled' && (
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => {
                         if (confirm('Yakin ingin membatalkan pesanan online ini?')) {
                           handleUpdateOrderStatus(order.id, 'cancelled');

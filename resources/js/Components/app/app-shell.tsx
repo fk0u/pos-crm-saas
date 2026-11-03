@@ -88,6 +88,18 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleHash = () => {
@@ -169,7 +181,11 @@ export function AppShell({
   return (
     <ToastProvider>
       <div className="min-h-screen w-full bg-[#f8fafc] antialiased text-slate-900 font-sans flex flex-col lg:flex-row pb-20 lg:pb-0">
-        <CommandPalette />
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          outletName={outletName}
+        />
 
         {/* DESKTOP & TABLET SIDEBAR (Wider w-72 xl:w-80 for high ergonomics & touch friendliness) */}
         <aside className="w-72 xl:w-80 bg-white border-r border-slate-200/90 min-h-screen h-screen sticky top-0 flex flex-col justify-between p-5 xl:p-6 shrink-0 hidden lg:flex select-none z-30 shadow-xs">

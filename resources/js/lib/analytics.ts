@@ -32,10 +32,11 @@ export const categoryTone = (color?: string | null) => {
   return tones[color ?? 'navy'] ?? tones.navy;
 };
 
-export const initials = (name: string) =>
-  name
+export const initials = (name?: string | null) =>
+  (name || '')
+    .trim()
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || '?';

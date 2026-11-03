@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
   HelpCircle,
   Search,
@@ -26,7 +26,7 @@ import {
 import { Modal } from '@/Components/ui/modal';
 import { AppShell } from '@/Components/app/app-shell';
 import { QlonLogo } from '@/Components/ui/QlonLogo';
-import { playTap } from '@/lib/sound';
+import { playTap, playSuccessChime } from '@/lib/sound';
 
 interface HelpPageProps {
   userName?: string;

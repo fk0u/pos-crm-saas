@@ -92,6 +92,7 @@ class PosTerminalController extends Controller
                 'payment_method' => $o->payment_method,
                 'payment_status' => $o->payment_status,
                 'grand_total' => (float) $o->grand_total,
+                'total_amount' => (float) $o->grand_total,
                 'notes' => $o->notes,
                 'created_at' => $o->created_at?->format('H:i'),
                 'items' => $o->items->map(fn ($it) => [
@@ -99,6 +100,7 @@ class PosTerminalController extends Controller
                     'name' => $it->product?->name ?? 'Produk',
                     'quantity' => (int) $it->quantity,
                     'price' => (float) $it->unit_selling_price,
+                    'subtotal' => (float) ($it->unit_selling_price * $it->quantity),
                 ]),
             ]);
 

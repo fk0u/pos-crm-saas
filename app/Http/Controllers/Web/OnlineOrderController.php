@@ -13,8 +13,6 @@ use App\Models\Outlet;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Tenant;
-use App\Scopes\TenantScope;
-use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,8 +33,6 @@ class OnlineOrderController extends Controller
         if (! $tenant->is_active) {
             abort(403, 'Restoran / Toko ini sedang sementara tidak menerima pesanan online.');
         }
-
-        TenantContext::set($tenant->id);
 
         $outlets = Outlet::where('tenant_id', $tenant->id)->get(['id', 'name', 'address', 'phone']);
         $selectedOutletId = $request->query('outlet_id') ?? $outlets->first()?->id;
@@ -93,8 +89,6 @@ class OnlineOrderController extends Controller
         if (! $tenant->is_active) {
             return response()->json(['success' => false, 'message' => 'Restoran sedang tutup.'], 403);
         }
-
-        TenantContext::set($tenant->id);
 
         $validated = $request->validate([
             'outlet_id' => ['nullable', 'string', 'exists:outlets,id'],
@@ -250,13 +244,9 @@ class OnlineOrderController extends Controller
      */
     public function orderStatus(string $invoice): Response
     {
-        $order = Order::withoutGlobalScope(TenantScope::class)
-            ->where('invoice_number', $invoice)
+        $order = Order::where('invoice_number', $invoice)
+            ->with(['items.product', 'outlet', 'tenant'])
             ->firstOrFail();
-
-        TenantContext::set($order->tenant_id);
-
-        $order->load(['items.product', 'outlet', 'tenant']);
 
         return Inertia::render('OnlineOrder/Status', [
             'order' => [
@@ -298,7 +288,7 @@ class OnlineOrderController extends Controller
             'order_status' => ['required', 'string', 'in:pending,accepted,preparing,ready,completed,cancelled'],
         ]);
 
-        $order = Order::withoutGlobalScope(TenantScope::class)->findOrFail($id);
+        $order = Order::findOrFail($id);
         $order->update(['order_status' => $validated['order_status']]);
 
         if ($validated['order_status'] === 'completed' && $order->payment_status === 'pending') {
