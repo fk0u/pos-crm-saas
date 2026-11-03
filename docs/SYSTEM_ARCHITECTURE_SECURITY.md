@@ -92,3 +92,4 @@ Antarmuka QLon kini diperkaya dengan sistem animasi fisika alami menggunakan `fr
 - **Card Hover Elevation:** Efek tactile melayang halus saat kursor melintas di atas kartu analitik dan produk.
 - **Micro-interactions:** Sliding segmented pill switcher pada halaman login/register dengan kurva bezier kustom.
 - **Live Security Badge:** Indikator denyut hijau (*pulse glow*) pada dashboard menandakan status koneksi sesi terenkripsi secara real-time.
+

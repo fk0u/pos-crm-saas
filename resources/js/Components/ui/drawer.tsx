@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export function Drawer({
@@ -31,22 +32,23 @@ export function Drawer({
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
   const panel =
     variant === 'center'
       ? 'absolute inset-x-0 bottom-0 max-h-[94vh] rounded-t-2xl animate-slide-up sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-none'
       : 'absolute inset-x-0 bottom-0 max-h-[94vh] rounded-t-2xl animate-slide-up sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-md sm:rounded-none sm:rounded-l-2xl sm:animate-slide-left'
 
-  return (
-    <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label={title}>
+  return createPortal(
+    <div className="fixed inset-0 z-[99999]" role="dialog" aria-modal="true" aria-label={title}>
+      {/* Full screen solid black coverage backdrop (80% black with blur) */}
       <button
         type="button"
         aria-label="Tutup"
-        className="absolute inset-0 cursor-default bg-slate-950/45 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 cursor-default bg-slate-950/80 backdrop-blur-md animate-fade-in"
         onClick={onClose}
       />
-      <div className={`${panel} flex flex-col overflow-hidden bg-white shadow-2xl`}>
+      <div className={`${panel} flex flex-col overflow-hidden bg-white shadow-2xl z-10`}>
         <div
           className={
             variant === 'center'
@@ -72,6 +74,7 @@ export function Drawer({
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

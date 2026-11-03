@@ -32,6 +32,7 @@ import { LiveClock } from './live-clock';
 import { CommandPalette } from './command-palette';
 import { playTap } from '@/lib/sound';
 import { QlonLogo } from '@/Components/ui/QlonLogo';
+import { VirtualKeyboard } from '@/Components/ui/VirtualKeyboard';
 
 export function getGreeting(): string {
   const hour = new Date().getHours();
@@ -115,13 +116,13 @@ export function AppShell({
   };
 
   const navMenuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/pos', label: 'Terminal POS', icon: ShoppingCart },
-    { href: '/dashboard#inventory', label: 'Katalog Produk', icon: Package },
-    { href: '/dashboard#sales', label: 'Transaksi', icon: ReceiptText },
-    { href: '/dashboard#cashflow', label: 'Arus Kas', icon: CircleDollarSign },
-    { href: '/dashboard#crm', label: 'Pelanggan CRM', icon: Users },
-    { href: '/dashboard#reports', label: 'Laporan', icon: BarChart3 },
+    { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
+    { href: '/kasir', label: 'Kasir', icon: ShoppingCart },
+    { href: '/products', label: 'Katalog Produk', icon: Package },
+    { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
+    { href: '/cashflow', label: 'Arus Kas', icon: CircleDollarSign },
+    { href: '/customers', label: 'Pelanggan', icon: Users },
+    { href: '/reports', label: 'Laporan', icon: BarChart3 },
   ];
 
   const secondaryNavItems = [
@@ -415,6 +416,9 @@ export function AppShell({
             </aside>
           </div>
         )}
+
+        {/* Global On-Screen Virtual Keyboard for Touchscreens/POS */}
+        <VirtualKeyboard />
       </div>
     </ToastProvider>
   );

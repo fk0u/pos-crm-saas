@@ -1,11 +1,16 @@
 <?php
 
+use App\Http\Controllers\Web\CashflowController;
+use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InvoiceController;
 use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\PosTerminalController;
+use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\RegisterController;
+use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -21,21 +26,50 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Owner Central Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
-    ->name('dashboard');
-Route::get('/dashboard/recent', [DashboardController::class, 'recentSales'])
-    ->middleware('auth')
-    ->name('dashboard.recent');
+// Protected SaaS App Routes
+Route::middleware(['auth'])->group(function (): void {
+    // 1. Dasbor
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/recent', [DashboardController::class, 'recentSales'])->name('dashboard.recent');
 
-// POS Terminal (Kasir)
-Route::get('/pos', [PosTerminalController::class, 'index'])
-    ->middleware('auth')
-    ->name('pos.terminal');
+    // 2. Kasir (alias /pos)
+    Route::get('/kasir', [PosTerminalController::class, 'index'])->name('kasir');
+    Route::get('/pos', [PosTerminalController::class, 'index'])->name('pos.terminal');
 
-// Invoices & Thermal Receipts
-Route::get('/invoices/{order}/receipt', [InvoiceController::class, 'receipt'])
-    ->name('invoices.receipt');
-Route::get('/invoices/{order}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])
-    ->name('invoices.whatsapp');
+    // 3. Katalog Produk
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/katalog', fn () => redirect()->route('products.index'))->name('katalog');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::post('/products/{id}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust_stock');
+
+    // 4. Transaksi
+    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+    Route::get('/transaksi', fn () => redirect()->route('transactions.index'))->name('transaksi');
+    Route::post('/transactions/{id}/refund', [TransactionController::class, 'refund'])->name('transactions.refund');
+    Route::get('/transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
+
+    // 5. Arus Kas
+    Route::get('/cashflow', [CashflowController::class, 'index'])->name('cashflow.index');
+    Route::get('/arus-kas', fn () => redirect()->route('cashflow.index'))->name('arus_kas');
+    Route::post('/cashflow/movement', [CashflowController::class, 'movement'])->name('cashflow.movement');
+    Route::post('/cashflow/close-shift', [CashflowController::class, 'closeShift'])->name('cashflow.close_shift');
+
+    // 6. Pelanggan CRM
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/pelanggan', fn () => redirect()->route('customers.index'))->name('pelanggan');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::put('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::post('/customers/{id}/adjust-points', [CustomerController::class, 'adjustPoints'])->name('customers.adjust_points');
+
+    // 7. Laporan
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/laporan', fn () => redirect()->route('reports.index'))->name('laporan');
+    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+});
+
+// Invoices & Thermal Receipts (Publicly viewable by customers receiving WhatsApp/Print link)
+Route::get('/invoices/{order}/receipt', [InvoiceController::class, 'receipt'])->name('invoices.receipt');
+Route::get('/invoices/{order}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])->name('invoices.whatsapp');

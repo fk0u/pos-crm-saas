@@ -430,12 +430,12 @@ export default function DashboardIndex({
 
             {/* Primary Action Button (Navy Blue) */}
             <Link
-              href="/pos"
+              href="/kasir"
               onClick={() => playTap()}
               className="h-9 px-4 rounded-xl bg-[#0f2b5c] hover:bg-[#163a75] active:bg-[#0a1e42] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-950/20 transition cursor-pointer"
             >
               <Plus className="size-3.5" />
-              <span>Buka Kasir POS</span>
+              <span>Buka Kasir</span>
             </Link>
           </div>
         </div>
@@ -801,6 +801,14 @@ export default function DashboardIndex({
                 <SlidersHorizontal className="size-3 text-slate-400" />
                 <span>Filter</span>
               </button>
+
+              <Link
+                href="/products"
+                onClick={() => playTap()}
+                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0f2b5c] text-xs font-bold transition"
+              >
+                Katalog Lengkap
+              </Link>
             </div>
           </div>
 
@@ -896,6 +904,14 @@ export default function DashboardIndex({
                 <RefreshCw className={`size-3 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
+
+              <Link
+                href="/transactions"
+                onClick={() => playTap()}
+                className="h-8 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0f2b5c] text-xs font-bold flex items-center gap-1 transition"
+              >
+                Semua Transaksi
+              </Link>
             </div>
           </div>
 

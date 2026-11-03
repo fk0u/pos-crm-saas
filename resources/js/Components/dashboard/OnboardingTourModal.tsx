@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sparkles,
   X,
@@ -129,8 +130,10 @@ export default function OnboardingTourModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-xl bg-white rounded-[28px] shadow-[0_25px_60px_rgba(15,23,42,0.25)] border border-slate-100 overflow-hidden">
         {/* Top Header Background with Navy Gradient */}
         <div className="relative bg-gradient-to-br from-[#061325] via-[#0b1f3b] to-[#040e1d] p-6 text-white overflow-hidden">
@@ -264,7 +267,8 @@ export default function OnboardingTourModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

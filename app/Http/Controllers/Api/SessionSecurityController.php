@@ -98,3 +98,4 @@ class SessionSecurityController extends Controller
         ]);
     }
 }
+
