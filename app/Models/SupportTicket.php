@@ -33,3 +33,4 @@ class SupportTicket extends Model
         return $this->hasMany(SupportMessage::class, 'ticket_id')->orderBy('created_at', 'asc');
     }
 }
+

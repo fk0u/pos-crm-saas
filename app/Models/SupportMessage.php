@@ -34,3 +34,4 @@ class SupportMessage extends Model
         return $this->belongsTo(SupportTicket::class, 'ticket_id');
     }
 }
+

@@ -56,3 +56,4 @@ class DelegationTokenController extends Controller
         return redirect()->back()->with('success', 'Token akses bantuan berhasil dicabut secara instan.');
     }
 }
+

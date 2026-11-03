@@ -28,3 +28,4 @@ class WebhookEndpoint extends Model
         'failure_count' => 'integer',
     ];
 }
+

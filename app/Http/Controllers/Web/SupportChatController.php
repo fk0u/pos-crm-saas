@@ -65,3 +65,4 @@ class SupportChatController extends Controller
         ]);
     }
 }
+

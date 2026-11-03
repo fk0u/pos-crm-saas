@@ -125,3 +125,4 @@ class DeveloperHubController extends Controller
         return redirect()->back()->with('success', 'Webhook endpoint berhasil dihapus.');
     }
 }
+

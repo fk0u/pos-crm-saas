@@ -85,3 +85,4 @@ class SuperadminController extends Controller
         return redirect()->route('superadmin.dashboard')->with('success', 'Kembali ke mode Master Platform Superadmin.');
     }
 }
+
