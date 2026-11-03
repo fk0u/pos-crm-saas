@@ -63,12 +63,20 @@ class SalesMetricsService
                 ? round((($revenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
                 : ($revenue > 0 ? 100.0 : 0.0);
 
+            $allOrders = Order::where('tenant_id', $tenantId);
+            $totalOrdersAllTime = (clone $allOrders)->count();
+            $totalRevenueAllTime = (float) (clone $allOrders)->where('payment_status', 'paid')->sum('grand_total');
+            $totalCustomers = (int) Customer::where('tenant_id', $tenantId)->count();
+
             return [
                 'gross_sales' => $grossSales,
                 'discount_total' => $discountTotal,
                 'tax_total' => $taxTotal,
                 'revenue' => $revenue,
                 'today_revenue' => $revenue,
+                'total_revenue_all_time' => $totalRevenueAllTime,
+                'total_orders_all_time' => $totalOrdersAllTime,
+                'total_customers' => $totalCustomers,
                 'cogs' => $totalCogs,
                 'gross_profit' => $grossProfit,
                 'profit_margin' => $profitMargin,
@@ -186,5 +194,86 @@ class SalesMetricsService
             ->latest()
             ->take($limit)
             ->get();
+    }
+
+    /**
+     * Aggregated 12-Month sales trend (Jan - Dec) from database orders.
+     *
+     * @return array<int, array{month: string, revenue: float, deals: int, raw_revenue: float}>
+     */
+    public function monthlyRevenueTrend(string $tenantId, int $year = 2026): array
+    {
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Des'];
+        $result = [];
+
+        $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
+        $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->where('payment_status', 'paid')
+            ->whereBetween('created_at', [$startOfYear, $endOfYear])
+            ->get(['grand_total', 'created_at']);
+
+        for ($m = 1; $m <= 12; $m++) {
+            $monthOrders = $orders->filter(fn ($o) => (int) $o->created_at->format('n') === $m);
+            $revenue = (float) $monthOrders->sum('grand_total');
+            $result[] = [
+                'month' => $months[$m - 1],
+                'revenue' => round($revenue / 1000000, 2),
+                'deals' => $monthOrders->count(),
+                'raw_revenue' => $revenue,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Order payment status distribution from database.
+     *
+     * @return array<string, mixed>
+     */
+    public function orderStatusDistribution(string $tenantId): array
+    {
+        $orders = Order::where('tenant_id', $tenantId)->get(['payment_status']);
+        $total = $orders->count();
+
+        $paidCount = $orders->where('payment_status', 'paid')->count();
+        $pendingCount = $orders->where('payment_status', 'pending')->count();
+        $refundedCount = $orders->where('payment_status', 'refunded')->count();
+
+        return [
+            'total' => $total,
+            'paid' => $paidCount,
+            'pending' => $pendingCount,
+            'refunded' => $refundedCount,
+            'paid_pct' => $total > 0 ? round(($paidCount / $total) * 100, 1) : 0.0,
+            'pending_pct' => $total > 0 ? round(($pendingCount / $total) * 100, 1) : 0.0,
+            'refunded_pct' => $total > 0 ? round(($refundedCount / $total) * 100, 1) : 0.0,
+        ];
+    }
+
+    /**
+     * Real showcase products from database.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function exploreProducts(string $tenantId, int $limit = 4): Collection
+    {
+        return \App\Models\Product::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->latest()
+            ->take($limit)
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'price' => (float) $p->selling_price,
+                'stock' => $p->stock . ' pcs',
+                'sold' => '0',
+                'location' => $p->category ?? 'General',
+                'rating' => '5.0',
+                'image' => $p->image_url ?: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80',
+            ]);
     }
 }

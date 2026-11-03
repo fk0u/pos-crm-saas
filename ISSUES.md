@@ -8,14 +8,14 @@ Dokumen ini memetakan seluruh komponen antarmuka, kontroler, dan alur data yang 
 
 | Kode Isu | Modul / Halaman | Deskripsi Masalah | Tingkat Urgensi | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| **ISSUE-01** | `Dashboard/Index.tsx` | Kartu metrik ringkasan (Total Order, Omzet, Sukses, Pelanggan) berisi angka hardcoded & fallback statis. | Tinggi | Terbuka |
-| **ISSUE-02** | `Dashboard/Index.tsx` | Grafik batang pendapatan 12 bulan (*monthlyData*) menggunakan array statis Jan-Des tanpa kueri database. | Tinggi | Terbuka |
-| **ISSUE-03** | `Dashboard/Index.tsx` | Donut chart *Status Analysis* (Selesai, Proses, Pending) menggunakan angka statis (1037, 486, 165). | Sedang | Terbuka |
-| **ISSUE-04** | `Dashboard/Index.tsx` | Showcase produk *Explore Products* berisi mock array produk kuliner tetap bukannya mengambil dari tabel `products`. | Tinggi | Terbuka |
-| **ISSUE-05** | `Dashboard/Index.tsx` | Fitur Refund pesanan di tabel dasbor hanya memakai `setTimeout` & state lokal, tidak memanggil API database. | Kritis | Terbuka |
-| **ISSUE-06** | `Dashboard/Index.tsx` | Tombol Export CSV di header dasbor hanya memunculkan toast tiruan tanpa mengunduh file CSV asli. | Sedang | Terbuka |
-| **ISSUE-07** | `routes/web.php` & Settings | Belum ada rute & antarmuka CRUD untuk pendaftaran Outlet baru dan akun Kasir/Staff oleh Owner. | Tinggi | Terbuka |
-| **ISSUE-08** | `SuperadminController.php` | Metrik `active_connections` klaster server masih di-hardcode ke angka `14` bukannya kueri `pg_stat_activity`. | Rendah | Terbuka |
+| **ISSUE-01** | `Dashboard/Index.tsx` | Kartu metrik ringkasan (Total Order, Omzet, Sukses, Pelanggan) berisi angka hardcoded & fallback statis. | Tinggi | Selesai (Tersinkronisasi DB) |
+| **ISSUE-02** | `Dashboard/Index.tsx` | Grafik batang pendapatan 12 bulan (*monthlyData*) menggunakan array statis Jan-Des tanpa kueri database. | Tinggi | Selesai (Tersinkronisasi DB) |
+| **ISSUE-03** | `Dashboard/Index.tsx` | Donut chart *Status Analysis* (Selesai, Proses, Pending) menggunakan angka statis (1037, 486, 165). | Sedang | Selesai (Tersinkronisasi DB) |
+| **ISSUE-04** | `Dashboard/Index.tsx` | Showcase produk *Explore Products* berisi mock array produk kuliner tetap bukannya mengambil dari tabel `products`. | Tinggi | Selesai (Tersinkronisasi DB) |
+| **ISSUE-05** | `Dashboard/Index.tsx` | Fitur Refund pesanan di tabel dasbor hanya memakai `setTimeout` & state lokal, tidak memanggil API database. | Kritis | Selesai (Tersinkronisasi DB) |
+| **ISSUE-06** | `Dashboard/Index.tsx` | Tombol Export CSV di header dasbor hanya memunculkan toast tiruan tanpa mengunduh file CSV asli. | Sedang | Selesai (Tersinkronisasi DB) |
+| **ISSUE-07** | `routes/web.php` & Settings | Belum ada rute & antarmuka CRUD untuk pendaftaran Outlet baru dan akun Kasir/Staff oleh Owner. | Tinggi | Selesai (Tersinkronisasi DB) |
+| **ISSUE-08** | `SuperadminController.php` | Metrik `active_connections` klaster server masih di-hardcode ke angka `14` bukannya kueri `pg_stat_activity`. | Rendah | Selesai (Tersinkronisasi DB) |
 | **ISSUE-09** | `app-shell.tsx` | Lonceng notifikasi belum memiliki tabel database `notifications` (stok menipis, shift tutup, tiket CS). | Sedang | Terbuka |
 
 ---
@@ -164,3 +164,4 @@ Dokumen ini memetakan seluruh komponen antarmuka, kontroler, dan alur data yang 
   - Tombol lonceng notifikasi hanya memiliki penanda titik biru statis dan memicu suara `playTap()`.
 - **Rekomendasi Perbaikan:**
   - Implementasikan tabel `notifications` dan drawer/popover notifikasi riil (pemberitahuan saat stok menipis <= 5, saat kasir menutup shift, atau balasan baru dari CS).
+

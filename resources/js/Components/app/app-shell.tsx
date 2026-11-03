@@ -570,7 +570,7 @@ export function AppShell({
         <VirtualKeyboard />
 
         {/* Global Real-time CS Live Support Widget */}
-        <RealtimeSupportWidget />
+        {role !== 'superadmin' && <RealtimeSupportWidget />}
       </div>
     </ToastProvider>
   );

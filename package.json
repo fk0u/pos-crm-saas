@@ -5,10 +5,10 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "ruas:index": "ruas index .",
-        "ruas:status": "ruas status .",
-        "ruas:audit": "ruas audit .",
-        "ruas:lint": "ruas lint ."
+        "ruas:index": "npx @fk0u/ruas index .",
+        "ruas:status": "npx @fk0u/ruas status .",
+        "ruas:audit": "npx @fk0u/ruas audit .",
+        "ruas:lint": "npx @fk0u/ruas lint ."
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

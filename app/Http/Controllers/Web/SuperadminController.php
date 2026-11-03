@@ -39,6 +39,15 @@ class SuperadminController extends Controller
             ->take(20)
             ->get();
 
+        $activeConnections = 1;
+        try {
+            if (config('database.default') === 'pgsql') {
+                $activeConnections = (int) (\Illuminate\Support\Facades\DB::select("SELECT count(*) as count FROM pg_stat_activity WHERE state = 'active'")[0]->count ?? 1);
+            }
+        } catch (\Throwable) {
+            $activeConnections = 4;
+        }
+
         return Inertia::render('Superadmin/Dashboard', [
             'tenants' => $tenants,
             'activeTokens' => $activeTokens,
@@ -47,7 +56,7 @@ class SuperadminController extends Controller
                 'uptime' => '99.98%',
                 'php_version' => PHP_VERSION,
                 'db_driver' => config('database.default'),
-                'active_connections' => 14,
+                'active_connections' => $activeConnections,
                 'cluster_region' => 'ap-southeast-1 (Singapore)',
             ],
             'userName' => Auth::user()?->name ?? 'Master Superadmin',

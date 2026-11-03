@@ -21,7 +21,19 @@ class SupportChatController extends Controller
     public function getActiveConversation(Request $request): JsonResponse
     {
         $user = Auth::user();
+        if (! $user) {
+            return response()->json(['ticket' => null, 'messages' => []], 401);
+        }
+
         $tenantId = $user->tenant_id ?? TenantContext::current();
+
+        if (! $tenantId) {
+            return response()->json([
+                'ticket' => null,
+                'messages' => [],
+                'is_admin' => $user->isSuperAdmin(),
+            ]);
+        }
 
         $ticket = SupportTicket::firstOrCreate(
             ['tenant_id' => $tenantId, 'user_id' => $user->id, 'status' => 'open'],
@@ -42,6 +54,10 @@ class SupportChatController extends Controller
     public function sendMessage(Request $request): JsonResponse
     {
         $user = Auth::user();
+        if (! $user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
         $tenantId = $user->tenant_id ?? TenantContext::current();
 
         $validated = $request->validate([
@@ -49,7 +65,15 @@ class SupportChatController extends Controller
             'message' => ['required', 'string', 'max:1000'],
         ]);
 
-        $ticket = SupportTicket::where('tenant_id', $tenantId)->findOrFail($validated['ticket_id']);
+        $query = SupportTicket::query();
+        if (! $user->isSuperAdmin()) {
+            if (! $tenantId) {
+                return response()->json(['error' => 'Tenant context required'], 403);
+            }
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $ticket = $query->findOrFail($validated['ticket_id']);
 
         $message = SupportMessage::create([
             'id' => (string) Str::uuid(),
@@ -65,4 +89,3 @@ class SupportChatController extends Controller
         ]);
     }
 }
-

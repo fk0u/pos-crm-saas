@@ -58,6 +58,13 @@ class DashboardController extends Controller
         $auditLogs = $this->metrics->recentAuditLogs($tenantId, 8);
         $allTenants = $isSuperAdmin ? \App\Models\Tenant::select(['id', 'name', 'subdomain'])->get() : [];
 
+        $monthlyData = $this->metrics->monthlyRevenueTrend($tenantId, (int) $request->query('year', 2026));
+        $statusDistribution = $this->metrics->orderStatusDistribution($tenantId);
+        $exploreProducts = $this->metrics->exploreProducts($tenantId, 4);
+
+        $outletsList = \App\Models\Outlet::where('tenant_id', $tenantId)->withCount(['users', 'orders'])->get();
+        $staffList = \App\Models\User::where('tenant_id', $tenantId)->with('outlet:id,name')->get();
+
         return Inertia::render('Dashboard/Index', [
             'userName' => $user->name,
             'role' => $user->role,
@@ -73,6 +80,11 @@ class DashboardController extends Controller
             'topProducts' => $topProducts,
             'auditLogs' => $auditLogs,
             'search' => (string) ($searchQuery ?? ''),
+            'monthlyData' => $monthlyData,
+            'statusDistribution' => $statusDistribution,
+            'exploreProducts' => $exploreProducts,
+            'outletsList' => $outletsList,
+            'staffList' => $staffList,
         ]);
     }
 

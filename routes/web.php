@@ -9,10 +9,12 @@ use App\Http\Controllers\Web\HelpController;
 use App\Http\Controllers\Web\InvoiceController;
 use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\LoginController;
+use App\Http\Controllers\Web\OutletController;
 use App\Http\Controllers\Web\PosTerminalController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\RegisterController;
 use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\StaffController;
 use App\Http\Controllers\Web\SuperadminController;
 use App\Http\Controllers\Web\SupportChatController;
 use App\Http\Controllers\Web\TransactionController;
@@ -78,6 +80,16 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/laporan', fn () => redirect()->route('reports.index'))->name('laporan');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+
+        // Outlet & Cabang Management
+        Route::post('/outlets', [OutletController::class, 'store'])->name('outlets.store');
+        Route::put('/outlets/{id}', [OutletController::class, 'update'])->name('outlets.update');
+        Route::delete('/outlets/{id}', [OutletController::class, 'destroy'])->name('outlets.destroy');
+
+        // Staff & Kasir User Management
+        Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
+        Route::put('/staff/{id}', [StaffController::class, 'update'])->name('staff.update');
+        Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
     });
 
     // 8. Pusat Bantuan & Layanan CS Realtime (Delegation Tokens)
