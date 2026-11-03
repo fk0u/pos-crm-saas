@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useState, useEffect } from 'react';
 import { useForm, Link } from '@inertiajs/react';
 import {
   User,
@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { playTap, playSuccessChime } from '@/lib/sound';
 import AuthShowcaseCarousel from '@/Components/AuthShowcaseCarousel';
@@ -24,6 +26,18 @@ export default function Register() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!oauthNotice) return;
+    const timer = setTimeout(() => setOauthNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [oauthNotice]);
+
+  const handleOAuthFallback = (provider: string) => {
+    playTap();
+    setOauthNotice(`Saat ini pendaftaran via ${provider} belum tersedia. Silakan lengkapi formulir di atas.`);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -247,11 +261,30 @@ export default function Register() {
               </span>
             </div>
 
-            {/* Social Icons */}
+            {/* OAuth Fallback Notice */}
+            {oauthNotice && (
+              <div className="mb-3.5 p-3 rounded-xl bg-blue-50/90 border border-blue-200/80 text-blue-950 text-xs flex items-start justify-between gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="size-4 text-[#0f2b5c] shrink-0 mt-0.5" />
+                  <span className="text-[11px] font-medium leading-relaxed">{oauthNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOauthNotice(null)}
+                  className="text-blue-500 hover:text-[#0f2b5c] p-0.5 rounded-md cursor-pointer shrink-0 transition"
+                  aria-label="Tutup"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Social Icons with Fallback */}
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
-                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs"
+                onClick={() => handleOAuthFallback('Google')}
+                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs cursor-pointer active:scale-95"
                 title="Google login"
               >
                 <svg className="size-4" viewBox="0 0 24 24">
@@ -263,7 +296,8 @@ export default function Register() {
               </button>
               <button
                 type="button"
-                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-slate-800"
+                onClick={() => handleOAuthFallback('Apple')}
+                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-slate-800 cursor-pointer active:scale-95"
                 title="Apple login"
               >
                 <svg className="size-4 fill-current" viewBox="0 0 24 24">
@@ -272,7 +306,8 @@ export default function Register() {
               </button>
               <button
                 type="button"
-                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-[#1877F2]"
+                onClick={() => handleOAuthFallback('Facebook')}
+                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-[#1877F2] cursor-pointer active:scale-95"
                 title="Facebook login"
               >
                 <svg className="size-4 fill-current" viewBox="0 0 24 24">
@@ -281,7 +316,8 @@ export default function Register() {
               </button>
               <button
                 type="button"
-                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-slate-800"
+                onClick={() => handleOAuthFallback('X')}
+                className="size-9 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition shadow-2xs text-slate-800 cursor-pointer active:scale-95"
                 title="X login"
               >
                 <svg className="size-3.5 fill-current" viewBox="0 0 24 24">
