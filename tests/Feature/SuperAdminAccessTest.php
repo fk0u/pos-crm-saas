@@ -215,5 +215,61 @@ class SuperAdminAccessTest extends TestCase
         // Verify owner's password has changed
         $this->assertFalse(\Illuminate\Support\Facades\Hash::check('oldpassword', $owner->fresh()->password));
     }
+
+    public function test_system_incident_tracking_and_superadmin_resolution(): void
+    {
+        $tenant = Tenant::create(['name' => 'Kedai Kopi C', 'subdomain' => 'kopi-c']);
+        $cashier = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Kasir Siti',
+            'email' => 'siti@kopi-c.id',
+            'password' => bcrypt('password123'),
+            'role' => 'cashier',
+        ]);
+
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        // Simulate incident captured while Siti was using the app
+        $this->actingAs($cashier);
+        $incident = \App\Services\IncidentTracker::capture(new \RuntimeException('Contoh kegagalan runtime sistem di halaman kasir'));
+        $this->assertNotNull($incident);
+        $this->assertEquals('Kasir Siti', $incident->user_name);
+        $this->assertEquals('open', $incident->status);
+
+        // Superadmin views command center and inspects incident
+        $response = $this->actingAs($superadmin)->get('/superadmin');
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Dashboard')
+            ->has('incidents')
+            ->where('unresolvedIncidentsCount', 1)
+            ->where('latestIncidentAlert.id', $incident->id)
+            ->has('bankingGovernance')
+            ->has('recentActivities')
+        );
+
+        // Superadmin resolves incident
+        $resolveRes = $this->actingAs($superadmin)->post("/superadmin/incidents/{$incident->id}/resolve", [
+            'notes' => 'Telah diperbaiki via hotfix v3.0.1',
+        ]);
+        $resolveRes->assertRedirect();
+
+        $this->assertDatabaseHas('system_incidents', [
+            'id' => $incident->id,
+            'status' => 'resolved',
+            'resolved_by' => 'Platform Superadmin',
+        ]);
+
+        // Superadmin clears resolved incidents
+        $clearRes = $this->actingAs($superadmin)->post('/superadmin/incidents/clear-resolved');
+        $clearRes->assertRedirect();
+        $this->assertDatabaseMissing('system_incidents', ['id' => $incident->id]);
+    }
 }
 

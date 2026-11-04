@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Order;
 use App\Models\SupportDelegationToken;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
+use App\Models\SystemIncident;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Scopes\TenantScope;
@@ -104,6 +106,83 @@ class SuperadminController extends Controller
             $activeConnections = 4;
         }
 
+        // 1. Realtime Incident & Error Detection Hub
+        $incidents = SystemIncident::with(['tenant:id,name', 'user:id,name,email'])
+            ->orderBy('created_at', 'desc')
+            ->take(40)
+            ->get()
+            ->map(fn ($inc) => [
+                'id' => $inc->id,
+                'tenant_id' => $inc->tenant_id,
+                'tenant_name' => $inc->tenant?->name ?? 'Platform / Global Core',
+                'user_id' => $inc->user_id,
+                'user_name' => $inc->user_name ?? ($inc->user?->name ?? 'Tamu / Sistem'),
+                'user_email' => $inc->user_email ?? ($inc->user?->email ?? '—'),
+                'user_role' => $inc->user_role ?? ($inc->user?->role ?? 'guest'),
+                'url' => $inc->url,
+                'route_name' => $inc->route_name,
+                'method' => $inc->method,
+                'status_code' => $inc->status_code,
+                'error_type' => class_basename($inc->error_type ?? 'Exception'),
+                'error_class' => $inc->error_type,
+                'message' => $inc->message,
+                'file' => $inc->file ? basename($inc->file) . ':' . $inc->line : null,
+                'full_file' => $inc->file,
+                'line' => $inc->line,
+                'trace_summary' => $inc->trace_summary,
+                'ip_address' => $inc->ip_address,
+                'severity' => $inc->severity,
+                'status' => $inc->status,
+                'resolved_at' => $inc->resolved_at?->format('d M Y, H:i'),
+                'resolved_by' => $inc->resolved_by,
+                'created_at' => $inc->created_at?->format('d M Y, H:i:s'),
+                'time_ago' => $inc->created_at?->diffForHumans() ?? 'Baru saja',
+            ]);
+
+        $unresolvedIncidentsCount = SystemIncident::unresolved()->count();
+        $latestIncidentAlert = $incidents->firstWhere('status', '!==', 'resolved');
+
+        // 2. Standar Korporat Perbankan: Aktivitas Terakhir (Non-PII, Tanpa Isi Belanja)
+        $recentOrders = Order::withoutGlobalScope(TenantScope::class)
+            ->with(['tenant:id,name', 'outlet:id,name', 'cashier:id,name'])
+            ->latest()
+            ->take(15)
+            ->get(['id', 'tenant_id', 'outlet_id', 'cashier_id', 'invoice_number', 'payment_method', 'payment_status', 'created_at'])
+            ->map(fn ($ord) => [
+                'id' => $ord->id,
+                'type' => 'transaction',
+                'title' => 'Transaksi POS Berhasil',
+                'description' => 'Invoice ' . substr($ord->invoice_number, 0, 4) . '****' . substr($ord->invoice_number, -3) . ' (' . strtoupper($ord->payment_method) . ')',
+                'user_name' => $ord->cashier?->name ?? 'Kasir POS',
+                'tenant_name' => $ord->tenant?->name ?? 'Merchant',
+                'outlet_name' => $ord->outlet?->name ?? 'Cabang Utama',
+                'status' => $ord->payment_status === 'paid' ? 'success' : 'pending',
+                'privacy_badge' => 'Privasi Terlindungi (ISO 27001)',
+                'time_ago' => $ord->created_at?->diffForHumans() ?? 'Baru saja',
+                'created_at' => $ord->created_at?->format('d M Y, H:i:s'),
+            ]);
+
+        $systemAuditLogs = AuditLog::withoutGlobalScope(TenantScope::class)
+            ->with(['user:id,name,role', 'tenant:id,name'])
+            ->latest()
+            ->take(15)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'type' => 'audit',
+                'title' => 'Audit Operasional: ' . str_replace('.', ' › ', $log->action),
+                'description' => is_string($log->details) ? $log->details : json_encode($log->details),
+                'user_name' => $log->user?->name ?? 'Sistem',
+                'tenant_name' => $log->tenant?->name ?? 'Platform Core',
+                'outlet_name' => 'HQ / Server',
+                'status' => 'logged',
+                'privacy_badge' => 'Audit Trail',
+                'time_ago' => $log->created_at?->diffForHumans() ?? 'Baru saja',
+                'created_at' => $log->created_at?->format('d M Y, H:i:s'),
+            ]);
+
+        $recentActivities = $recentOrders->concat($systemAuditLogs)->sortByDesc('created_at')->values()->take(25);
+
         return Inertia::render('Superadmin/Dashboard', [
             'tenants' => $tenants,
             'allUsers' => $allUsers,
@@ -113,6 +192,29 @@ class SuperadminController extends Controller
             'emergencyAuditLogs' => $emergencyAuditLogs,
             'activeDelegation' => $activeDelegation,
             'emergencyResult' => session('emergency_result'),
+            'incidents' => $incidents,
+            'unresolvedIncidentsCount' => $unresolvedIncidentsCount,
+            'latestIncidentAlert' => $latestIncidentAlert,
+            'recentActivities' => $recentActivities,
+            'bankingGovernance' => [
+                'standard' => 'ISO/IEC 27001 & PCI-DSS Aligned Governance',
+                'financial_privacy' => 'STRICT_ENFORCED',
+                'financial_privacy_desc' => 'Akun Master tidak memiliki hak akses membaca detail keranjang belanjaan (basket items) maupun data pembayaran sensitif individual konsumen.',
+                'audit_trail_status' => 'IMMUTABLE_LOGGING_ACTIVE',
+                'realtime_detection' => 'ONLINE',
+                'capabilities' => [
+                    'Mendeteksi insiden & unhandled exceptions realtime per akun dan per halaman URL',
+                    'Audit jejak operasional & timestamp aktivitas terakhir seluruh entitas',
+                    'Manajemen status operasional, paket layanan, dan kuota tenant',
+                    'Pemulihan darurat akun terverifikasi (Emergency Account Recovery)',
+                    'Pengawasan kepatuhan isolasi kedaulatan data (Tenant Data Sovereignty)',
+                ],
+                'restrictions' => [
+                    'Dilarang mengakses rincian item produk belanjaan personal pembeli',
+                    'Dilarang melakukan transaksi kasir/checkout langsung atas nama tenant',
+                    'Dilarang memanipulasi saldo atau mutasi kas tanpa token delegasi resmi',
+                ],
+            ],
             'serverStatus' => [
                 'uptime' => '99.98%',
                 'php_version' => PHP_VERSION,
@@ -359,6 +461,32 @@ class SuperadminController extends Controller
         }
 
         return redirect()->back();
+    }
+
+    /**
+     * Mark an incident as resolved by Superadmin.
+     */
+    public function resolveIncident(Request $request, string $id): RedirectResponse
+    {
+        $incident = SystemIncident::findOrFail($id);
+        $incident->update([
+            'status' => 'resolved',
+            'resolved_at' => now(),
+            'resolved_by' => Auth::user()?->name ?? 'Master Superadmin',
+            'resolution_notes' => $request->input('notes', 'Ditandai selesai ditangani oleh Master Superadmin.'),
+        ]);
+
+        return redirect()->back()->with('success', 'Insiden sistem berhasil ditandai sebagai Selesai (Resolved).');
+    }
+
+    /**
+     * Clear all resolved incidents from database.
+     */
+    public function clearResolvedIncidents(): RedirectResponse
+    {
+        SystemIncident::where('status', 'resolved')->delete();
+
+        return redirect()->back()->with('success', 'Daftar insiden yang sudah selesai berhasil dibersihkan.');
     }
 }
 

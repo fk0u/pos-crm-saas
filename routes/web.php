@@ -178,6 +178,8 @@ Route::middleware(['auth'])->group(function (): void {
         Route::post('/superadmin/tenants/{id}/package', [SuperadminController::class, 'updatePackage'])->name('superadmin.tenants.update_package');
         Route::post('/superadmin/tickets/{id}/reply', [SuperadminController::class, 'replySupportTicket'])->name('superadmin.tickets.reply');
         Route::post('/superadmin/tickets/{id}/resolve', [SuperadminController::class, 'resolveSupportTicket'])->name('superadmin.tickets.resolve');
+        Route::post('/superadmin/incidents/{id}/resolve', [SuperadminController::class, 'resolveIncident'])->name('superadmin.incidents.resolve');
+        Route::post('/superadmin/incidents/clear-resolved', [SuperadminController::class, 'clearResolvedIncidents'])->name('superadmin.incidents.clear_resolved');
     });
 });
 

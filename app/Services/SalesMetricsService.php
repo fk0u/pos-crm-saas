@@ -175,7 +175,7 @@ class SalesMetricsService
 
         return OrderItem::whereHas('order', fn ($q) => $q->where('tenant_id', $tenantId))
             ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->select('products.name', 'products.category', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.subtotal) as total_revenue'))
+            ->select('products.name', 'products.category', DB::raw('SUM(quantity) as total_qty'), DB::raw('SUM(subtotal) as total_revenue'))
             ->groupBy('products.id', 'products.name', 'products.category')
             ->orderByDesc('total_qty')
             ->take($limit)
