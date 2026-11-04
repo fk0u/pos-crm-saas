@@ -171,6 +171,13 @@ Route::middleware(['auth'])->group(function (): void {
     // 14. Superadmin Sovereign Control Center (superadmin only)
     Route::middleware(['role:superadmin'])->group(function (): void {
         Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
+        Route::get('/superadmin/incidents', [SuperadminController::class, 'incidents'])->name('superadmin.incidents');
+        Route::get('/superadmin/backups', [SuperadminController::class, 'backups'])->name('superadmin.backups');
+        Route::get('/superadmin/governance', [SuperadminController::class, 'governance'])->name('superadmin.governance');
+        Route::get('/superadmin/tenants', [SuperadminController::class, 'tenants'])->name('superadmin.tenants');
+        Route::get('/superadmin/users', [SuperadminController::class, 'users'])->name('superadmin.users');
+        Route::get('/superadmin/tickets', [SuperadminController::class, 'tickets'])->name('superadmin.tickets');
+
         Route::post('/superadmin/claim-token', [SuperadminController::class, 'claimToken'])->name('superadmin.claim_token');
         Route::post('/superadmin/exit-delegation', [SuperadminController::class, 'exitDelegation'])->name('superadmin.exit_delegation');
         Route::post('/superadmin/emergency/recover', [SuperadminController::class, 'emergencyRecover'])->name('superadmin.emergency.recover');

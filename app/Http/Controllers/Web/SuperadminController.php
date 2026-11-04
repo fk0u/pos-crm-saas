@@ -28,75 +28,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class SuperadminController extends Controller
 {
     /**
-     * Superadmin Platform Command Center.
-     * Monitors servers, subscriptions, tenants, and active delegation tokens.
+     * Superadmin Platform Command Center (Overview).
+     * Lightweight overview with cluster telemetry and modular navigation.
      */
     public function index(Request $request, BackupService $backupService): Response
     {
-        $tenants = Tenant::withCount(['users', 'outlets', 'products'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'subdomain' => $t->subdomain,
-                'is_active' => (bool) $t->is_active,
-                'subscription_tier' => $t->subscription_tier ?? Tenant::TIER_ESSENTIAL,
-                'tier_label' => $t->getTierLabel(),
-                'max_outlets' => $t->max_outlets,
-                'max_staff' => $t->max_staff,
-                'enabled_modules' => $t->getEnabledModules(),
-                'users_count' => (int) $t->users_count,
-                'outlets_count' => (int) $t->outlets_count,
-                'products_count' => (int) $t->products_count,
-                'created_at' => $t->created_at?->format('d M Y'),
-            ]);
-
-        $activeTokens = SupportDelegationToken::with(['creator', 'tenant'])
-            ->where('expires_at', '>', now())
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $tickets = SupportTicket::with(['tenant', 'user', 'messages'])
-            ->latest()
-            ->take(20)
-            ->get();
-
-        $allUsers = User::with(['tenant:id,name,subdomain', 'outlet:id,name'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'role' => $u->role,
-                'tenant_id' => $u->tenant_id,
-                'tenant_name' => $u->tenant?->name ?? 'Platform Core (Sovereign)',
-                'tenant_subdomain' => $u->tenant?->subdomain,
-                'outlet_id' => $u->outlet_id,
-                'outlet_name' => $u->outlet?->name ?? ($u->tenant_id ? 'Semua Outlet (HQ)' : '—'),
-                'created_at' => $u->created_at?->format('d M Y, H:i') ?? '—',
-                'is_superadmin' => $u->isSuperAdmin(),
-            ]);
-
-        $tenantUsers = $allUsers->whereNotNull('tenant_id')->values();
-
-        $emergencyAuditLogs = AuditLog::withoutGlobalScope(TenantScope::class)
-            ->where('action', 'like', 'emergency.%')
-            ->with(['user:id,name,email', 'tenant:id,name'])
-            ->latest()
-            ->take(15)
-            ->get()
-            ->map(fn ($log) => [
-                'id' => $log->id,
-                'action' => $log->action,
-                'tenant_name' => $log->tenant?->name ?? 'Semua Tenant',
-                'admin_name' => $log->user?->name ?? 'Superadmin',
-                'details' => $log->details,
-                'ip_address' => $log->ip_address,
-                'created_at' => $log->created_at?->diffForHumans() ?? '',
-            ]);
-
         $delegatedTenantId = session('delegated_tenant_id');
         $activeDelegation = $delegatedTenantId ? Tenant::find($delegatedTenantId) : null;
 
@@ -109,10 +45,45 @@ class SuperadminController extends Controller
             $activeConnections = 4;
         }
 
-        // 1. Realtime Incident & Error Detection Hub
+        $unresolvedIncidentsCount = SystemIncident::unresolved()->count();
+        $latestIncidentAlert = SystemIncident::unresolved()->latest()->first();
+
+        return Inertia::render('Superadmin/Dashboard', [
+            'tenantsCount' => Tenant::count(),
+            'usersCount' => User::count(),
+            'unresolvedIncidentsCount' => $unresolvedIncidentsCount,
+            'latestIncidentAlert' => $latestIncidentAlert ? [
+                'id' => $latestIncidentAlert->id,
+                'user_name' => $latestIncidentAlert->user_name ?? ($latestIncidentAlert->user?->name ?? 'Sistem'),
+                'url' => $latestIncidentAlert->url,
+                'status_code' => $latestIncidentAlert->status_code,
+                'message' => $latestIncidentAlert->message,
+                'time_ago' => $latestIncidentAlert->created_at?->diffForHumans() ?? 'Baru saja',
+            ] : null,
+            'backupsCount' => count($backupService->listBackups()),
+            'activeTokensCount' => SupportDelegationToken::where('expires_at', '>', now())->count(),
+            'activeTicketsCount' => SupportTicket::count(),
+            'activeDelegation' => $activeDelegation,
+            'serverStatus' => [
+                'uptime' => '99.98%',
+                'php_version' => PHP_VERSION,
+                'db_driver' => config('database.default'),
+                'active_connections' => $activeConnections,
+                'cluster_region' => 'ap-southeast-1 (Singapore)',
+            ],
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Realtime Incident & Bug Tracking Center page.
+     */
+    public function incidents(Request $request): Response
+    {
         $incidents = SystemIncident::with(['tenant:id,name', 'user:id,name,email'])
             ->orderBy('created_at', 'desc')
-            ->take(40)
+            ->take(50)
             ->get()
             ->map(fn ($inc) => [
                 'id' => $inc->id,
@@ -145,7 +116,33 @@ class SuperadminController extends Controller
         $unresolvedIncidentsCount = SystemIncident::unresolved()->count();
         $latestIncidentAlert = $incidents->firstWhere('status', '!==', 'resolved');
 
-        // 2. Standar Korporat Perbankan: Aktivitas Terakhir (Non-PII, Tanpa Isi Belanja)
+        return Inertia::render('Superadmin/Incidents', [
+            'incidents' => $incidents,
+            'unresolvedIncidentsCount' => $unresolvedIncidentsCount,
+            'latestIncidentAlert' => $latestIncidentAlert,
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Database Backups, Disaster Recovery & Data Portability page.
+     */
+    public function backups(Request $request, BackupService $backupService): Response
+    {
+        return Inertia::render('Superadmin/Backups', [
+            'backups' => $backupService->listBackups(),
+            'unresolvedIncidentsCount' => SystemIncident::unresolved()->count(),
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Corporate Banking Standard & Audit Observability page.
+     */
+    public function governance(Request $request): Response
+    {
         $recentOrders = Order::withoutGlobalScope(TenantScope::class)
             ->with(['tenant:id,name', 'outlet:id,name', 'cashier:id,name'])
             ->latest()
@@ -184,22 +181,10 @@ class SuperadminController extends Controller
                 'created_at' => $log->created_at?->format('d M Y, H:i:s'),
             ]);
 
-        $recentActivities = $recentOrders->concat($systemAuditLogs)->sortByDesc('created_at')->values()->take(25);
+        $recentActivities = $recentOrders->concat($systemAuditLogs)->sortByDesc('created_at')->values()->take(30);
 
-        return Inertia::render('Superadmin/Dashboard', [
-            'tenants' => $tenants,
-            'allUsers' => $allUsers,
-            'activeTokens' => $activeTokens,
-            'tickets' => $tickets,
-            'tenantUsers' => $tenantUsers,
-            'emergencyAuditLogs' => $emergencyAuditLogs,
-            'activeDelegation' => $activeDelegation,
-            'emergencyResult' => session('emergency_result'),
-            'incidents' => $incidents,
-            'unresolvedIncidentsCount' => $unresolvedIncidentsCount,
-            'latestIncidentAlert' => $latestIncidentAlert,
+        return Inertia::render('Superadmin/Governance', [
             'recentActivities' => $recentActivities,
-            'backups' => $backupService->listBackups(),
             'bankingGovernance' => [
                 'standard' => 'ISO/IEC 27001 & PCI-DSS Aligned Governance',
                 'financial_privacy' => 'STRICT_ENFORCED',
@@ -219,13 +204,120 @@ class SuperadminController extends Controller
                     'Dilarang memanipulasi saldo atau mutasi kas tanpa token delegasi resmi',
                 ],
             ],
-            'serverStatus' => [
-                'uptime' => '99.98%',
-                'php_version' => PHP_VERSION,
-                'db_driver' => config('database.default'),
-                'active_connections' => $activeConnections,
-                'cluster_region' => 'ap-southeast-1 (Singapore)',
-            ],
+            'unresolvedIncidentsCount' => SystemIncident::unresolved()->count(),
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Tenants Registry & License Management page.
+     */
+    public function tenants(Request $request): Response
+    {
+        $tenants = Tenant::withCount(['users', 'outlets', 'products'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'subdomain' => $t->subdomain,
+                'is_active' => (bool) $t->is_active,
+                'subscription_tier' => $t->subscription_tier ?? Tenant::TIER_ESSENTIAL,
+                'tier_label' => $t->getTierLabel(),
+                'max_outlets' => $t->max_outlets,
+                'max_staff' => $t->max_staff,
+                'enabled_modules' => $t->getEnabledModules(),
+                'users_count' => (int) $t->users_count,
+                'outlets_count' => (int) $t->outlets_count,
+                'products_count' => (int) $t->products_count,
+                'created_at' => $t->created_at?->format('d M Y'),
+            ]);
+
+        return Inertia::render('Superadmin/Tenants', [
+            'tenants' => $tenants,
+            'unresolvedIncidentsCount' => SystemIncident::unresolved()->count(),
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Global Users Directory page.
+     */
+    public function users(Request $request): Response
+    {
+        $allUsers = User::with(['tenant:id,name,subdomain', 'outlet:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'tenant_id' => $u->tenant_id,
+                'tenant_name' => $u->tenant?->name ?? 'Platform Core (Sovereign)',
+                'tenant_subdomain' => $u->tenant?->subdomain,
+                'outlet_id' => $u->outlet_id,
+                'outlet_name' => $u->outlet?->name ?? ($u->tenant_id ? 'Semua Outlet (HQ)' : '—'),
+                'created_at' => $u->created_at?->format('d M Y, H:i') ?? '—',
+                'is_superadmin' => $u->isSuperAdmin(),
+            ]);
+
+        $tenants = Tenant::select(['id', 'name', 'subdomain'])->orderBy('name')->get();
+
+        return Inertia::render('Superadmin/Users', [
+            'allUsers' => $allUsers,
+            'tenants' => $tenants,
+            'unresolvedIncidentsCount' => SystemIncident::unresolved()->count(),
+            'userName' => Auth::user()?->name ?? 'Master Superadmin',
+            'role' => Auth::user()?->role ?? 'superadmin',
+        ]);
+    }
+
+    /**
+     * Support Tickets & Delegations Management page.
+     */
+    public function tickets(Request $request): Response
+    {
+        $activeTokens = SupportDelegationToken::with(['creator', 'tenant'])
+            ->where('expires_at', '>', now())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $tickets = SupportTicket::with(['tenant', 'user', 'messages'])
+            ->latest()
+            ->take(30)
+            ->get();
+
+        $emergencyAuditLogs = AuditLog::withoutGlobalScope(TenantScope::class)
+            ->where('action', 'like', 'emergency.%')
+            ->with(['user:id,name,email', 'tenant:id,name'])
+            ->latest()
+            ->take(20)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'tenant_name' => $log->tenant?->name ?? 'Semua Tenant',
+                'admin_name' => $log->user?->name ?? 'Superadmin',
+                'details' => $log->details,
+                'ip_address' => $log->ip_address,
+                'created_at' => $log->created_at?->diffForHumans() ?? '',
+            ]);
+
+        $tenantUsers = User::whereNotNull('tenant_id')
+            ->select(['id', 'tenant_id', 'name', 'email'])
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Superadmin/Tickets', [
+            'tickets' => $tickets,
+            'activeTokens' => $activeTokens,
+            'emergencyAuditLogs' => $emergencyAuditLogs,
+            'tenantUsers' => $tenantUsers,
+            'emergencyResult' => session('emergency_result'),
+            'unresolvedIncidentsCount' => SystemIncident::unresolved()->count(),
             'userName' => Auth::user()?->name ?? 'Master Superadmin',
             'role' => Auth::user()?->role ?? 'superadmin',
         ]);

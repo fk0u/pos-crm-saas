@@ -147,10 +147,47 @@ class SuperAdminAccessTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Superadmin/Dashboard')
+            ->has('tenantsCount')
+            ->has('usersCount')
+            ->has('serverStatus')
+        );
+
+        $tenantsRes = $this->actingAs($superadmin)->get('/superadmin/tenants');
+        $tenantsRes->assertStatus(200);
+        $tenantsRes->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Tenants')
             ->has('tenants')
-            ->has('activeTokens')
+        );
+
+        $ticketsRes = $this->actingAs($superadmin)->get('/superadmin/tickets');
+        $ticketsRes->assertStatus(200);
+        $ticketsRes->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Tickets')
             ->has('tickets')
-            ->has('tenantUsers')
+            ->has('activeTokens')
+        );
+
+        $backupsRes = $this->actingAs($superadmin)->get('/superadmin/backups');
+        $backupsRes->assertStatus(200);
+        $backupsRes->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Backups')
+            ->has('backups')
+        );
+
+        $govRes = $this->actingAs($superadmin)->get('/superadmin/governance');
+        $govRes->assertStatus(200);
+        $govRes->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Governance')
+            ->has('bankingGovernance')
+            ->has('recentActivities')
+        );
+
+        $usersRes = $this->actingAs($superadmin)->get('/superadmin/users');
+        $usersRes->assertStatus(200);
+        $usersRes->assertInertia(fn ($page) => $page
+            ->component('Superadmin/Users')
+            ->has('allUsers')
+            ->has('tenants')
         );
     }
 
@@ -243,15 +280,13 @@ class SuperAdminAccessTest extends TestCase
         $this->assertEquals('open', $incident->status);
 
         // Superadmin views command center and inspects incident
-        $response = $this->actingAs($superadmin)->get('/superadmin');
+        $response = $this->actingAs($superadmin)->get('/superadmin/incidents');
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Superadmin/Dashboard')
+            ->component('Superadmin/Incidents')
             ->has('incidents')
             ->where('unresolvedIncidentsCount', 1)
             ->where('latestIncidentAlert.id', $incident->id)
-            ->has('bankingGovernance')
-            ->has('recentActivities')
         );
 
         // Superadmin resolves incident
