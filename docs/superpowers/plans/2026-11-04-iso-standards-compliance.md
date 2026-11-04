@@ -59,11 +59,11 @@
 - Create: `app/Console/Commands/VerifyBackupsCommand.php`
 - Test: `tests/Feature/BackupIntegrityTest.php`
 
-- [ ] Write failing test in `tests/Feature/BackupIntegrityTest.php` verifying that when a backup is created, an accompanying `.sha256` checksum is stored and verified.
-- [ ] Update `app/Services/BackupService.php` to compute and record `hash_file('sha256', $backupPath)` upon snapshot creation, storing it in snapshot metadata or alongside the file.
-- [ ] Implement `app/Console/Commands/VerifyBackupsCommand.php` (`php artisan system:backup-verify`) which checks the SHA-256 checksum and gzip archive validity of all retained snapshots.
-- [ ] Run `php artisan test --filter=BackupIntegrityTest` to confirm all assertions pass.
-- [ ] Commit with message: `feat(iso-22301): implement backup sha256 checksum generation and integrity verification command`.
+- [x] Write failing test in `tests/Feature/BackupIntegrityTest.php` verifying that when a backup is created, an accompanying `.sha256` checksum is stored and verified.
+- [x] Update `app/Services/BackupService.php` to compute and record `hash_file('sha256', $backupPath)` upon snapshot creation, storing it in snapshot metadata or alongside the file.
+- [x] Implement `app/Console/Commands/VerifyBackupsCommand.php` (`php artisan system:backup-verify`) which checks the SHA-256 checksum and gzip archive validity of all retained snapshots.
+- [x] Run `php artisan test --filter=BackupIntegrityTest` to confirm all assertions pass.
+- [x] Commit with message: `feat(iso-22301): implement backup sha256 checksum generation and integrity verification command`.
 
 ---
 
@@ -75,12 +75,12 @@
 - Modify: `app/Services/IncidentTracker.php`
 - Test: `tests/Unit/PiiSanitizerTest.php`
 
-- [ ] Write unit test `tests/Unit/PiiSanitizerTest.php` testing phone number masking (e.g. `081234567890` -> `0812****7890`), email masking (`user@example.com` -> `u***@example.com`), and credit/debit card masking.
-- [ ] Implement `app/Support/PiiSanitizer.php` with static methods `maskPhone(?string $phone)`, `maskEmail(?string $email)`, and `sanitizePayload(array $data)`.
-- [ ] Update `IncidentTracker::capture` to automatically pipe request payload parameters through `PiiSanitizer::sanitizePayload()` before writing to `system_incidents` table.
-- [ ] Update `AuditLog` logging helpers to ensure customer phone numbers or sensitive payload parameters are masked at recording time.
-- [ ] Run `php artisan test --filter=PiiSanitizerTest` to confirm tests pass.
-- [ ] Commit with message: `feat(iso-27701): implement pii sanitizer for audit logs and incident tracker`.
+- [x] Write unit test `tests/Unit/PiiSanitizerTest.php` testing phone number masking (e.g. `081234567890` -> `0812****7890`), email masking (`user@example.com` -> `u***@example.com`), and credit/debit card masking.
+- [x] Implement `app/Support/PiiSanitizer.php` with static methods `maskPhone(?string $phone)`, `maskEmail(?string $email)`, and `sanitizePayload(array $data)`.
+- [x] Update `IncidentTracker::capture` to automatically pipe request payload parameters through `PiiSanitizer::sanitizePayload()` before writing to `system_incidents` table.
+- [x] Update `AuditLog` logging helpers to ensure customer phone numbers or sensitive payload parameters are masked at recording time.
+- [x] Run `php artisan test --filter=PiiSanitizerTest` to confirm tests pass.
+- [x] Commit with message: `feat(iso-27701): implement pii sanitizer for audit logs and incident tracker`.
 
 ---
 
