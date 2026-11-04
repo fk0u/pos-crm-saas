@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\SystemIncident;
+use App\Support\PiiSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -46,7 +47,7 @@ class IncidentTracker
                 'tenant_id' => $tenantId,
                 'user_id' => $user?->id,
                 'user_name' => $user?->name,
-                'user_email' => $user?->email,
+                'user_email' => $user?->role === 'superadmin' ? $user?->email : PiiSanitizer::maskEmail($user?->email),
                 'user_role' => $user?->role,
                 'url' => $url,
                 'route_name' => $routeName,
