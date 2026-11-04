@@ -15,6 +15,7 @@ import {
   Sparkles,
   Bell,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   HelpCircle,
   FileQuestion,
@@ -32,6 +33,12 @@ import {
   UserCheck,
   UtensilsCrossed,
   ChefHat,
+  Activity,
+  Bug,
+  Database,
+  Landmark,
+  Terminal,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { ToastProvider } from '@/Components/ui/toast';
@@ -90,6 +97,31 @@ export function AppShell({
   const [currentHash, setCurrentHash] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('qlon_sidebar_collapsed');
+        return saved === 'true';
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('qlon_sidebar_collapsed', String(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,6 +144,21 @@ export function AppShell({
   }, []);
 
   const fullPath = typeof window !== 'undefined' ? `${window.location.pathname}${currentHash}` : url;
+
+  const isItemActive = (href: string) => {
+    if (href === '/dashboard') {
+      return fullPath === '/dashboard' || fullPath === '/dashboard#overview';
+    }
+    if (href === '/superadmin') {
+      return fullPath === '/superadmin';
+    }
+    if (href.includes('#')) {
+      const hashPart = href.slice(href.indexOf('#'));
+      return currentHash === hashPart;
+    }
+    return fullPath === href || fullPath.startsWith(href + '/');
+  };
+
   const user: AppUser = {
     name: userName,
     role: (role as any) || 'owner',
@@ -165,11 +212,17 @@ export function AppShell({
   const isSuperAdminUser = role === 'superadmin';
   const isDelegatedSuperAdmin = isSuperAdminUser && Boolean(selectedTenantId);
 
-  // For Superadmin who has not claimed a delegation token, show only sovereign platform menus
+  // For Superadmin who has not claimed a delegation token, show sovereign platform modular menus
   const navMenuItems = isSuperAdminUser && !isDelegatedSuperAdmin
     ? [
-        { href: '/superadmin', label: 'Pusat Pengaturan Sistem', icon: ShieldCheck },
-        { href: '/developer', label: 'Sambungan Luar & API', icon: Building2 },
+        { href: '/superadmin', label: 'Ikhtisar Platform', icon: Activity },
+        { href: '/superadmin/incidents', label: 'Deteksi Insiden & Bug', icon: Bug },
+        { href: '/superadmin/backups', label: 'Backup & Pemulihan', icon: Database },
+        { href: '/superadmin/governance', label: 'Tata Kelola Perbankan', icon: Landmark },
+        { href: '/superadmin/tenants', label: 'Penyewa Bisnis', icon: Building2 },
+        { href: '/superadmin/users', label: 'Direktori Pengguna', icon: Users },
+        { href: '/superadmin/tickets', label: 'Tiket & Delegasi', icon: MessageSquare },
+        { href: '/developer', label: 'Sambungan Luar & API', icon: Terminal },
       ]
     : [
         { href: '/dashboard', label: 'Dasbor', icon: LayoutDashboard },
@@ -213,26 +266,40 @@ export function AppShell({
           outletName={outletName}
         />
 
-        {/* DESKTOP & TABLET SIDEBAR (Wider w-72 xl:w-80 for high ergonomics & touch friendliness) */}
-        <aside className="w-72 xl:w-80 bg-white border-r border-slate-200/90 min-h-screen h-screen sticky top-0 flex flex-col justify-between p-5 xl:p-6 shrink-0 hidden lg:flex select-none z-30 shadow-xs">
+        {/* DESKTOP & TABLET SIDEBAR (Collapsible & Expandable) */}
+        <aside className={`${isSidebarCollapsed ? 'w-20 p-3.5' : 'w-72 xl:w-80 p-5 xl:p-6'} bg-white border-r border-slate-200/90 min-h-screen h-screen sticky top-0 flex flex-col justify-between shrink-0 hidden lg:flex select-none z-30 shadow-xs transition-[width,padding] duration-200`}>
           <div className="flex flex-col flex-1 overflow-y-auto pr-1">
             {/* Brand Header */}
-            <div className="flex items-center justify-between pb-6 mb-5 border-b border-slate-100">
-              <Link href="/dashboard" onClick={() => playTap()} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2b5c] rounded-xl p-1 -m-1">
-                <QlonLogo variant="full" size="md" subtitle="Event & Store POS" animated />
+            <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between'} pb-5 mb-4 border-b border-slate-100`}>
+              <Link
+                href={isSuperAdminUser ? '/superadmin' : '/dashboard'}
+                onClick={() => playTap()}
+                className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2b5c] rounded-xl p-1 -m-1"
+                title={isSidebarCollapsed ? 'QLon Workspace' : undefined}
+              >
+                <QlonLogo
+                  variant={isSidebarCollapsed ? 'icon' : 'full'}
+                  size={isSidebarCollapsed ? 'sm' : 'md'}
+                  subtitle={isSidebarCollapsed ? undefined : 'Event & Store POS'}
+                  animated
+                />
               </Link>
 
-              <div className="size-8 rounded-xl bg-slate-100 border border-slate-200/70 flex items-center justify-center text-slate-400">
-                <ChevronLeft className="size-4" />
-              </div>
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="size-8 rounded-xl bg-slate-100 hover:bg-slate-200/70 border border-slate-200/70 flex items-center justify-center text-slate-500 hover:text-slate-900 transition cursor-pointer active:scale-95"
+                title={isSidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
+                aria-label={isSidebarCollapsed ? 'Buka navigasi sidebar' : 'Tutup navigasi sidebar'}
+              >
+                {isSidebarCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+              </button>
             </div>
 
             {/* Navigation Menu with larger, comfortable touch-friendly targets */}
             <nav className="space-y-1.5" aria-label="Navigasi Utama">
               {navMenuItems.map((item) => {
-                const active =
-                  (item.href === '/dashboard' && (fullPath === '/dashboard' || fullPath === '/dashboard#overview')) ||
-                  (item.href !== '/dashboard' && (fullPath === item.href || (item.href.includes('#') && currentHash === item.href.slice(item.href.indexOf('#')))));
+                const active = isItemActive(item.href);
                 const Icon = item.icon;
 
                 return (
@@ -240,14 +307,17 @@ export function AppShell({
                     key={item.href}
                     href={item.href}
                     onClick={() => playTap()}
-                    className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2b5c] ${
+                    title={isSidebarCollapsed ? item.label : undefined}
+                    className={`flex items-center ${
+                      isSidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-3.5 px-4 py-3'
+                    } rounded-2xl text-sm font-semibold transition touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2b5c] ${
                       active
                         ? 'bg-[#0f2b5c] text-white shadow-md shadow-blue-950/20 translate-x-0.5'
                         : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/80 active:bg-slate-200/60'
                     }`}
                   >
                     <Icon className="size-5 shrink-0" />
-                    <span className="tracking-tight">{item.label}</span>
+                    {!isSidebarCollapsed && <span className="tracking-tight truncate">{item.label}</span>}
                   </Link>
                 );
               })}
@@ -265,10 +335,13 @@ export function AppShell({
                         playTap();
                         item.action();
                       }}
-                      className="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#0f2b5c] hover:bg-blue-50/70 transition cursor-pointer touch-manipulation"
+                      title={isSidebarCollapsed ? item.label : undefined}
+                      className={`w-full flex items-center ${
+                        isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3.5 px-4 py-2.5'
+                      } rounded-2xl text-xs font-semibold text-slate-600 hover:text-[#0f2b5c] hover:bg-blue-50/70 transition cursor-pointer touch-manipulation`}
                     >
                       <Icon className="size-4.5 shrink-0 text-[#0f2b5c]" />
-                      <span>{item.label}</span>
+                      {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
                     </button>
                   );
                 }
@@ -277,49 +350,65 @@ export function AppShell({
                     key={idx}
                     href={item.href!}
                     onClick={() => playTap()}
-                    className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition touch-manipulation"
+                    title={isSidebarCollapsed ? item.label : undefined}
+                    className={`flex items-center ${
+                      isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3.5 px-4 py-2.5'
+                    } rounded-2xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition touch-manipulation`}
                   >
                     <Icon className="size-4.5 shrink-0" />
-                    <span>{item.label}</span>
+                    {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          {/* Bottom Sidebar Box: Informasi Paket Usaha */}
-          <div className="mt-6 rounded-2xl bg-[#f8fafc] border border-slate-200/90 p-4">
-            <div className="flex items-center gap-2 mb-1 text-xs font-bold text-slate-900">
-              <Sparkles className="size-4 text-[#0f2b5c]" />
-              <span>Paket: {tenantData?.tier_label || 'Standar'}</span>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-3.5">
-              {tenantData?.max_outlets
-                ? `Maks ${tenantData.max_outlets} Cabang • ${tenantData.max_staff} Karyawan`
-                : 'Cabang & Karyawan Tanpa Batas'}
-            </p>
-            <div className="flex gap-2">
-              {onOpenTour && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    playTap();
-                    onOpenTour();
-                  }}
-                  className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer text-center"
-                >
-                  Panduan
-                </button>
-              )}
+          {/* Bottom Sidebar Box */}
+          {isSidebarCollapsed ? (
+            <div className="mt-4 flex flex-col items-center gap-2">
               <Link
                 href="/kasir"
                 onClick={() => playTap()}
-                className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold bg-[#0f2b5c] hover:bg-[#163a75] active:scale-95 text-white transition shadow-sm shadow-blue-950/20 text-center"
+                title="Buka Kasir POS"
+                className="size-11 rounded-2xl bg-[#0f2b5c] hover:bg-[#163a75] text-white flex items-center justify-center shadow-md shadow-blue-950/20 active:scale-95 transition"
               >
-                Buka Kasir
+                <ShoppingCart className="size-5" />
               </Link>
             </div>
-          </div>
+          ) : (
+            <div className="mt-6 rounded-2xl bg-[#f8fafc] border border-slate-200/90 p-4">
+              <div className="flex items-center gap-2 mb-1 text-xs font-bold text-slate-900">
+                <Sparkles className="size-4 text-[#0f2b5c]" />
+                <span>Paket: {tenantData?.tier_label || 'Standar'}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed mb-3.5">
+                {tenantData?.max_outlets
+                  ? `Maks ${tenantData.max_outlets} Cabang • ${tenantData.max_staff} Karyawan`
+                  : 'Cabang & Karyawan Tanpa Batas'}
+              </p>
+              <div className="flex gap-2">
+                {onOpenTour && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playTap();
+                      onOpenTour();
+                    }}
+                    className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer text-center"
+                  >
+                    Panduan
+                  </button>
+                )}
+                <Link
+                  href="/kasir"
+                  onClick={() => playTap()}
+                  className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold bg-[#0f2b5c] hover:bg-[#163a75] active:scale-95 text-white transition shadow-sm shadow-blue-950/20 text-center"
+                >
+                  Buka Kasir
+                </Link>
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* MAIN VIEWPORT AREA (Edge-to-edge Full Width) */}
@@ -584,7 +673,7 @@ export function AppShell({
 
                 <nav className="space-y-1.5" aria-label="Menu Mobile">
                   {navMenuItems.map((item) => {
-                    const active = fullPath === item.href;
+                    const active = isItemActive(item.href);
                     const Icon = item.icon;
                     return (
                       <Link
