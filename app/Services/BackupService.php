@@ -84,9 +84,17 @@ class BackupService
             $isAuto = str_contains($filename, '_auto_');
             $type = $isAuto ? 'Otomatis (Jadwal 01:00)' : 'Manual (Snapshot Superadmin)';
 
+            $sha256File = $file->getPathname().'.sha256';
+            $sha256 = File::exists($sha256File) ? trim(File::get($sha256File)) : hash_file('sha256', $file->getPathname());
+            $integrity = $this->verifyBackupIntegrity($filename);
+
             $backups[] = [
                 'filename' => $filename,
                 'path' => $file->getPathname(),
+                'sha256' => $sha256,
+                'sha256_short' => substr($sha256, 0, 12).'...',
+                'integrity_verified' => $integrity['is_valid'],
+                'integrity_status' => $integrity['status'],
                 'size' => $this->formatBytes($sizeBytes),
                 'size_bytes' => $sizeBytes,
                 'created_at' => $date->format('d M Y, H:i:s'),
@@ -197,6 +205,8 @@ class BackupService
         }
 
         File::put($filePath, $sql);
+        $sha256 = hash_file('sha256', $filePath);
+        File::put("{$filePath}.sha256", $sha256);
 
         // Record audit trail if user is authenticated
         if (Auth::check()) {
@@ -207,6 +217,7 @@ class BackupService
                 'action' => 'backup.created',
                 'details' => json_encode([
                     'filename' => $filename,
+                    'sha256' => $sha256,
                     'size' => $this->formatBytes(filesize($filePath)),
                     'type' => $type,
                 ]),
@@ -217,9 +228,65 @@ class BackupService
         return [
             'filename' => $filename,
             'path' => $filePath,
+            'sha256' => $sha256,
             'size' => $this->formatBytes(filesize($filePath)),
             'created_at' => Carbon::now()->format('d M Y, H:i:s'),
             'type' => $type,
+        ];
+    }
+
+    /**
+     * Verify the integrity of a backup file using SHA-256 (ISO 22301 standard).
+     */
+    public function verifyBackupIntegrity(string $filename): array
+    {
+        $safeFilename = basename($filename);
+        $filePath = "{$this->backupDir}/{$safeFilename}";
+
+        if (! File::exists($filePath)) {
+            return [
+                'filename' => $safeFilename,
+                'is_valid' => false,
+                'status' => 'FILE_NOT_FOUND',
+                'message' => "Berkas '{$safeFilename}' tidak ditemukan.",
+            ];
+        }
+
+        $size = filesize($filePath);
+        if ($size === 0) {
+            return [
+                'filename' => $safeFilename,
+                'is_valid' => false,
+                'status' => 'EMPTY_FILE',
+                'message' => "Berkas '{$safeFilename}' kosong (0 bytes).",
+            ];
+        }
+
+        $currentHash = hash_file('sha256', $filePath);
+        $checksumPath = "{$filePath}.sha256";
+
+        if (File::exists($checksumPath)) {
+            $expectedHash = trim(File::get($checksumPath));
+            if (! hash_equals($expectedHash, $currentHash)) {
+                return [
+                    'filename' => $safeFilename,
+                    'is_valid' => false,
+                    'status' => 'CHECKSUM_MISMATCH',
+                    'current_hash' => $currentHash,
+                    'expected_hash' => $expectedHash,
+                    'message' => "Checksum SHA-256 tidak cocok. Berkas backup korup atau telah dimodifikasi.",
+                ];
+            }
+        } else {
+            File::put($checksumPath, $currentHash);
+        }
+
+        return [
+            'filename' => $safeFilename,
+            'is_valid' => true,
+            'status' => 'VALID',
+            'sha256' => $currentHash,
+            'message' => "Integritas berkas terverifikasi valid (SHA-256).",
         ];
     }
 
@@ -234,6 +301,12 @@ class BackupService
 
         if (! File::exists($filePath)) {
             throw new \RuntimeException("Berkas backup '{$safeFilename}' tidak ditemukan.");
+        }
+
+        // Integrity Verification before restoration (ISO 22301)
+        $integrity = $this->verifyBackupIntegrity($safeFilename);
+        if (! $integrity['is_valid']) {
+            throw new \RuntimeException("Berkas backup korup atau tidak valid ({$integrity['status']}: {$integrity['message']}). Pemulihan dibatalkan demi keamanan sistem.");
         }
 
         $sql = File::get($filePath);

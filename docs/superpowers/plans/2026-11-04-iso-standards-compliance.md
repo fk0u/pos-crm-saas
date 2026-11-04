@@ -131,3 +131,4 @@
 - [ ] Push to `origin main`.
 - [ ] Deploy to VPS (`istanadev@157.10.161.42` at `/srv/www/production/pos-qlon`) via git pull and `php artisan optimize`.
 - [ ] Verify live site `https://qloop.id` via curl and browser test.
+

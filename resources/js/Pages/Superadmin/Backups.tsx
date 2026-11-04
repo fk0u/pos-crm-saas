@@ -26,6 +26,9 @@ export interface BackupItem {
   type: string;
   is_auto: boolean;
   extension: string;
+  sha256?: string;
+  sha256_short?: string;
+  integrity_verified?: boolean;
 }
 
 interface BackupsPageProps {
@@ -209,9 +212,17 @@ export default function BackupsPage({
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {backups.map((bk) => (
                     <tr key={bk.filename} className="hover:bg-slate-50/80">
-                      <td className="py-3.5 px-5 font-mono font-bold text-slate-900 flex items-center gap-2">
-                        <FileCode className="size-4 text-[#0f2b5c] shrink-0" />
-                        <span className="truncate">{bk.filename}</span>
+                      <td className="py-3.5 px-5 font-mono text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <FileCode className="size-4 text-[#0f2b5c] shrink-0" />
+                          <span className="font-bold truncate">{bk.filename}</span>
+                        </div>
+                        {bk.sha256_short && (
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+                            <span>SHA-256: {bk.sha256_short}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="font-mono font-bold text-slate-800">{bk.time_ago}</span>
