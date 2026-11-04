@@ -175,12 +175,7 @@ class SuperAdminAccessTest extends TestCase
         );
 
         $govRes = $this->actingAs($superadmin)->get('/superadmin/governance');
-        $govRes->assertStatus(200);
-        $govRes->assertInertia(fn ($page) => $page
-            ->component('Superadmin/Governance')
-            ->has('bankingGovernance')
-            ->has('recentActivities')
-        );
+        $govRes->assertRedirect('/superadmin');
 
         $usersRes = $this->actingAs($superadmin)->get('/superadmin/users');
         $usersRes->assertStatus(200);

@@ -51,12 +51,6 @@ export function SuperadminNav({
       icon: Database,
     },
     {
-      id: 'governance',
-      label: 'Tata Kelola Perbankan',
-      href: '/superadmin/governance',
-      icon: Landmark,
-    },
-    {
       id: 'tenants',
       label: 'Penyewa Bisnis',
       href: '/superadmin/tenants',

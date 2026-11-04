@@ -218,7 +218,6 @@ export function AppShell({
         { href: '/superadmin', label: 'Ikhtisar Platform', icon: Activity },
         { href: '/superadmin/incidents', label: 'Deteksi Insiden & Bug', icon: Bug },
         { href: '/superadmin/backups', label: 'Backup & Pemulihan', icon: Database },
-        { href: '/superadmin/governance', label: 'Tata Kelola Perbankan', icon: Landmark },
         { href: '/superadmin/tenants', label: 'Penyewa Bisnis', icon: Building2 },
         { href: '/superadmin/users', label: 'Direktori Pengguna', icon: Users },
         { href: '/superadmin/tickets', label: 'Tiket & Delegasi', icon: MessageSquare },

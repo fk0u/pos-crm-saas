@@ -173,7 +173,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
         Route::get('/superadmin/incidents', [SuperadminController::class, 'incidents'])->name('superadmin.incidents');
         Route::get('/superadmin/backups', [SuperadminController::class, 'backups'])->name('superadmin.backups');
-        Route::get('/superadmin/governance', [SuperadminController::class, 'governance'])->name('superadmin.governance');
+        Route::redirect('/superadmin/governance', '/superadmin');
         Route::get('/superadmin/tenants', [SuperadminController::class, 'tenants'])->name('superadmin.tenants');
         Route::get('/superadmin/users', [SuperadminController::class, 'users'])->name('superadmin.users');
         Route::get('/superadmin/tickets', [SuperadminController::class, 'tickets'])->name('superadmin.tickets');

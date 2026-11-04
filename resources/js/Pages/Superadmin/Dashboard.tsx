@@ -79,16 +79,6 @@ export default function SuperadminOverview({
       color: 'hover:border-blue-300',
     },
     {
-      title: 'Tata Kelola Korporat Perbankan',
-      desc: 'Kepatuhan standar ISO 27001 & PCI-DSS: proteksi kerahasiaan keranjang belanja dan live audit trail.',
-      href: '/superadmin/governance',
-      icon: Landmark,
-      badge: 'Zero-Knowledge Active',
-      badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      actionText: 'Lihat Audit & Standarisasi',
-      color: 'hover:border-indigo-300',
-    },
-    {
       title: 'Direktori Penyewa Bisnis (Tenants)',
       desc: 'Manajemen paket layanan (Core, Essential, Full), kuota outlet, dan status operasional merchant.',
       href: '/superadmin/tenants',
