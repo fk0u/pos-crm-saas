@@ -14,13 +14,16 @@ use App\Models\SystemIncident;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Scopes\TenantScope;
+use App\Services\BackupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SuperadminController extends Controller
 {
@@ -28,7 +31,7 @@ class SuperadminController extends Controller
      * Superadmin Platform Command Center.
      * Monitors servers, subscriptions, tenants, and active delegation tokens.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, BackupService $backupService): Response
     {
         $tenants = Tenant::withCount(['users', 'outlets', 'products'])
             ->orderBy('created_at', 'desc')
@@ -196,6 +199,7 @@ class SuperadminController extends Controller
             'unresolvedIncidentsCount' => $unresolvedIncidentsCount,
             'latestIncidentAlert' => $latestIncidentAlert,
             'recentActivities' => $recentActivities,
+            'backups' => $backupService->listBackups(),
             'bankingGovernance' => [
                 'standard' => 'ISO/IEC 27001 & PCI-DSS Aligned Governance',
                 'financial_privacy' => 'STRICT_ENFORCED',
@@ -487,6 +491,92 @@ class SuperadminController extends Controller
         SystemIncident::where('status', 'resolved')->delete();
 
         return redirect()->back()->with('success', 'Daftar insiden yang sudah selesai berhasil dibersihkan.');
+    }
+
+    /**
+     * Create an instant manual snapshot backup.
+     */
+    public function createBackup(Request $request, BackupService $backupService): RedirectResponse
+    {
+        try {
+            $backup = $backupService->createBackup('manual');
+
+            return redirect()->back()->with('success', "Snapshot backup '{$backup['filename']}' ({$backup['size']}) berhasil dibuat.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['backup' => "Gagal membuat backup: {$e->getMessage()}"]);
+        }
+    }
+
+    /**
+     * Download a backup snapshot file.
+     */
+    public function downloadBackup(string $filename): BinaryFileResponse|RedirectResponse
+    {
+        $safeFilename = basename($filename);
+        $filePath = storage_path("app/backups/{$safeFilename}");
+
+        if (! File::exists($filePath)) {
+            return redirect()->back()->withErrors(['backup' => "Berkas backup '{$safeFilename}' tidak ditemukan."]);
+        }
+
+        return response()->download($filePath, $safeFilename);
+    }
+
+    /**
+     * Restore system from an existing backup snapshot.
+     */
+    public function restoreBackup(Request $request, string $filename, BackupService $backupService): RedirectResponse
+    {
+        try {
+            $result = $backupService->restoreBackup($filename);
+
+            return redirect()->back()->with('success', $result['message']);
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['backup' => "Gagal memulihkan sistem: {$e->getMessage()}"]);
+        }
+    }
+
+    /**
+     * Export platform-wide data for Superadmin in SQL, CSV, or XLSX format.
+     */
+    public function exportData(Request $request, string $format, BackupService $backupService): BinaryFileResponse|RedirectResponse
+    {
+        if (! in_array($format, ['sql', 'csv', 'xlsx'])) {
+            return redirect()->back()->withErrors(['export' => 'Format ekspor tidak valid.']);
+        }
+
+        try {
+            $export = $backupService->exportData($format);
+
+            return response()->download($export['path'], $export['filename'])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['export' => "Gagal mengekspor data: {$e->getMessage()}"]);
+        }
+    }
+
+    /**
+     * Export tenant-specific data takeout for clients when subscription ends or for portability.
+     */
+    public function exportTenantTakeout(Request $request, string $format, BackupService $backupService): BinaryFileResponse|RedirectResponse
+    {
+        if (! in_array($format, ['sql', 'csv', 'xlsx'])) {
+            return redirect()->back()->withErrors(['export' => 'Format ekspor tidak valid.']);
+        }
+
+        $user = Auth::user();
+        $tenantId = $user?->tenant_id;
+
+        if (! $tenantId && ! $user?->isSuperAdmin()) {
+            return redirect()->back()->withErrors(['export' => 'Tidak ada tenant bisnis aktif yang terasosiasi.']);
+        }
+
+        try {
+            $export = $backupService->exportData($format, $tenantId);
+
+            return response()->download($export['path'], $export['filename'])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['export' => "Gagal mengekspor data takeout: {$e->getMessage()}"]);
+        }
     }
 }
 

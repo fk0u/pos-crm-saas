@@ -66,3 +66,4 @@ class SystemIncident extends Model
         return $query->whereIn('status', ['open', 'investigating']);
     }
 }
+

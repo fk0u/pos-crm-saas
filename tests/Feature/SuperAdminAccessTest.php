@@ -271,5 +271,58 @@ class SuperAdminAccessTest extends TestCase
         $clearRes->assertRedirect();
         $this->assertDatabaseMissing('system_incidents', ['id' => $incident->id]);
     }
+
+    public function test_superadmin_can_create_download_and_export_backups(): void
+    {
+        $superadmin = User::create([
+            'tenant_id' => null,
+            'name' => 'Platform Superadmin',
+            'email' => 'superadmin@qlon.id',
+            'password' => bcrypt('password123'),
+            'role' => 'superadmin',
+        ]);
+
+        // 1. Create backup via controller
+        $createRes = $this->actingAs($superadmin)->post('/superadmin/backups/create');
+        $createRes->assertRedirect();
+        $createRes->assertSessionHas('success');
+
+        $backupService = app(\App\Services\BackupService::class);
+        $backups = $backupService->listBackups();
+        $this->assertNotEmpty($backups);
+
+        $firstBackup = $backups[0];
+
+        // 2. Download backup
+        $downloadRes = $this->actingAs($superadmin)->get("/superadmin/backups/{$firstBackup['filename']}/download");
+        $downloadRes->assertStatus(200);
+
+        // 3. Export data in SQL, CSV, and XLSX
+        $sqlRes = $this->actingAs($superadmin)->get('/superadmin/export/sql');
+        $sqlRes->assertStatus(200);
+
+        $csvRes = $this->actingAs($superadmin)->get('/superadmin/export/csv');
+        $csvRes->assertStatus(200);
+
+        $xlsxRes = $this->actingAs($superadmin)->get('/superadmin/export/xlsx');
+        $xlsxRes->assertStatus(200);
+    }
+
+    public function test_backup_retention_policy_cleans_files_older_than_3_days(): void
+    {
+        $backupService = app(\App\Services\BackupService::class);
+        $backupDir = storage_path('app/backups');
+
+        $oldFile = "{$backupDir}/qlon_backup_auto_old_dummy.sql";
+        \Illuminate\Support\Facades\File::put($oldFile, '-- old backup dummy');
+        touch($oldFile, now()->subDays(4)->getTimestamp());
+
+        $this->assertTrue(\Illuminate\Support\Facades\File::exists($oldFile));
+
+        // Run pruning with 3 days limit
+        $deleted = $backupService->pruneOldBackups(3);
+        $this->assertGreaterThanOrEqual(1, $deleted);
+        $this->assertFalse(\Illuminate\Support\Facades\File::exists($oldFile));
+    }
 }
 

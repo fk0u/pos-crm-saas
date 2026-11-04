@@ -180,6 +180,17 @@ Route::middleware(['auth'])->group(function (): void {
         Route::post('/superadmin/tickets/{id}/resolve', [SuperadminController::class, 'resolveSupportTicket'])->name('superadmin.tickets.resolve');
         Route::post('/superadmin/incidents/{id}/resolve', [SuperadminController::class, 'resolveIncident'])->name('superadmin.incidents.resolve');
         Route::post('/superadmin/incidents/clear-resolved', [SuperadminController::class, 'clearResolvedIncidents'])->name('superadmin.incidents.clear_resolved');
+
+        // Enterprise Backup & Recovery & Full Data Export
+        Route::post('/superadmin/backups/create', [SuperadminController::class, 'createBackup'])->name('superadmin.backups.create');
+        Route::get('/superadmin/backups/{filename}/download', [SuperadminController::class, 'downloadBackup'])->name('superadmin.backups.download');
+        Route::post('/superadmin/backups/{filename}/restore', [SuperadminController::class, 'restoreBackup'])->name('superadmin.backups.restore');
+        Route::get('/superadmin/export/{format}', [SuperadminController::class, 'exportData'])->name('superadmin.export');
+    });
+
+    // Tenant Self-Service Data Takeout (Owner & Manager can export their business data anytime)
+    Route::middleware(['role:owner,manager,superadmin'])->group(function (): void {
+        Route::get('/tenant/takeout/{format}', [SuperadminController::class, 'exportTenantTakeout'])->name('tenant.takeout');
     });
 });
 
